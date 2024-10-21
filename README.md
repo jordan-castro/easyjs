@@ -49,6 +49,141 @@ Or you can inline the .ej file
 In this approach our wasm runtime will take care of transcribing it in REALTIME.
 The above approach should really be used only for debugging.
 
+**Fibonacci**
+```rust
+fn fibonacci(n) { // <-- easyJS is dynamically typed with (optinal typing).
+    if n == 0 {
+        return 0 // <-- easyJS has an optional return keyword
+    } else if n == 1 {
+        1
+    } else {
+        fibonacci(n - 1) + fibonacci(n - 2)
+    }
+}
+```
+VS the JavaScript equivalent
+```javascript
+const fibonacci = (n) => {
+    if (n === 0) {
+        return 0;
+    } else if (n === 1) {
+        return 1;
+    } else {
+        return fibonacci(n - 1) + fibonacci(n - 2);
+    }
+}
+
+```
+**Manipulating the DOM**
+```rust
+title := get_element_by_tag("title")
+title.text = "Hello World!"
+```
+VS the JavaScript equivalent
+```javascript
+const title = document.getElementsByTagName("title")[0];
+title.text = "Hello World!"
+```
+
+**Making a GET request**
+```rust
+import http // <-- import the easyjs http library
+
+get_response := http.get("https://jsonplaceholder.typicode.com/posts/1")
+get_response.if { // <-- Conditional on object type.
+    .status_code == 200 { // <-- if get_response.status_code == 200 (you also can use .ok which does the same thing)
+        print(.json())
+    } else {
+        throw(NetworkError) // <-- You can also use a general Error(msg)
+    }
+}
+
+```
+VS the JavaScript equivalent
+```javascript
+fetch('https://jsonplaceholder.typicode.com/posts/1')
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json(); // Parse the response as JSON
+    })
+    .then(data => {
+        console.log(data); // Handle the JSON data here
+    })
+    .catch(error => {
+        console.error('There was a problem with the fetch operation:', error);
+    });
+```
+**Classes and objects**
+```rust
+struct Person {
+    pub name::string // <-- Optinal typing
+    pub age // <-- struct properties are private by default.
+    diary::array[string] // <-- This property is private and is an array of strings.
+
+    pub fn _new(name, age, diary) {} // <-- If using the same name as the struct property it will be set automatically.
+
+    pub fn say_greeting() {
+        print("Hello, my name is $name") // <-- Example of string interpolation. No need for ``
+    }
+
+    fn read_diary() { // <-- struct functions are private by default.
+        diary.for(item) { // <-- foreach loop.
+            print(item)
+        }
+    }
+}
+
+// You also have the option of a methodless struct for holding data
+struct PersonData {
+    pub name
+    pub age
+    pub diary
+}
+
+// To instantiate a Person
+person := Person("Jordan", 22, ["Dear Diary", "I love Julia!", "I also love EasyJS!"])
+
+// To instantiate a PersonData
+person_data := PersonData("Evelyn", 19, ["Dear Diary", "I saw that Jordan loves a girl named Julia!", "Who is she???"])
+```
+VS the JavaScript equivalent
+```javascript
+class Person {
+    constructor(name, age, diary) {
+        this.name = name;   // Name of the person
+        this.age = age;     // Age of the person
+        this.diary = diary; // List of strings for the diary
+    }
+
+    // Public method to say a greeting
+    sayGreeting() {
+        console.log(`Hello, my name is ${this.name}`);
+    }
+
+    // Private method to read the diary
+    #readDiary() {
+        this.diary.forEach((entry, index) => {
+            console.log(`Diary entry ${index + 1}: ${entry}`);
+        });
+    }
+}
+
+// A object in JS
+function PersonData(name, age, diary) {
+    this.name = name;
+    this.age = age;
+    this.diary = diary;
+}
+
+// To instantiate a Person
+const person = new Person("Jordan", 22, ["Dear Diary...", "..."])
+
+// To instantiate a PersonData
+const personData = new PersonData("Evelyn", 19, ["Dear Diary", "..."])
+```
+
 ## I think the main thing is
 EasyJS is only meant to be used in the browser. It is not general purpose and is meant only to be used within the browser.
 I can not stress this enough. It is only meant to be used within the browser. 
