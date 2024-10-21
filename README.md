@@ -182,6 +182,22 @@ const person = new Person("Jordan", 22, ["Dear Diary...", "..."])
 
 // To instantiate a PersonData
 const personData = new PersonData("Evelyn", 19, ["Dear Diary", "..."])
+
+```
+**Variables**
+```rust
+const_var := "some data" // <-- This is a const string variable. consts are typed automatically.
+var = "other data" // <-- This is a mutable string variable.
+typed_var::string = "more data" // <-- This is how you would type a variable.
+global var = "a global string" // <-- This is a dynamic global mutable variable.
+global static_var::string = "a static global string" // <-- This is a static global mutable variable.
+```
+VS the JavaScript equivalent
+```javascript
+const constVar = "some data"     // JS equivalent
+let variable = "other data"      // JS equivalent
+                                 // no typed option...
+var variable = "a global string" // global variable equivalent
 ```
 
 ## I think the main thing is

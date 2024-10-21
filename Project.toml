@@ -1,2 +1,3 @@
 [deps]
 AppBundler = "40eb83ae-c93a-480c-8f39-f018b568f472"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
