@@ -41,7 +41,15 @@ function nexttoken!(l::Lex)
     elseif cc == "="
         type = TK.ASSIGN
     elseif cc == ":"
-        type = TK.COLON
+        # check the next char
+        next_char = l.Input[l.ReadPosition]
+        type = TK.lookupColonSpecial(string(cc, next_char))
+
+        if type != TK.COLON
+            custom_literal = cc * next_char
+            # go to next char after special
+            readchar!(l)
+        end
     elseif cc == "\\"
         type = TK.LOGICAL_LINE_BREAK
     elseif cc == "\n"
@@ -73,7 +81,9 @@ function readidentifier!(l::Lex)
         readchar!(l)
     end
 
-    return l.Input[position:l.Position - 1]
+    # Set read position . We do this because arrays in julia are 1 based.
+    l.ReadPosition = l.Position
+    return l.Input[position:l.Position-1]
 end
 
 function readnumber!(l::Lex)
@@ -81,7 +91,7 @@ function readnumber!(l::Lex)
     while isdigit(l.CurrentChar)
         readchar!(l)
     end
-    return l.Input[position:l.Position - 1]
+    return l.Input[position:l.Position-1]
 end
 
 function skipwhitespace!(l::Lex)

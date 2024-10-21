@@ -19,14 +19,13 @@ readalltokens("
     x = 1
     y = 2
 
+    z := 3
+
     fn test() {
-    
+
     }
 
-    struct Person {
-    }
-
-    z = x + y
+    n::int = x + y + z
 ")
 
 end

@@ -34,6 +34,10 @@ const COMMA = ","
 const LINE_BREAK = "\n"
 const LOGICAL_LINE_BREAK = "\\" # '\'
 
+# Specials
+const TYPE = "TYPE"
+const CONST_ASSIGNMENT = "CONST_ASSIGNMENT"
+
 const L_PAREN = "("
 const R_PAREN = ")"
 const L_BRACE = "{"
@@ -46,9 +50,9 @@ const STRUCT = "STRUCT"
 
 
 ## specials
-const specials = Dict(
-    "\n" => LINE_BREAK,
-    "\\" => LOGICAL_LINE_BREAK
+const colon_specials = Dict(
+    "::" => TYPE,
+    ":=" => CONST_ASSIGNMENT
 )
 
 ## Keywords map
@@ -59,20 +63,11 @@ const keywords = Dict(
 )
 
 function lookupIndent(ident::String)
-    for keyword in keywords
-        if keyword.first == ident
-            return keyword.second
-        end
-    end
-    return IDENT
+    return get(keywords, ident, IDENT)
 end
 
-function lookupSpecial(speci::String)
-    for special in specials
-        if special.first == speci
-            return special.second
-        end
-    end
+function lookupColonSpecial(speci::String)
+    return get(colon_specials, speci, COLON)
 end
 
 end
