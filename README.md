@@ -25,12 +25,12 @@ fn bar() {
 }
 ```
 You can compile this using our easyjs CLI.
-`easyjs compile file.ejs` --> this will transcribe to a file.min.js
+`easyjs compile file.ej` --> this will transcribe to a file.min.js
 
-Or you can inline the .ejs file
+Or you can inline the .ej file
 ```html
 <head>
-    <script src="file.ejs" type="easyjs"></script>
+    <script src="file.ej" type="easyjs"></script>
     <!-- OR -->
     <script type="easyjs">
         fn foo() {
