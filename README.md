@@ -185,7 +185,7 @@ const personData = new PersonData("Evelyn", 19, ["Dear Diary", "..."])
 
 ```
 **Variables**
-```rust
+```python
 const_var := "some data" // <-- This is a const string variable. consts are typed automatically.
 var = "other data" // <-- This is a mutable string variable.
 typed_var::string = "more data" // <-- This is how you would type a variable.
