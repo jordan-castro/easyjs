@@ -5,6 +5,9 @@ Using a modern like syntax to interact FULLY and ONLY with the DOM.
 Transpiled means that it goes from one language to another, it is not compiled nor interperted. It goes from EasyJS to JS. 
 Similar to CofeeScript and TypeScript. The main difference being that it is an easy to use language.
 
+[! WARNING] 
+This language is not ready to be used. We are not even on version 0.0.1 yet.
+
 ## Why did I make this?
 I made this because frankly I dislike working in vanilla JS. And TS just adds to much boilerpate. Too much unecessary boilerplate. So this idea came to mind.
 The first few versions of EasyJS will probably be extremely slow and very basic. It's probably not going to work very well to be honest (at first).

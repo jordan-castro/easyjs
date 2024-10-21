@@ -31,3 +31,4 @@ const R_BRACE = "}"
 
 # Keywords
 const FUNCTION = "FUNCTION"
+const IMPORT = "IMPORT"
