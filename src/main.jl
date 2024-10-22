@@ -2,6 +2,7 @@
 # This language is made to ONLY work on the client side (via browser).
 module EasyJS
 
-include("lexer/ast.jl")
+include("repl/repl.jl")
+REPL.start()
 
 end

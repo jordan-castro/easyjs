@@ -26,8 +26,8 @@ Read the current Input[ReadPosition] character.
 Will update `Position` and `ReadPosition`.
 """
 function readchar!(lex::Lex)
-    if lex.ReadPosition >= length(lex.Input)
-        lex.CurrentChar = ' '
+    if lex.ReadPosition > length(lex.Input)
+        lex.CurrentChar = '\0'
     else
         lex.CurrentChar = lex.Input[lex.ReadPosition]
     end
@@ -42,59 +42,89 @@ function nexttoken!(l::Lex)
     # skip the whistepace
     skipwhitespace!(l)
 
-    # to not have to instance a TK.Token struct every condition
+    if l.CurrentChar == '\0'
+        return newtoken(EOF, "EOF")
+    end
+
+    # to not have to instance a Token struct every condition
     type::String = ""
     # Sometimes we need to use a literal that is greater than just the current char
     custom_literal = ""
     # parse to string.
     cc = string(l.CurrentChar)
     if cc == "="
-        type = TK.ASSIGN
+        if peakchar(l) == '='
+            type = EQ
+            custom_literal = cc * '='            
+            readchar!(l)
+        else
+            type = ASSIGN
+        end
     elseif cc == "+"
-        type = TK.PLUS
+        type = PLUS
     elseif cc == "{"
-        type = TK.L_BRACE
+        type = L_BRACE
     elseif cc == "}"
-        type = TK.R_BRACE
+        type = R_BRACE
     elseif cc == "("
-        type = TK.L_PAREN
+        type = L_PAREN
     elseif cc == ")"
-        type = TK.R_PAREN
+        type = R_PAREN
+    elseif cc == "\\"
+        type = LOGICAL_LINE_BREAK
+    elseif cc == "\n"
+        type = LINE_BREAK
+    elseif cc == ","
+        type = COMMA
+    elseif cc == "-"
+        type = MINUS
+    elseif cc == "!"
+        if peakchar(l) == '='
+            type = NOT_EQ
+            custom_literal = cc * '='
+            readchar!(l)
+        else
+            type = BANG
+        end
+    elseif cc == "/"
+        type = SLASH
+    elseif cc == "*"
+        type = ASTERISK
+    elseif cc == "<"
+        type = LT
+    elseif cc == ">"
+        type = GT
     elseif cc == ":"
         # check the next char
-        next_char = l.Input[l.ReadPosition]
-        type = TK.lookupColonSpecial(string(cc, next_char))
+        next_char = peakchar(l)
+        type = lookupColonSpecial(string(cc, next_char))
         
         # if the type is not a COLON, we have a special colon.
-        if type != TK.COLON
+        if type != COLON
             custom_literal = cc * next_char
             # go to next char after special
             readchar!(l)
         end
-    elseif cc == "\\"
-        type = TK.LOGICAL_LINE_BREAK
-    elseif cc == "\n"
-        type = TK.LINE_BREAK
     else
         # check Identifiers
         if isletter(l.CurrentChar)
             # read the identifier
             custom_literal = readidentifier!(l)
             # get the currect type
-            type = TK.lookupIndent(custom_literal)
+            type = lookupIndent(custom_literal)
         elseif isdigit(l.CurrentChar)
-            type = TK.INT
+            type = INT
             # read the number
             custom_literal = readnumber!(l)
         else
-            type = TK.ILLEGAL
+            type = ILLEGAL
         end
     end
 
     # set the correct literal
     lit = length(custom_literal) > 0 ? custom_literal : cc
 
-    token = TK.newtoken(type, lit)
+    token = newtoken(type, lit)
     # move next.
     readchar!(l)
 
@@ -132,8 +162,34 @@ end
 We don't care about whitespace. Except for \n
 """
 function skipwhitespace!(l::Lex)
-    while string(l.CurrentChar) == " " || string(l.CurrentChar) == "\t" || string(l.CurrentChar) == "\r"
+    while (l.CurrentChar == ' ' || l.CurrentChar == '\t' || l.CurrentChar == '\r') && l.CurrentChar != 0
         readchar!(l)
     end
 end
+
+"""
+Peak at the next upcoming character in Input.
+"""
+function peakchar(l::Lex):Char
+    if l.ReadPosition >= length(l.Input)
+        return 0
+    end
+    return l.Input[l.ReadPosition]
+end
+
+"""
+Read all tokens from a input...
+"""
+function readalltokens(input::String)
+    lex = Lexer.Lex(input, 0, 1, ' ')
+    tokens = []
+
+    while lex.ReadPosition <= length(input)
+        push!(tokens, Lexer.nexttoken!(lex))
+    end
+
+    return tokens
+end
+
+
 end

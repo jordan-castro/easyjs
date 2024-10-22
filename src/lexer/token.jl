@@ -1,4 +1,3 @@
-module TK
 
 """
 Our Token type object.
@@ -31,6 +30,16 @@ const BOOLEAN = "BOOLEAN"
 const ASSIGN = "="
 const COLON = ":"
 const PLUS = "+"
+const MINUS = "-"
+const BANG = "!"
+const ASTERISK = "*"
+const SLASH = "/"
+const LT = "<"
+const GT = ">"
+const EQ = "=="
+const NOT_EQ = "!="
+const GT_OR_EQ = ">="
+const LT_OR_EQ = "<="
 
 # Delimiters
 const COMMA = ","
@@ -50,6 +59,12 @@ const R_BRACE = "}"
 const FUNCTION = "FUNCTION"
 const IMPORT = "IMPORT"
 const STRUCT = "STRUCT"
+const TRUE = "TRUE"
+const FALSE = "FALSE"
+const IF = "IF"
+const ELSE = "ELSE"
+const ELSEIF = "ELSEIF"
+const RETURN = "RETURN"
 
 
 ## specials
@@ -62,7 +77,13 @@ const colon_specials = Dict(
 const keywords = Dict(
     "fn" => FUNCTION,
     "struct" => STRUCT,
-    "import" => IMPORT
+    "import" => IMPORT,
+    "true" => TRUE,
+    "false" => FALSE,
+    "if" => IF,
+    "else" => ELSE,
+    "elseif" => ELSEIF,
+    "return" => RETURN
 )
 
 """
@@ -79,4 +100,6 @@ function lookupColonSpecial(speci::String)
     return get(colon_specials, speci, COLON)
 end
 
+function pretty(token::Token)
+    println("Type: " * token.Type * " Literal: " * token.Literal)
 end

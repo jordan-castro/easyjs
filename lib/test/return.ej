@@ -1,0 +1,8 @@
+fn add(x) {
+    x += 1
+    x
+}
+
+fn void_return() {
+    x = 10
+}
