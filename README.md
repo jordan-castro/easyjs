@@ -1,6 +1,6 @@
 # EasyJS
 EasyJS is a new transpiled programming language which makes it easy to write web applications easily and naturally. 
-Using a modern like syntax to interact FULLY and ONLY with the DOM. 
+Using a modern like syntax to interact FULLY with the DOM, server, and anywhere else that JS runs. 
 
 Transpiled means that it goes from one language to another, it is not compiled nor interperted. It goes from EasyJS to JS. 
 Similar to CofeeScript and TypeScript. The main difference being that it is an easy to use language.
@@ -13,8 +13,18 @@ I made this because frankly I dislike working in vanilla JS. And TS just adds to
 The first few versions of EasyJS will probably be extremely slow and very basic. It's probably not going to work very well to be honest (at first).
 
 ## How to use
-You have many different options to use. You can precompile it before adding it to the browser. 
-Or run inline using WASM. <-- This approach while cool is really only meant for quick debugging.
+You have many different options to use. 
+
+**Compile:**
+You can compile easyJS to min.js to run on the browser, server, etc.
+
+**Script tag:**
+You can use a `<script type="easyjs">` tag in the browser to inline the easyJS. <-- This requires the easyjs wasm runtime.
+
+You can use a `<script src="source.min.js">` tag in the browser.
+
+**When compiling**
+you can compile to either JS (the default) or to TS (TypeScript) using `--typed`
 
 ### Examples
 Imagine you have a EasyJS file like so:
@@ -47,7 +57,6 @@ Or you can inline the .ej file
 </head>
 ```
 In this approach our wasm runtime will take care of transcribing it in REALTIME.
-The above approach should really be used only for debugging.
 
 **Fibonacci**
 ```rust
@@ -76,7 +85,9 @@ const fibonacci = (n) => {
 ```
 **Manipulating the DOM**
 ```rust
-title := get_element_by_tag("title")
+import dom
+
+title := dom.get_element_by_tag("title")
 title.text = "Hello World!"
 ```
 VS the JavaScript equivalent
@@ -201,8 +212,15 @@ var variable = "a global string" // global variable equivalent
 ```
 
 ## I think the main thing is
-EasyJS is only meant to be used in the browser. It is not general purpose and is meant only to be used within the browser.
-I can not stress this enough. It is only meant to be used within the browser. 
+I'm building EasyJS to run wherever JavaScript runs, this is because it transpiles into js. That means you could in theory use it with node, bun, deno, on the browser, apps, ect. The whole idea is to make an easier, modern, intuitive language that replaces nasty JS.
+
+## What's wrong with JS?
+A lot of things, but to get started the main things which every JS developer will mention
+ hard to read syntax, easily error prone, no types, and strange behavior. EasyJs is focused on fixing 3 of these headaches.
+ 1. Easy to read and modern syntax.
+ 2. Catches errors before it hits the runtime.
+ 3. Optional typing.
+
 
 ## How I see this going
 I see EasyJS being used in place of JS/TS in a lot of places. It will be easier and faster to use the intuitve syntax of EasyJS to write
