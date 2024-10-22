@@ -8,6 +8,9 @@ struct Token
     Literal::String
 end
 
+"""
+Create a new token on the fly.
+"""
 function newtoken(type::String, literal::String):Token
     return Token(type, literal)
 end
@@ -62,10 +65,16 @@ const keywords = Dict(
     "import" => IMPORT
 )
 
+"""
+Lookup helper for the identifiers.
+"""
 function lookupIndent(ident::String)
     return get(keywords, ident, IDENT)
 end
 
+"""
+Lookup helper for the colon specials.
+"""
 function lookupColonSpecial(speci::String)
     return get(colon_specials, speci, COLON)
 end
