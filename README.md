@@ -8,9 +8,11 @@ Similar to CofeeScript and TypeScript. The main difference being that it is an e
 > [!WARNING]  
 > This language is not ready to be used. We are not even on version 0.0.1 yet.
 
-## Why did I make this?
-I made this because frankly I dislike working in vanilla JS. And TS just adds to much boilerpate. Too much unecessary boilerplate. So this idea came to mind.
-The first few versions of EasyJS will probably be extremely slow and very basic. It's probably not going to work very well to be honest (at first).
+## Why EasyJS?
+At my last job, I worked with a product that would track user engagement on websites and apps. At this job I realized how common it was for people to not know
+how JavaScript works and get lost in it's syntax. At the same time, I simply dislike working in vanilla JS. And TS just adds to much boilerpate. Too much unecessary boilerplate. So this idea came to mind.
+
+Keep in mind that the first few versions of EasyJS will probably be extremely slow and very basic. It's probably not going to work very well to be honest (at first).
 
 ## How to use
 You have many different options to use. 
