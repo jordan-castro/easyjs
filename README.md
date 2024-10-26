@@ -62,11 +62,11 @@ In this approach our wasm runtime will take care of transcribing it in REALTIME.
 
 **Fibonacci**
 ```rust
-fn fibonacci(n) { // <-- easyJS is dynamically typed with (optinal typing).
+fn fibonacci(n) { // <-- easyJS is dynamically typed with (optinal typing). 
     if n == 0 {
-        return 0 // <-- easyJS has an optional return keyword
-    } else if n == 1 {
-        1
+        return 0 // <-- optional semicolons.
+    } elif n == 1 {
+        1 // <-- optinal return statement.
     } else {
         fibonacci(n - 1) + fibonacci(n - 2)
     }
@@ -87,9 +87,9 @@ const fibonacci = (n) => {
 ```
 **Manipulating the DOM**
 ```rust
-import dom
+import dom // <-- import the easyjs dom library
 
-title := dom.get_element_by_tag("title")
+title := get_element_by_tag("title") // <-- Call the dom.get_element_by_tag method
 title.text = "Hello World!"
 ```
 VS the JavaScript equivalent
@@ -102,7 +102,7 @@ title.text = "Hello World!"
 ```rust
 import http // <-- import the easyjs http library
 
-get_response := http.get("https://jsonplaceholder.typicode.com/posts/1")
+get_response := get("https://jsonplaceholder.typicode.com/posts/1") // <-- Call the http.get method
 get_response.if { // <-- Conditional on object type.
     .status_code == 200 { // <-- if get_response.status_code == 200 (you also can use .ok which does the same thing)
         print(.json())

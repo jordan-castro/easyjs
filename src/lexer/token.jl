@@ -43,8 +43,8 @@ const LT_OR_EQ = "<="
 
 # Delimiters
 const COMMA = ","
-const LINE_BREAK = "\n"
-const LOGICAL_LINE_BREAK = "\\" # '\'
+const SEMICOLON = ";"
+const EOL = "\n"
 
 # Specials
 const TYPE = "TYPE"
@@ -63,7 +63,7 @@ const TRUE = "TRUE"
 const FALSE = "FALSE"
 const IF = "IF"
 const ELSE = "ELSE"
-const ELSEIF = "ELSEIF"
+const ELIF = "ELIF"
 const RETURN = "RETURN"
 
 
@@ -82,7 +82,7 @@ const keywords = Dict(
     "false" => FALSE,
     "if" => IF,
     "else" => ELSE,
-    "elseif" => ELSEIF,
+    "elif" => ELIF,
     "return" => RETURN
 )
 

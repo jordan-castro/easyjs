@@ -70,14 +70,14 @@ function nexttoken!(l::Lex)
         type = L_PAREN
     elseif cc == ")"
         type = R_PAREN
-    elseif cc == "\\"
-        type = LOGICAL_LINE_BREAK
-    elseif cc == "\n"
-        type = LINE_BREAK
     elseif cc == ","
         type = COMMA
     elseif cc == "-"
         type = MINUS
+    elseif cc == ";"
+        type = SEMICOLON
+    elseif cc == "\n"
+        type = EOL
     elseif cc == "!"
         if peakchar(l) == '='
             type = NOT_EQ
@@ -162,7 +162,7 @@ end
 We don't care about whitespace. Except for \n
 """
 function skipwhitespace!(l::Lex)
-    while (l.CurrentChar == ' ' || l.CurrentChar == '\t' || l.CurrentChar == '\r') && l.CurrentChar != 0
+    while (l.CurrentChar == ' ' || l.CurrentChar == '\t' || l.CurrentChar == '\r' || l.CurrentChar == '\n') && l.CurrentChar != 0
         readchar!(l)
     end
 end
@@ -191,5 +191,14 @@ function readalltokens(input::String)
     return tokens
 end
 
+"""
+Add a string to a position and move all characters after it forward one.
+"""
+function add_string(l::Lex, position::Int, str::Char)
+    @assert length(str) == 1
+
+    l.Input = l.Input[1:position-1] * str * l.Input[position:length(l.Input)]
+    l.ReadPosition -= 1
+end
 
 end
