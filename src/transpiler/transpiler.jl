@@ -3,18 +3,43 @@ module TRANSPILER
 include("../parser/parser.jl")
 
 mutable struct JSCode
-    script::Vector{String}
+    script::Vector{String} # <-- Line by Line JS.
+    variables::Vector{String} # <-- All variables that have been declared.
+    fns::Vector{String} # <-- All functions that have been declared.
 end
 
-function tostring(js::JSCode)
-    return replace(join(js.script, ""), Pair(";;", ";"))
+"""
+Update JSCode.
+"""
+function update!(js::JSCode, scripts::Vector{String}, variables::Vector{String}, fns::Vector{String})
+    for script in js.script
+        if script in scripts
+            continue
+        end
+        push!(scripts, script)
+    end
+    for var in js.variables
+        if var in variables
+            continue
+        end
+        push!(variables, var)
+    end
+    for fn in js.fns
+        if fn in fns
+            continue
+        end
+        push!(fns, fn)
+    end
 end
 
-function transpile(program::PARSER.Program)
-    js = JSCode([])
+function tostring(js::JSCode, pretty::Bool = false)
+    joiner = pretty ? "\n" : ""
+    return replace(join(js.script, joiner), Pair(";;", ";"))
+end
 
+function transpile!(program::PARSER.Program, js::JSCode = JSCode([], [], []))
     for stmt in program.statements
-        script = jsify_statement(stmt)
+        script = jsify_statement!(js, stmt)
         if script !== nothing
             push!(js.script, script)
         end
@@ -23,25 +48,25 @@ function transpile(program::PARSER.Program)
     return js
 end
 
-function jsify_statement(stmt::PARSER.Statement)
+function jsify_statement!(js::JSCode, stmt::PARSER.Statement)
     if typeof(stmt) == PARSER.ExpressionStatement
-        return jsify_expression(stmt.expression)
+        return jsify_expression!(js, stmt.expression)
     elseif typeof(stmt) == PARSER.VariableStatement
-        return jsify_varstatement(stmt)
+        return jsify_varstatement!(js, stmt)
     elseif typeof(stmt) == PARSER.ReturnStatement
-        return jsify_return_statement(stmt)
+        return jsify_return_statement!(js, stmt)
     elseif typeof(stmt) == PARSER.BlockStatement
-        return jsify_blockstatement(stmt)
+        return jsify_blockstatement!(js, stmt)
     elseif typeof(stmt) == PARSER.ConstVariableStatement
-        return jsify_const_varstatement(stmt)
+        return jsify_const_varstatement!(js, stmt)
     end
 end
 
-function jsify_const_varstatement(stmt::PARSER.ConstVariableStatement)
-    return "const " * stmt.name.value * " = " * jsify_expression(stmt.value) * ";"
+function jsify_const_varstatement!(js::JSCode, stmt::PARSER.ConstVariableStatement)
+    return "const " * stmt.name.value * " = " * jsify_expression!(js, stmt.value) * ";"
 end
 
-function jsify_expression(exp::PARSER.Expression)
+function jsify_expression!(js::JSCode, exp::PARSER.Expression)
     if typeof(exp) == PARSER.IntegerLiteral
         return string(exp.value)
     elseif typeof(exp) == PARSER.PrefixExpression
@@ -51,28 +76,28 @@ function jsify_expression(exp::PARSER.Expression)
     elseif typeof(exp) == PARSER.IfExpression
         str = "if "
         if typeof(exp.condition) == PARSER.Identifier
-            str *= "(" * jsify_expression(exp.condition) * ")"
+            str *= "(" * jsify_expression!(js, exp.condition) * ")"
         else 
-            str *= jsify_expression(exp.condition)
+            str *= jsify_expression!(js, exp.condition)
         end
-        str *= " {" * jsify_statement(exp.consequence) * "}"
+        str *= " {" * jsify_statement!(js, exp.consequence) * "}"
         if exp.alternative !== nothing
             if typeof(exp.alternative) == PARSER.BlockStatement
-                str *= " else {" * jsify_statement(exp.alternative) * "}"
+                str *= " else {" * jsify_statement!(js, exp.alternative) * "}"
             elseif typeof(exp.alternative) == PARSER.IfExpression
-                str *= " else " * jsify_expression(exp.alternative)
+                str *= " else " * jsify_expression!(js, exp.alternative)
             end
         end
         return str
     elseif typeof(exp) == PARSER.FunctionLiteral
         str = "const " * exp.name.value * " = ("
         for p in exp.paramaters
-            str *= jsify_expression(p)
+            str *= jsify_expression!(js, p)
             if p !== exp.paramaters[end]
                 str *= ", "
             end
         end
-        str *= ") => {" * jsify_statement(exp.body) * "};"
+        str *= ") => {" * jsify_statement!(js, exp.body) * "};"
         return str
     elseif typeof(exp) == PARSER.CallExpression
         str = ""
@@ -82,7 +107,14 @@ function jsify_expression(exp::PARSER.Expression)
             str = exp.fn.value
         end
 
-        str *= "(" * join(jsify_expression.(exp.arguments), ", ") * ")"
+        str *= "("
+        for p in exp.arguments
+            str *= jsify_expression!(js, p)
+            if p !== exp.arguments[end]
+                str *= ", "
+            end
+        end
+        str *= ");"
         return str
     elseif typeof(exp) == PARSER.Boolean
         if exp.value
@@ -95,18 +127,24 @@ function jsify_expression(exp::PARSER.Expression)
     end
 end
 
-function jsify_varstatement(stmt::PARSER.VariableStatement)
-    return "let " * stmt.name.value * " = " * jsify_expression(stmt.value) * ";"
+function jsify_varstatement!(js::JSCode, stmt::PARSER.VariableStatement)
+    # check if js.variables contains varname
+    if stmt.name.value in js.variables
+        return stmt.name.value * " = " * jsify_expression!(js, stmt.value) * ";"
+    else
+        push!(js.variables, stmt.name.value)
+        return "let " * stmt.name.value * " = " * jsify_expression!(js, stmt.value) * ";"
+    end
 end
 
-function jsify_return_statement(stmt::PARSER.ReturnStatement)
-    return "return " * jsify_expression(stmt.return_value) * ";"
+function jsify_return_statement!(js::JSCode, stmt::PARSER.ReturnStatement)
+    return "return " * jsify_expression!(js, stmt.return_value) * ";"
 end
 
-function jsify_blockstatement(stmt::PARSER.BlockStatement)
+function jsify_blockstatement!(js::JSCode, stmt::PARSER.BlockStatement)
     str = ""
     for stmt in stmt.statements
-        str *= jsify_statement(stmt) * "; "
+        str *= jsify_statement!(js, stmt) * "; "
     end
     return str
 end

@@ -6,9 +6,11 @@ fn add(a,b) {
         return b - a
     } elif a == b {
         return 0
-    } elif (a) {} else {
+    } else {
         return a + b
     }
 }
 
-z = add(x,y)
+add(x, y)
+
+y = 3

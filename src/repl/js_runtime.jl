@@ -4,7 +4,7 @@ using Base64, Random
 import Base: close, readavailable, write
 
 # Define EASY_JS_CONSTANT using a random string hash
-const EASY_JS_CONSTANT = 1083
+EASY_JS_CONSTANT = 001101
 
 # Define a function to send commands to the Node.js REPL
 function send_command(p::Base.Process, command::String)

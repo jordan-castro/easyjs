@@ -15,12 +15,16 @@ s = ArgParseSettings()
         help = "EasyJS input script"
     "outputfile"
         help = "JavaScript output file name"
+    "--pretty"
+        help = "Enable pretty output formatting"
+        action = :store_true
 end
 
 args = parse_args(s)
 command = args["command"]
 input_file = args["inputfile"]
 output_file = args["outputfile"]
+pretty = args["pretty"]
 
 if command == "version"
     println(EASY_JS_VERSION)
@@ -39,8 +43,15 @@ elseif command == "compile"
     lexer = TRANSPILER.PARSER.Lexer.Lex(input, 1, 1, ' ')
     parser = TRANSPILER.PARSER.newparser(lexer)
     program = TRANSPILER.PARSER.parseprogram!(parser)
+
+    if length(parser.errors) > 0
+        REPL.printparse_errors(parser.errors)
+        return
+    end
+
     jscode = TRANSPILER.transpile(program)
-    write(of, TRANSPILER.tostring(jscode))
+    js = TRANSPILER.tostring(jscode, pretty)
+    write(of, js)
 end
 
 # easyjs easyfile.ej output.min.js

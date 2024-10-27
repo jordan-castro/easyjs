@@ -24,6 +24,8 @@ function start()
 
     println(easyjsasci)
     println("EasyJS " * EASY_JS_VERSION)
+    jscode = TRANSPILER.JSCode([], [], [])
+    jshistory = TRANSPILER.JSCode([], [], [])
     while true
         # read input
         print(PROMPT)
@@ -31,6 +33,11 @@ function start()
 
         if input == "quit"
             break
+        elseif occursin("EASY_JS_PARSE_INTO=", input)
+            # get file.
+            file = split(input, "=")[2]
+            write(file, TRANSPILER.tostring(jshistory, true))
+            continue
         elseif length(strip(input)) == 0
             continue
         end
@@ -44,9 +51,12 @@ function start()
             if length(parser.errors) > 0
                 printparse_errors(parser.errors)
             else
-                jscode = TRANSPILER.transpile(program)
+                jscode.script = []
+                TRANSPILER.transpile!(program, jscode)
+                TRANSPILER.transpile!(program, jshistory)
                 js_response = JSRuntime.send_command(runtime, TRANSPILER.tostring(jscode))
                 println(strip(split(js_response,">")[2]))
+                # update jscode
             end
         catch e 
             println(e)

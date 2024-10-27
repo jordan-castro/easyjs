@@ -54,8 +54,8 @@ function expectpeek!(p::Parser, type::String)
     return false
 end
 
-function peekerror!(p::Parser, type::String)
-    push!(p.errors, "expected next token to be " * type * ", got " * p.peek_token.Type * " instead")
+function peekerror!(p::Parser, type::String, line_number::Int64=0)
+    push!(p.errors, "expected next token to be " * type * " BUT got " * p.peek_token.Type * " instead on line " * string(line_number))
 end
 
 function peekprecedence(p::Parser)
@@ -148,6 +148,8 @@ function parsestatement!(p::Parser)
             return parsevarstatement!(p)
         elseif peektokenis(p, Lexer.CONST_ASSIGNMENT)
             return parse_const_var_statement!(p)
+        else 
+            return parse_expression_statement!(p) # default to expression
         end
     elseif p.c_token.Type == Lexer.RETURN
         return parsereturnstatement!(p)
