@@ -25,8 +25,9 @@ You can use a `<script type="easyjs">` tag in the browser to inline the easyJS. 
 
 You can use a `<script src="source.min.js">` tag in the browser.
 
-**When compiling**
-you can compile to either JS (the default) or to TS (TypeScript) using `--typed`
+## Using the REPL
+EasyJS provides a REPL. Use it by running `easyjs` in your terminal.
+
 
 ### Examples
 Imagine you have a EasyJS file like so:

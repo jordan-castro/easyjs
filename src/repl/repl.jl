@@ -46,8 +46,9 @@ function start()
             printparse_errors(parser.errors)
         else
             jscode = TRANSPILER.transpile(program)
-            js_response = JSRuntime.send_command(runtime, jscode.outballs[1])
-            println(strip(split(js_response,">")[2]))
+            js_response = JSRuntime.send_command(runtime, TRANSPILER.tostring(jscode))
+            # js_response = JSRuntime.send_command(runtime, jscode.outballs[1])
+            # println(strip(split(js_response,">")[2]))
             # println(JSRuntime.send_command(runtime, jscode.outballs[1]))
         end
     end

@@ -34,7 +34,7 @@ function start_runtime(js_runtime_option::String)
         p = open(`node -i`, "r+")
         # command = `node -i`
     elseif js_runtime_option == "deno"
-        p = open(`deno repl`)
+        p = open(`deno repl`, "r+")
     else
         return nothing # this runtime option is not supported.
     end
