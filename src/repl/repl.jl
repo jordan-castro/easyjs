@@ -30,28 +30,32 @@ function start()
         input = readline()
 
         if input == "quit"
-            # close runtime
-            JSRuntime.close_runtime(runtime)
             break
         elseif length(strip(input)) == 0
             continue
         end
 
-        lexer = TRANSPILER.PARSER.Lexer.Lex(input, 1, 1, ' ')
-        parser = TRANSPILER.PARSER.newparser(lexer)
-        program = TRANSPILER.PARSER.parseprogram!(parser)
+        try
+            lexer = TRANSPILER.PARSER.Lexer.Lex(input, 1, 1, ' ')
+            parser = TRANSPILER.PARSER.newparser(lexer)
+            program = TRANSPILER.PARSER.parseprogram!(parser)
 
-        # check errors
-        if length(parser.errors) > 0
-            printparse_errors(parser.errors)
-        else
-            jscode = TRANSPILER.transpile(program)
-            js_response = JSRuntime.send_command(runtime, TRANSPILER.tostring(jscode))
-            # js_response = JSRuntime.send_command(runtime, jscode.outballs[1])
-            # println(strip(split(js_response,">")[2]))
-            # println(JSRuntime.send_command(runtime, jscode.outballs[1]))
+            # check errors
+            if length(parser.errors) > 0
+                printparse_errors(parser.errors)
+            else
+                jscode = TRANSPILER.transpile(program)
+                js_response = JSRuntime.send_command(runtime, TRANSPILER.tostring(jscode))
+                println(strip(split(js_response,">")[2]))
+            end
+        catch e 
+            println(e)
+            break
         end
     end
+    # close runtime
+    JSRuntime.close_runtime(runtime)
+
 end
 
 function printparse_errors(errors::Array{String})

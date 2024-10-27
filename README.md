@@ -6,7 +6,7 @@ Transpiled means that it goes from one language to another, it is not compiled n
 Similar to CofeeScript and TypeScript. The main difference being that it is an easy to use language.
 
 > [!WARNING]  
-> This language is not ready to be used. We are not even on version 0.0.1 yet.
+> This language is still far from v1.0.0. We are currently on v0.0.3
 
 ## Why EasyJS?
 At my last job, I worked with a product that would track user engagement on websites and apps. At this job I realized how common it was for people to not know
@@ -19,15 +19,21 @@ You have many different options to use.
 
 **Compile:**
 You can compile easyJS to min.js to run on the browser, server, etc.
+```bash
+easyjs compile file.ej
+```
 
 **Script tag:**
 You can use a `<script type="easyjs">` tag in the browser to inline the easyJS. <-- This requires the easyjs wasm runtime.
 
 You can use a `<script src="source.min.js">` tag in the browser.
 
-## Using the REPL
+**REPL**
 EasyJS provides a REPL. Use it by running `easyjs` in your terminal.
-
+```bash
+easyjs
+> // your code goes here.
+```
 
 ### Examples
 Imagine you have a EasyJS file like so:

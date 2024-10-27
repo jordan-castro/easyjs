@@ -2,13 +2,19 @@
 
 julia_version = "1.11.1"
 manifest_format = "2.0"
-project_hash = "60adeb0e2b00236d0af1f462e03ecf5c8adace36"
+project_hash = "1a6083330a5f3f2efa5670a6b0a7046e90839e24"
 
 [[deps.AppBundler]]
 deps = ["Artifacts", "CodecZlib", "Downloads", "Mustache", "Pkg", "Scratch", "TOML", "Tar", "ZipFile", "p7zip_jll", "squashfs_tools_jll"]
 git-tree-sha1 = "eaf1ee9c2821eb55dd7cdb4e941e87a425bb8e8d"
 uuid = "40eb83ae-c93a-480c-8f39-f018b568f472"
 version = "0.1.5"
+
+[[deps.ArgParse]]
+deps = ["Logging", "TextWrap"]
+git-tree-sha1 = "22cf435ac22956a7b45b0168abbc871176e7eecc"
+uuid = "c7e460c6-2fb9-53a9-8c5b-16f535851c63"
+version = "1.2.0"
 
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
@@ -209,6 +215,11 @@ version = "1.10.0"
 deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 version = "1.11.0"
+
+[[deps.TextWrap]]
+git-tree-sha1 = "43044b737fa70bc12f6105061d3da38f881a3e3c"
+uuid = "b718987f-49a8-5099-9789-dcd902bef87d"
+version = "1.0.2"
 
 [[deps.TranscodingStreams]]
 git-tree-sha1 = "0c45878dcfdcfa8480052b6ab162cdd138781742"

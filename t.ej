@@ -1,0 +1,14 @@
+x := 1
+y = 2
+
+fn add(a,b) {
+    if a > b {
+        return b - a
+    } elif a == b {
+        return 0
+    } elif (a) {} else {
+        return a + b
+    }
+}
+
+z = add(x,y)

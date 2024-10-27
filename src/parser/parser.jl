@@ -142,8 +142,13 @@ Parse a statement (line).
 """
 function parsestatement!(p::Parser)
     # Var statements are when the left token is a ident and the rigth token is an assign
-    if p.c_token.Type == Lexer.IDENT && peektokenis(p, Lexer.ASSIGN)
-        return parsevarstatement!(p)
+    if p.c_token.Type == Lexer.IDENT
+        # && peektokenis(p, Lexer.ASSIGN)
+        if peektokenis(p, Lexer.ASSIGN)
+            return parsevarstatement!(p)
+        elseif peektokenis(p, Lexer.CONST_ASSIGNMENT)
+            return parse_const_var_statement!(p)
+        end
     elseif p.c_token.Type == Lexer.RETURN
         return parsereturnstatement!(p)
     else # our default (expression) statements
@@ -196,6 +201,27 @@ function parsevarstatement!(p::Parser)
     end 
 
     return VariableStatement(token, name, value)
+end
+
+function parse_const_var_statement!(p::Parser)
+    token = p.c_token
+
+    # there needs to be a equals sign...
+    if !expectpeek!(p, Lexer.CONST_ASSIGNMENT)
+        return nothing
+    end
+
+    name = Identifier(token, token.Literal)
+
+    nexttoken!(p)
+
+    value = parse_expression!(p, LOWEST)
+    
+    if peektokenis_eos(p)
+        nexttoken!(p)
+    end
+
+    return ConstVariableStatement(token, name, value)
 end
 
 """

@@ -112,6 +112,12 @@ struct CallExpression <: Expression
     arguments::Array{Expression}
 end
 
+struct ConstVariableStatement <: Statement
+    token::Lexer.Token # <-- The IDENT token
+    name::Identifier
+    value::Expression
+end
+
 # Define a concrete struct for Program
 mutable struct Program
     statements::Vector{Statement}
@@ -152,6 +158,10 @@ end
 
 function tostring(vs::VariableStatement)
     return vs.token.Literal * " = " * tostring(vs.value)
+end
+
+function tostring(cs::ConstVariableStatement)
+    return cs.token.Literal * " = " * tostring(cs.value)
 end
 
 function tostring(rs::ReturnStatement)
