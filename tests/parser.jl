@@ -138,3 +138,43 @@ program = PARSER.parseprogram!(p)
 @test length(program.statements) == 1
 @test typeof(program.statements[1]) == PARSER.ExpressionStatement
 @test typeof(program.statements[1].expression) == PARSER.CallExpression
+
+input = "
+\"hello world\"
+"
+lexer = PARSER.Lexer.Lex(input, 1, 1, ' ')
+p = PARSER.newparser(lexer)
+program = PARSER.parseprogram!(p)
+
+@test length(program.statements) == 1
+@test typeof(program.statements[1]) == PARSER.ExpressionStatement
+@test typeof(program.statements[1].expression) == PARSER.StringLiteral
+
+input = "
+//comment
+"
+lexer = PARSER.Lexer.Lex(input, 1, 1, ' ')
+p = PARSER.newparser(lexer)
+program = PARSER.parseprogram!(p)
+
+@test length(program.statements) == 1
+@test typeof(program.statements[1]) == PARSER.ExpressionStatement
+@test typeof(program.statements[1].expression) == PARSER.Comment
+@test program.statements[1].expression.value == "comment"
+
+input = "
+import http
+
+import \"otherfile.ej\" as ot
+"
+lexer = PARSER.Lexer.Lex(input, 1, 1, ' ')
+p = PARSER.newparser(lexer)
+program = PARSER.parseprogram!(p)
+
+@test length(program.statements) == 2
+@test typeof(program.statements[1]) == PARSER.ImportStatement
+@test program.statements[1].path == "http"
+@test program.statements[1].as == ""
+@test typeof(program.statements[2]) == PARSER.ImportStatement
+@test program.statements[2].path == "otherfile.ej"
+@test program.statements[2].as == "ot"

@@ -25,6 +25,7 @@ const INT = "INT" # 123456 (INT64)
 const STRING = "STRING"
 const ARRAY = "ARRAY"
 const BOOLEAN = "BOOLEAN"
+const BUILTIN = "BUILTIN" # our STD Library functions.
 
 # Operators
 const ASSIGN = "="
@@ -50,6 +51,9 @@ const EOL = "\n"
 const TYPE = "TYPE"
 const CONST_ASSIGNMENT = "CONST_ASSIGNMENT"
 
+# Comments
+const COMMENT = "//"
+
 const L_PAREN = "("
 const R_PAREN = ")"
 const L_BRACE = "{"
@@ -65,7 +69,7 @@ const IF = "IF"
 const ELSE = "ELSE"
 const ELIF = "ELIF"
 const RETURN = "RETURN"
-
+const AS = "AS"
 
 ## specials
 const colon_specials = Dict(
@@ -83,7 +87,8 @@ const keywords = Dict(
     "if" => IF,
     "else" => ELSE,
     "elif" => ELIF,
-    "return" => RETURN
+    "return" => RETURN,
+    "as" => AS
 )
 
 """

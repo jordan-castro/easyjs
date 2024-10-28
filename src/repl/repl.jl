@@ -24,8 +24,8 @@ function start()
 
     println(easyjsasci)
     println("EasyJS " * EASY_JS_VERSION)
-    jscode = TRANSPILER.JSCode([], [], [])
-    jshistory = TRANSPILER.JSCode([], [], [])
+    jscode = TRANSPILER.JSCode([], [], [], [], [])
+    jshistory = TRANSPILER.JSCode([], [], [], [], [])
     while true
         # read input
         print(PROMPT)
@@ -60,7 +60,7 @@ function start()
             end
         catch e 
             println(e)
-            break
+            continue
         end
     end
     # close runtime

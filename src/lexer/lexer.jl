@@ -53,7 +53,7 @@ function nexttoken!(l::Lex)
     # parse to string.
     cc = string(l.CurrentChar)
     if cc == "="
-        if peakchar(l) == '='
+        if peekchar(l) == '='
             type = EQ
             custom_literal = cc * '='            
             readchar!(l)
@@ -79,14 +79,14 @@ function nexttoken!(l::Lex)
     elseif cc == "\n"
         type = EOL
     elseif cc == "!"
-        if peakchar(l) == '='
+        if peekchar(l) == '='
             type = NOT_EQ
             custom_literal = cc * '='
             readchar!(l)
         else
             type = BANG
         end
-    elseif cc == "/"
+    elseif cc == "\\"
         type = SLASH
     elseif cc == "*"
         type = ASTERISK
@@ -96,7 +96,7 @@ function nexttoken!(l::Lex)
         type = GT
     elseif cc == ":"
         # check the next char
-        next_char = peakchar(l)
+        next_char = peekchar(l)
         type = lookupColonSpecial(string(cc, next_char))
         
         # if the type is not a COLON, we have a special colon.
@@ -105,6 +105,20 @@ function nexttoken!(l::Lex)
             # go to next char after special
             readchar!(l)
         end
+    elseif cc == "/"
+        if peekchar(l) == '/'
+            type = COMMENT
+            custom_literal = readcomment!(l)
+        else
+            type = ILLEGAL
+        end
+    elseif cc == "\""
+        type = STRING
+        # read the string
+        custom_literal = readstring!(l)
+    # elseif cc == "/"
+    #     type = COMMENT
+    #     custom_literal = readcomment!(l)
     else
         # check Identifiers
         if isletter(l.CurrentChar)
@@ -129,6 +143,32 @@ function nexttoken!(l::Lex)
     readchar!(l)
 
     return token
+end
+
+function readstring!(l::Lex)
+    position = l.Position + 1
+
+    # go next char to not get stuck in the current "
+    readchar!(l)
+
+    while l.CurrentChar != '"' && l.CurrentChar != '\0'
+        readchar!(l)
+    end
+
+    # Set read position . We do this because arrays in julia are 1 based.
+    # l.ReadPosition = l.Position
+    return l.Input[position:l.Position - 1]
+end
+
+function readcomment!(l::Lex)
+    position = l.Position + 2
+    # go to next to char to not get stuck in the /
+    readchar!(l)
+    while l.CurrentChar != '\n' && l.CurrentChar != '\0'
+        readchar!(l)
+    end
+
+    return l.Input[position:l.Position - 1]
 end
 
 """
@@ -162,7 +202,7 @@ end
 We don't care about whitespace. Except for \n
 """
 function skipwhitespace!(l::Lex)
-    while (l.CurrentChar == ' ' || l.CurrentChar == '\t' || l.CurrentChar == '\r' || l.CurrentChar == '\n') && l.CurrentChar != 0
+    while (l.CurrentChar == ' ' || l.CurrentChar == '\t' || l.CurrentChar == '\r' || l.CurrentChar == '\n') && l.CurrentChar != '\0'
         readchar!(l)
     end
 end
@@ -170,7 +210,7 @@ end
 """
 Peak at the next upcoming character in Input.
 """
-function peakchar(l::Lex):Char
+function peekchar(l::Lex):Char
     if l.ReadPosition >= length(l.Input)
         return 0
     end

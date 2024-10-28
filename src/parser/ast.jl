@@ -45,6 +45,18 @@ end
 
 """
 ```
+import http as h // import the http library and predeclare all calls to a h object
+import "http.ej" // import the http.ej file.
+```
+"""
+struct ImportStatement <: Statement
+    token::Lexer.Token # <-- The 'import' token
+    path::String
+    as::String # <-- this is an optinal field. TODO
+end
+
+"""
+```
 ... <-- this is fn code.
 
 x <-- This is how you can also return a value in EasyJS
@@ -70,6 +82,16 @@ end
 struct IntegerLiteral <: Expression
     token::Lexer.Token
     value::Int64
+end
+
+struct StringLiteral <: Expression
+    token::Lexer.Token # <-- The "STRING" token
+    value::String
+end
+
+struct Comment <: Expression
+    token::Lexer.Token # <-- The // token
+    value::String
 end
 
 struct InfixExpression <: Expression
@@ -117,6 +139,7 @@ struct ConstVariableStatement <: Statement
     name::Identifier
     value::Expression
 end
+
 
 # Define a concrete struct for Program
 mutable struct Program
@@ -172,12 +195,24 @@ function tostring(irs::ImpliedReturnStatement)
     return irs.token.Literal
 end
 
+function tostring(is::ImportStatement)
+    str = is.token.Literal * " " * is.path
+    if length(is.as) > 0
+        str *= " as " * is.as
+    end
+    return str
+end
+
 function tostring(exps::ExpressionStatement)
     return tostring(exps.expression)
 end
 
 function tostring(il::IntegerLiteral)
     return il.token.Literal
+end
+
+function tostring(es::StringLiteral)
+    return es.token.Literal
 end
 
 function tostring(pe::PrefixExpression)

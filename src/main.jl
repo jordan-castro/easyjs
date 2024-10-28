@@ -49,14 +49,10 @@ elseif command == "compile"
         return
     end
 
-    jscode = TRANSPILER.transpile(program)
+    jscode = TRANSPILER.transpile!(program)
     js = TRANSPILER.tostring(jscode, pretty)
     write(of, js)
+else
+    println("Unknown command: " * command)
 end
-
-# easyjs easyfile.ej output.min.js
-
-# include("repl/repl.jl")
-# REPL.start()
-
 end

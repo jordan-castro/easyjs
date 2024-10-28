@@ -6,6 +6,16 @@ mutable struct JSCode
     script::Vector{String} # <-- Line by Line JS.
     variables::Vector{String} # <-- All variables that have been declared.
     fns::Vector{String} # <-- All functions that have been declared.
+    import_paths::Vector{String} # <-- All paths that have been imported.
+    imports::Vector{String} # <-- All imported code.
+end
+
+function transpile_from_input(input::String)
+    l = PARSER.Lexer.Lex(input, 1, 1, ' ')
+    p = PARSER.newparser(l)
+    program = PARSER.parseprogram!(p)
+
+    return tostring(transpile!(program))
 end
 
 """
@@ -33,11 +43,17 @@ function update!(js::JSCode, scripts::Vector{String}, variables::Vector{String},
 end
 
 function tostring(js::JSCode, pretty::Bool = false)
+    src = ""
+
+    for im in js.imports
+        src *= im * ";"
+    end
+
     joiner = pretty ? "\n" : ""
-    return replace(join(js.script, joiner), Pair(";;", ";"))
+    return src *= replace(join(js.script, joiner), Pair(";;", ";"))
 end
 
-function transpile!(program::PARSER.Program, js::JSCode = JSCode([], [], []))
+function transpile!(program::PARSER.Program, js::JSCode = JSCode([], [], [], [], []))
     for stmt in program.statements
         script = jsify_statement!(js, stmt)
         if script !== nothing
@@ -59,6 +75,8 @@ function jsify_statement!(js::JSCode, stmt::PARSER.Statement)
         return jsify_blockstatement!(js, stmt)
     elseif typeof(stmt) == PARSER.ConstVariableStatement
         return jsify_const_varstatement!(js, stmt)
+    elseif typeof(stmt) == PARSER.ImportStatement
+        return  jsify_import_statement!(js, stmt)
     end
 end
 
@@ -69,6 +87,8 @@ end
 function jsify_expression!(js::JSCode, exp::PARSER.Expression)
     if typeof(exp) == PARSER.IntegerLiteral
         return string(exp.value)
+    elseif typeof(exp) == PARSER.StringLiteral
+        return "\"" * exp.value * "\""
     elseif typeof(exp) == PARSER.PrefixExpression
         return PARSER.tostring(exp) # we already cover this in the parser
     elseif typeof(exp) == PARSER.InfixExpression
@@ -94,7 +114,7 @@ function jsify_expression!(js::JSCode, exp::PARSER.Expression)
         for p in exp.paramaters
             str *= jsify_expression!(js, p)
             if p !== exp.paramaters[end]
-                str *= ", "
+                str *= ","
             end
         end
         str *= ") => {" * jsify_statement!(js, exp.body) * "};"
@@ -111,7 +131,7 @@ function jsify_expression!(js::JSCode, exp::PARSER.Expression)
         for p in exp.arguments
             str *= jsify_expression!(js, p)
             if p !== exp.arguments[end]
-                str *= ", "
+                str *= ","
             end
         end
         str *= ");"
@@ -124,16 +144,18 @@ function jsify_expression!(js::JSCode, exp::PARSER.Expression)
         end
     elseif typeof(exp) == PARSER.Identifier
         return exp.value
+    else
+        return ""
     end
 end
 
 function jsify_varstatement!(js::JSCode, stmt::PARSER.VariableStatement)
     # check if js.variables contains varname
     if stmt.name.value in js.variables
-        return stmt.name.value * " = " * jsify_expression!(js, stmt.value) * ";"
+        return stmt.name.value * "=" * jsify_expression!(js, stmt.value) * ";"
     else
         push!(js.variables, stmt.name.value)
-        return "let " * stmt.name.value * " = " * jsify_expression!(js, stmt.value) * ";"
+        return "let " * stmt.name.value * "=" * jsify_expression!(js, stmt.value) * ";"
     end
 end
 
@@ -147,6 +169,36 @@ function jsify_blockstatement!(js::JSCode, stmt::PARSER.BlockStatement)
         str *= jsify_statement!(js, stmt) * "; "
     end
     return str
+end
+
+function jsify_import_statement!(js::JSCode, stmt::PARSER.ImportStatement)
+    # check if js.imports contains path
+    if stmt.path in js.import_paths
+        # already been imported do nothing
+        return ""
+    end
+
+    # add to imports
+    push!(js.import_paths, stmt.path)
+
+    # check what kind of import this is.
+    if !occursin(".", stmt.path)
+        # this is a STD library import
+        return ""
+    end
+
+    # if this is a .ej file
+    if endswith(stmt.path, ".ej")
+        f = open(stmt.path, "r")
+        contents = read(f, String)
+        close(f)
+
+        # transpile to JS
+        code = transpile_from_input(contents)
+        push!(js.imports, code)
+    end
+
+    return ""
 end
 
 end

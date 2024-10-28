@@ -100,6 +100,8 @@ function newparser(lexer::Lexer.Lex)
     register_prefix!(parser, Lexer.L_PAREN, parse_grouped_expression!)
     register_prefix!(parser, Lexer.IF, parse_if_expression!)
     register_prefix!(parser, Lexer.FUNCTION, parse_function_literal!)
+    register_prefix!(parser, Lexer.STRING, parse_string_literal!)
+    register_prefix!(parser, Lexer.COMMENT, parse_comment!)
 
     # register infix
     register_infix!(parser, Lexer.PLUS, parse_infix_expression!)
@@ -153,6 +155,8 @@ function parsestatement!(p::Parser)
         end
     elseif p.c_token.Type == Lexer.RETURN
         return parsereturnstatement!(p)
+    elseif p.c_token.Type == Lexer.IMPORT
+        return parse_import_statement!(p)
     else # our default (expression) statements
         return parse_expression_statement!(p)
     end
@@ -537,6 +541,37 @@ function parse_call_expression!(p::Parser, fn::Expression)
     token = p.c_token
     arguments = parse_call_arguments!(p)
     return CallExpression(token, fn, arguments)
+end
+
+function parse_string_literal!(p::Parser)
+    return StringLiteral(p.c_token, p.c_token.Literal)
+end
+
+function parse_comment!(p::Parser)
+    return Comment(p.c_token, p.c_token.Literal)
+end
+
+function parse_import_statement!(p::Parser)
+    token = p.c_token
+
+    if !(peektokenis(p, Lexer.IDENT) || peektokenis(p, Lexer.STRING))
+        return nothing
+    end
+    nexttoken!(p)
+
+    path = p.c_token.Literal
+    as = ""
+
+    # check for as
+    if peektokenis(p, Lexer.AS)
+        nexttoken!(p)
+        if !expectpeek!(p, Lexer.IDENT)
+            return nothing
+        end
+        as = p.c_token.Literal
+    end
+
+    return ImportStatement(token, path, as)
 end
 
 

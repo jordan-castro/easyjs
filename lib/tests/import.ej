@@ -1,0 +1,8 @@
+// This file tests the import statement in EasyJS
+import "lib/tests/variables.ej"
+
+fn add(x,y) {
+    return x + y
+}
+
+z = add(x,y)
