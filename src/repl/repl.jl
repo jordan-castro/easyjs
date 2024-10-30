@@ -24,9 +24,10 @@ function start()
 
     println(easyjsasci)
     println("EasyJS " * EASY_JS_VERSION)
-    jscode = TRANSPILER.JSCode([], [], [], [], [])
-    jshistory = TRANSPILER.JSCode([], [], [], [], [])
+    jscode = TRANSPILER.JSCode([], [], [], [])
+    jshistory = TRANSPILER.JSCode([], [], [], [])
     while true
+        jscode.import_paths = jshistory.import_paths
         # read input
         print(PROMPT)
         input = readline()
@@ -56,7 +57,6 @@ function start()
                 TRANSPILER.transpile!(program, jshistory)
                 js_response = JSRuntime.send_command(runtime, TRANSPILER.tostring(jscode))
                 println(strip(split(js_response,">")[2]))
-                # update jscode
             end
         catch e 
             println(e)

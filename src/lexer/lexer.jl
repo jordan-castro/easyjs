@@ -60,6 +60,8 @@ function nexttoken!(l::Lex)
         else
             type = ASSIGN
         end
+    elseif cc == "."
+        type = DOT # Dot expression.
     elseif cc == "+"
         type = PLUS
     elseif cc == "{"
