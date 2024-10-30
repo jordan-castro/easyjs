@@ -140,6 +140,21 @@ struct ConstVariableStatement <: Statement
     value::Expression
 end
 
+struct DotExpression <: Expression
+    token::Lexer.Token # <-- The '.' token
+    left::Expression
+    right::Expression
+end
+
+struct JavaScriptStatement <: Statement
+    token::Lexer.Token # <-- The javascript token.
+    code::String
+end
+
+struct JavaScriptExpression <: Expression
+    token::Lexer.Token # <-- The javascript token.
+    code::String    
+end
 
 # Define a concrete struct for Program
 mutable struct Program
@@ -223,6 +238,10 @@ function tostring(ie::InfixExpression)
     return "(" * tostring(ie.left) * " " * ie.operator * " " * tostring(ie.right) * ")"
 end
 
+function tostring(dot::DotExpression)
+    return tostring(dot.left) * "." * tostring(dot.right)
+end
+
 function tostring(b::Boolean)
     return b.token.Literal
 end
@@ -270,4 +289,8 @@ function tostring(c::CallExpression)
     end
 
     return tostring(c.fn) * "(" * join(args, ", ") * ")"    
+end
+
+function tostring(js::JavaScriptStatement)
+    return js.token.Literal * " " * js.code
 end

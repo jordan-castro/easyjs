@@ -128,6 +128,10 @@ function nexttoken!(l::Lex)
             custom_literal = readidentifier!(l)
             # get the currect type
             type = lookupIndent(custom_literal)
+            if type == JAVASCRIPT
+                # read the javascript
+                custom_literal = readjavascript!(l)
+            end
         elseif isdigit(l.CurrentChar)
             type = INT
             # read the number
@@ -241,6 +245,28 @@ function add_string(l::Lex, position::Int, str::Char)
 
     l.Input = l.Input[1:position-1] * str * l.Input[position:length(l.Input)]
     l.ReadPosition -= 1
+end
+
+function readjavascript!(l::Lex)
+    position = l.Position
+    readchar!(l) # go to {
+    readchar!(l) # skip it
+    braces = 1
+    while l.CurrentChar != '\0'
+        if l.CurrentChar == '{'
+            braces += 1
+        elseif l.CurrentChar == '}'
+            braces -= 1
+            if braces == 0
+                break
+            end
+        end
+        readchar!(l)
+    end
+
+    l.Position = l.ReadPosition
+
+    return l.Input[position:l.Position - 1]
 end
 
 end

@@ -43,7 +43,7 @@ function start()
             continue
         end
 
-        try
+        # try
             lexer = TRANSPILER.PARSER.Lexer.Lex(input, 1, 1, ' ')
             parser = TRANSPILER.PARSER.newparser(lexer)
             program = TRANSPILER.PARSER.parseprogram!(parser)
@@ -58,10 +58,10 @@ function start()
                 js_response = JSRuntime.send_command(runtime, TRANSPILER.tostring(jscode))
                 println(strip(split(js_response,">")[2]))
             end
-        catch e 
-            println(e)
-            continue
-        end
+        # catch e 
+        #     println(e)
+        #     continue
+        # end
     end
     # close runtime
     JSRuntime.close_runtime(runtime)

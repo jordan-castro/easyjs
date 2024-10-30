@@ -1,0 +1,9 @@
+fn print(msg) {
+    javascript{
+        console.log(msg);
+    }
+}
+
+if document != undefined {
+    print("lets do this");
+}

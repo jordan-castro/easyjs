@@ -1,0 +1,24 @@
+// This implements the document object in EasyJS.
+// This library can only be used in the browser.
+
+fn get_element_by_id(id) {
+    return javascript{
+        document.getElementById(id);
+    }
+}
+
+fn get_elements_by_class_name(class_name) {
+    return javascript{
+        document.getElementsByClassName(class_name);
+    }
+}
+
+fn get_elements_by_tag(tag) {
+    return javascript{
+        document.getElementsByTagName(tag);
+    }
+}
+
+fn get_element_by_tag(tag) {
+    return get_elements_by_tag(tag).first
+}

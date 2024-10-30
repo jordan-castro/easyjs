@@ -77,6 +77,8 @@ function jsify_statement!(js::JSCode, stmt::PARSER.Statement)
         return jsify_const_varstatement!(js, stmt)
     elseif typeof(stmt) == PARSER.ImportStatement
         return jsify_import_statement!(js, stmt)
+    elseif typeof(stmt) == PARSER.JavaScriptStatement
+        return stmt.code[2:end-1]
     end
 end
 
@@ -144,6 +146,10 @@ function jsify_expression!(js::JSCode, exp::PARSER.Expression)
         end
     elseif typeof(exp) == PARSER.Identifier
         return exp.value
+    elseif typeof(exp) == PARSER.DotExpression
+        return jsify_expression!(js, exp.left) * "." * jsify_expression!(js, exp.right)
+    elseif typeof(exp) == PARSER.JavaScriptExpression
+        return exp.code[2:end-1]
     else
         return ""
     end
@@ -172,10 +178,8 @@ function jsify_blockstatement!(js::JSCode, stmt::PARSER.BlockStatement)
 end
 
 function jsify_import_statement!(js::JSCode, stmt::PARSER.ImportStatement)
-    println(js.import_paths)
     # check if js.imports contains path
     if stmt.path in js.import_paths
-        println("path " * stmt.path * " already imported")
         # already been imported do nothing
         return nothing
     end

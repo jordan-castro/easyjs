@@ -71,6 +71,7 @@ const ELSE = "ELSE"
 const ELIF = "ELIF"
 const RETURN = "RETURN"
 const AS = "AS"
+const JAVASCRIPT = "JAVASCRIPT"
 
 ## specials
 const colon_specials = Dict(
@@ -89,7 +90,8 @@ const keywords = Dict(
     "else" => ELSE,
     "elif" => ELIF,
     "return" => RETURN,
-    "as" => AS
+    "as" => AS,
+    "javascript" => JAVASCRIPT
 )
 
 """
