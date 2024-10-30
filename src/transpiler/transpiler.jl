@@ -1,6 +1,7 @@
 module TRANSPILER
 
 include("../parser/parser.jl")
+include("import.jl")
 
 mutable struct JSCode
     script::Vector{String} # <-- Line by Line JS.
@@ -175,30 +176,35 @@ function jsify_import_statement!(js::JSCode, stmt::PARSER.ImportStatement)
     # check if js.imports contains path
     if stmt.path in js.import_paths
         # already been imported do nothing
-        return ""
+        return nothing
     end
 
     # add to imports
     push!(js.import_paths, stmt.path)
 
-    # check what kind of import this is.
-    if !occursin(".", stmt.path)
-        # this is a STD library import
-        return ""
+    import_type = EJImport.file_type(stmt.path)
+
+    if import_type == EJImport.EJ
     end
 
-    # if this is a .ej file
-    if endswith(stmt.path, ".ej")
-        f = open(stmt.path, "r")
-        contents = read(f, String)
-        close(f)
+    # # check what kind of import this is.
+    # if !occursin(".", stmt.path)
+    #     # this is a STD library import
+    #     return ""
+    # end
 
-        # transpile to JS
-        code = transpile_from_input(contents)
-        push!(js.imports, code)
-    end
+    # # if this is a .ej file
+    # if endswith(stmt.path, ".ej")
+    #     f = open(stmt.path, "r")
+    #     contents = read(f, String)
+    #     close(f)
 
-    return ""
+    #     # transpile to JS
+    #     code = transpile_from_input(contents)
+    #     push!(js.imports, code)
+    # end
+
+    return nothing
 end
 
 end
