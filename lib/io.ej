@@ -3,7 +3,3 @@ fn print(msg) {
         console.log(msg);
     }
 }
-
-if document != undefined {
-    print("lets do this");
-}

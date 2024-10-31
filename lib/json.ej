@@ -1,0 +1,3 @@
+fn parse_json(json) {
+    return JSON.parse(json)
+}
