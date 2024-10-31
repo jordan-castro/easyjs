@@ -203,7 +203,9 @@ function jsify_import_statement!(js::JSCode, stmt::PARSER.ImportStatement)
             code = read(io, String)
         end
     elseif import_type == EJImport.STD
-        # TODO: implement STD imports.
+        open((@__DIR__) * "/../../lib/" * stmt.path * ".ej", "r") do io
+            code = transpile_from_input(read(io, String))
+        end
     end
 
     return code

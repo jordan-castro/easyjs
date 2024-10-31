@@ -564,10 +564,9 @@ end
 function parse_import_statement!(p::Parser)
     token = p.c_token
 
-    if !(peektokenis(p, Lexer.IDENT) || peektokenis(p, Lexer.STRING))
+    if !expectpeek!(p, Lexer.STRING)
         return nothing
     end
-    nexttoken!(p)
 
     path = p.c_token.Literal
     as = ""

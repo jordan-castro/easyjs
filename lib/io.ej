@@ -1,9 +1,1 @@
-fn print(msg) {
-    javascript{
-        console.log(msg);
-    }
-}
-
-if document != undefined {
-    print("lets do this");
-}
+print := fn(msg) {console.log(msg);}

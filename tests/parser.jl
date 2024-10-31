@@ -163,7 +163,7 @@ program = PARSER.parseprogram!(p)
 @test program.statements[1].expression.value == "comment"
 
 input = "
-import http
+import \"http\"
 
 import \"otherfile.ej\" as ot
 "
