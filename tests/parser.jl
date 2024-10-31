@@ -178,3 +178,33 @@ program = PARSER.parseprogram!(p)
 @test typeof(program.statements[2]) == PARSER.ImportStatement
 @test program.statements[2].path == "otherfile.ej"
 @test program.statements[2].as == "ot"
+
+input = "
+console.log(\"hello world\")
+"
+lexer = PARSER.Lexer.Lex(input, 1, 1, ' ')
+p = PARSER.newparser(lexer)
+program = PARSER.parseprogram!(p)
+@test length(program.statements) == 1
+@test typeof(program.statements[1]) == PARSER.ExpressionStatement
+@test typeof(program.statements[1].expression) == PARSER.DotExpression
+
+input = "
+javascript{
+    const x = 1 + 1;
+    const obj = {
+        name: \"jj\"
+    };
+}
+
+name = javascript{
+    \"jj\";
+}
+"
+lexer = PARSER.Lexer.Lex(input, 1, 1, ' ')
+p = PARSER.newparser(lexer)
+program = PARSER.parseprogram!(p)
+
+@test length(program.statements) == 2
+@test typeof(program.statements[1]) == PARSER.JavaScriptStatement
+@test typeof(program.statements[2]) == PARSER.VariableStatement

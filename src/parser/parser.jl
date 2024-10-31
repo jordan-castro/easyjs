@@ -19,6 +19,9 @@ const SUM = 4         # +
 const PRODUCT = 5     # *
 const PREFIX = 6      # -X or !X
 const CALL = 7        # my_function(X)
+const DOT = 8         # .field or .method
+const JAVASCRIPT = 9  # javascript code
+
 
 """
 This is what goes in front of the token.
@@ -34,7 +37,9 @@ const precedences = Dict(
     Lexer.MINUS => SUM,
     Lexer.SLASH => PRODUCT,
     Lexer.ASTERISK => PRODUCT,
-    Lexer.L_PAREN => CALL
+    Lexer.L_PAREN => CALL,
+    Lexer.DOT => DOT,
+    Lexer.JAVASCRIPT => JAVASCRIPT
 )
 
 function cur_tokenis(p::Parser, type::String)
@@ -102,6 +107,7 @@ function newparser(lexer::Lexer.Lex)
     register_prefix!(parser, Lexer.FUNCTION, parse_function_literal!)
     register_prefix!(parser, Lexer.STRING, parse_string_literal!)
     register_prefix!(parser, Lexer.COMMENT, parse_comment!)
+    register_prefix!(parser, Lexer.JAVASCRIPT, parse_javascript_expression!)
 
     # register infix
     register_infix!(parser, Lexer.PLUS, parse_infix_expression!)
@@ -113,6 +119,8 @@ function newparser(lexer::Lexer.Lex)
     register_infix!(parser, Lexer.LT, parse_infix_expression!)
     register_infix!(parser, Lexer.GT, parse_infix_expression!)
     register_infix!(parser, Lexer.L_PAREN, parse_call_expression!)
+    register_infix!(parser, Lexer.DOT, parse_dot_expression!)
+    register_infix!(parser, Lexer.JAVASCRIPT, parse_infix_expression!)
 
     return parser
 end
@@ -157,6 +165,8 @@ function parsestatement!(p::Parser)
         return parsereturnstatement!(p)
     elseif p.c_token.Type == Lexer.IMPORT
         return parse_import_statement!(p)
+    elseif p.c_token.Type == Lexer.JAVASCRIPT
+        return JavaScriptStatement(p.c_token, p.c_token.Literal)
     else # our default (expression) statements
         return parse_expression_statement!(p)
     end
@@ -574,5 +584,24 @@ function parse_import_statement!(p::Parser)
     return ImportStatement(token, path, as)
 end
 
+function parse_dot_expression!(p::Parser, left::Expression)
+    token = p.c_token
+    
+    if !expectpeek!(p, Lexer.IDENT)
+        return nothing
+    end
+
+    right = parse_expression!(p, LOWEST)
+
+    if right === nothing
+        return nothing
+    end
+
+    return DotExpression(token, left, right)
+end
+
+function parse_javascript_expression!(p::Parser)
+    return JavaScriptExpression(p.c_token, p.c_token.Literal)
+end
 
 end

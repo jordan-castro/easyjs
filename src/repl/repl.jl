@@ -24,9 +24,10 @@ function start()
 
     println(easyjsasci)
     println("EasyJS " * EASY_JS_VERSION)
-    jscode = TRANSPILER.JSCode([], [], [], [], [])
-    jshistory = TRANSPILER.JSCode([], [], [], [], [])
+    jscode = TRANSPILER.JSCode([], [], [], [])
+    jshistory = TRANSPILER.JSCode([], [], [], [])
     while true
+        jscode.import_paths = jshistory.import_paths
         # read input
         print(PROMPT)
         input = readline()
@@ -42,7 +43,7 @@ function start()
             continue
         end
 
-        try
+        # try
             lexer = TRANSPILER.PARSER.Lexer.Lex(input, 1, 1, ' ')
             parser = TRANSPILER.PARSER.newparser(lexer)
             program = TRANSPILER.PARSER.parseprogram!(parser)
@@ -56,12 +57,11 @@ function start()
                 TRANSPILER.transpile!(program, jshistory)
                 js_response = JSRuntime.send_command(runtime, TRANSPILER.tostring(jscode))
                 println(strip(split(js_response,">")[2]))
-                # update jscode
             end
-        catch e 
-            println(e)
-            continue
-        end
+        # catch e 
+        #     println(e)
+        #     continue
+        # end
     end
     # close runtime
     JSRuntime.close_runtime(runtime)
