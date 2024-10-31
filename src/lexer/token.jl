@@ -59,6 +59,8 @@ const L_PAREN = "("
 const R_PAREN = ")"
 const L_BRACE = "{"
 const R_BRACE = "}"
+const L_BRACKET = "["
+const R_BRACKET = "]"
 
 # Keywords
 const FUNCTION = "FUNCTION"

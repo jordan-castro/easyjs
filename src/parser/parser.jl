@@ -21,6 +21,7 @@ const PREFIX = 6      # -X or !X
 const CALL = 7        # my_function(X)
 const DOT = 8         # .field or .method
 const JAVASCRIPT = 9  # javascript code
+const LESSGREATER_OR_EQUALS = 10 # <= or >=
 
 """
 This is what goes in front of the token.
@@ -38,7 +39,9 @@ const precedences = Dict(
     Lexer.ASTERISK => PRODUCT,
     Lexer.L_PAREN => CALL,
     Lexer.DOT => DOT,
-    Lexer.JAVASCRIPT => JAVASCRIPT
+    Lexer.JAVASCRIPT => JAVASCRIPT,
+    Lexer.LT_OR_EQ => LESSGREATER_OR_EQUALS,
+    Lexer.GT_OR_EQ => LESSGREATER_OR_EQUALS
 )
 
 function cur_tokenis(p::Parser, type::String)
@@ -120,6 +123,8 @@ function newparser(lexer::Lexer.Lex)
     register_infix!(parser, Lexer.L_PAREN, parse_call_expression!)
     register_infix!(parser, Lexer.DOT, parse_dot_expression!)
     register_infix!(parser, Lexer.JAVASCRIPT, parse_infix_expression!)
+    register_infix!(parser, Lexer.LT_OR_EQ, parse_infix_expression!)
+    register_infix!(parser, Lexer.GT_OR_EQ, parse_infix_expression!)
 
     return parser
 end

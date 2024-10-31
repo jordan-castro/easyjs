@@ -90,7 +90,7 @@ function jsify_expression!(js::JSCode, exp::PARSER.Expression)
     if typeof(exp) == PARSER.IntegerLiteral
         return string(exp.value)
     elseif typeof(exp) == PARSER.StringLiteral
-        return "\"" * exp.value * "\""
+        return '"' * exp.value * '"'
     elseif typeof(exp) == PARSER.PrefixExpression
         return PARSER.tostring(exp) # we already cover this in the parser
     elseif typeof(exp) == PARSER.InfixExpression
@@ -101,6 +101,10 @@ function jsify_expression!(js::JSCode, exp::PARSER.Expression)
             str *= "(" * jsify_expression!(js, exp.condition) * ")"
         else
             str *= jsify_expression!(js, exp.condition)
+            # check if str ends with a ";"
+            if endswith(str, ";")
+                str = str[1:end-1]
+            end
         end
         str *= " {" * jsify_statement!(js, exp.consequence) * "}"
         if exp.alternative !== nothing
@@ -132,6 +136,10 @@ function jsify_expression!(js::JSCode, exp::PARSER.Expression)
         str *= "("
         for (i, v) in enumerate(exp.arguments)
             str *= jsify_expression!(js, v)
+            # check if str ends with a ";"
+            if endswith(str, ";")
+                str = str[1:end-1]
+            end
             if i < length(exp.arguments)
                 str *= ","
             end

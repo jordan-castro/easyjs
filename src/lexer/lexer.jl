@@ -93,9 +93,21 @@ function nexttoken!(l::Lex)
     elseif cc == "*"
         type = ASTERISK
     elseif cc == "<"
-        type = LT
+        if peekchar(l) == '='
+            type = LT_OR_EQ
+            custom_literal = cc * '='
+            readchar!(l)
+        else
+            type = LT
+        end
     elseif cc == ">"
-        type = GT
+        if peekchar(l) == '='
+            type = GT_OR_EQ
+            custom_literal = cc * '='
+            readchar!(l)
+        else
+            type = GT
+        end
     elseif cc == ":"
         # check the next char
         next_char = peekchar(l)
@@ -118,9 +130,6 @@ function nexttoken!(l::Lex)
         type = STRING
         # read the string
         custom_literal = readstring!(l)
-    # elseif cc == "/"
-    #     type = COMMENT
-    #     custom_literal = readcomment!(l)
     else
         # check Identifiers
         if isletter(l.CurrentChar)
@@ -158,6 +167,12 @@ function readstring!(l::Lex)
     readchar!(l)
 
     while l.CurrentChar != '"' && l.CurrentChar != '\0'
+        # Check for an escaped quote
+        if l.CurrentChar == '\\' && peekchar(l) == '"'
+            # Move past the backslash
+            readchar!(l)
+        end
+        
         readchar!(l)
     end
 
