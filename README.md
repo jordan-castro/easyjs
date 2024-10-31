@@ -38,12 +38,14 @@ easyjs
 ### Examples
 Imagine you have a EasyJS file like so:
 ```rust
-fn foo() {
+fn foo() { // <-- functions use the fn keyword. This will transpile into a "function foo()"
     print("foo") // <-- This will console.log("foo")
+    // or you could just use
+    console.log("foo") // <-- most JS objects completely come over. 
 }
 
-fn bar() {
-    print("bar") // <-- This will console.log("bar")
+yeyo := fn() { // <-- this will transpile into a "const yeyo = ()"
+
 }
 ```
 You can compile this using our easyjs CLI.
@@ -69,7 +71,7 @@ In this approach our wasm runtime will take care of transcribing it in REALTIME.
 
 **Fibonacci**
 ```rust
-fn fibonacci(n) { // <-- easyJS is dynamically typed with (optinal typing). 
+fn fibonacci(n) { // <-- easyJS is dynamically typed. 
     if n == 0 {
         return 0 // <-- optional semicolons.
     } elif n == 1 {
@@ -94,16 +96,14 @@ const fibonacci = (n) => {
 ```
 **Manipulating the DOM**
 ```rust
-import dom // <-- import the easyjs dom library
-
-title := get_element_by_tag("title") // <-- Call the dom.get_element_by_tag method
-title.text = "Hello World!"
+document.title = "Hello World!" // <-- No semicolons
 ```
 VS the JavaScript equivalent
 ```javascript
-const title = document.getElementsByTagName("title")[0];
-title.text = "Hello World!"
+document.title = "Hello World!";
 ```
+
+That's a pretty basic example, but you can already tell it is a little more readable without the semicolons.
 
 **Making a GET request**
 ```rust
@@ -112,7 +112,7 @@ import http // <-- import the easyjs http library
 get_response := get("https://jsonplaceholder.typicode.com/posts/1") // <-- Call the http.get method
 get_response.if { // <-- Conditional on object type.
     .status_code == 200 { // <-- if get_response.status_code == 200 (you also can use .ok which does the same thing)
-        print(.json())
+        console.log(.json())
     } else {
         throw(NetworkError) // <-- You can also use a general Error(msg)
     }
@@ -145,7 +145,7 @@ struct Person {
     pub fn _new(name, age, diary) {} // <-- If using the same name as the struct property it will be set automatically.
 
     pub fn say_greeting() {
-        print("Hello, my name is $name") // <-- Example of string interpolation. No need for ``
+        console.log("Hello, my name is $name") // <-- Example of string interpolation. No need for ``
     }
 
     fn read_diary() { // <-- struct functions are private by default.
