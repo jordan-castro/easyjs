@@ -502,7 +502,12 @@ end
 function parse_function_literal!(p::Parser)
     token = p.c_token
 
-    if !expectpeek!(p, Lexer.IDENT)
+    if peektokenis(p, Lexer.L_PAREN) # it could be a lambda?
+        return parse_lambda_literal!(p)
+    end
+
+    # otherwise this is for sure a function.
+    if !expectpeek!(p, Lexer.IDENT) 
         return nothing
     end
     name = Identifier(p.c_token, p.c_token.Literal)
@@ -601,6 +606,25 @@ end
 
 function parse_javascript_expression!(p::Parser)
     return JavaScriptExpression(p.c_token, p.c_token.Literal)
+end
+
+function parse_lambda_literal!(p::Parser)
+    token = p.c_token
+
+    # parse the ()
+    parameters = parse_function_paramaters!(p)
+
+    if !expectpeek!(p, Lexer.L_BRACE)
+        return nothing
+    end
+
+    body = parse_block_statement!(p)
+
+    if body === nothing
+        return nothing
+    end
+    
+    return LambdaLiteral(token, parameters, body)
 end
 
 end

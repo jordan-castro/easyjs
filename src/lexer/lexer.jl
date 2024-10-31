@@ -182,7 +182,7 @@ Get the full identifier.
 """
 function readidentifier!(l::Lex)
     position = l.Position
-    while isletter(l.CurrentChar)
+    while isletter(l.CurrentChar) || occursin(l.CurrentChar, "_1234567890")
         readchar!(l)
     end
 

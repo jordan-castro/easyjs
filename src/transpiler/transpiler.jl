@@ -112,14 +112,14 @@ function jsify_expression!(js::JSCode, exp::PARSER.Expression)
         end
         return str
     elseif typeof(exp) == PARSER.FunctionLiteral
-        str = "const " * exp.name.value * " = ("
-        for p in exp.paramaters
-            str *= jsify_expression!(js, p)
-            if p !== exp.paramaters[end]
+        str = "function " * exp.name.value * "("
+        for (i, v) in enumerate(exp.paramaters)
+            str *= jsify_expression!(js, v)
+            if i < length(exp.paramaters)
                 str *= ","
             end
         end
-        str *= ") => {" * jsify_statement!(js, exp.body) * "};"
+        str *= ") {" * jsify_statement!(js, exp.body) * "}"
         return str
     elseif typeof(exp) == PARSER.CallExpression
         str = ""
@@ -130,9 +130,9 @@ function jsify_expression!(js::JSCode, exp::PARSER.Expression)
         end
 
         str *= "("
-        for p in exp.arguments
-            str *= jsify_expression!(js, p)
-            if p !== exp.arguments[end]
+        for (i, v) in enumerate(exp.arguments)
+            str *= jsify_expression!(js, v)
+            if i < length(exp.arguments)
                 str *= ","
             end
         end
@@ -150,6 +150,16 @@ function jsify_expression!(js::JSCode, exp::PARSER.Expression)
         return jsify_expression!(js, exp.left) * "." * jsify_expression!(js, exp.right)
     elseif typeof(exp) == PARSER.JavaScriptExpression
         return exp.code[2:end-1]
+    elseif typeof(exp) == PARSER.LambdaLiteral
+        str = ""
+        for (i, v) in enumerate(exp.paramaters)
+            str *= jsify_expression!(js, v)
+            if i < length(exp.paramaters)
+                str *= ","
+            end
+        end
+        str *= ") => {" * jsify_statement!(js, exp.body) * "}"
+        return str
     else
         return ""
     end
@@ -193,10 +203,10 @@ function jsify_import_statement!(js::JSCode, stmt::PARSER.ImportStatement)
 
     if import_type == EJImport.EJ
         open(stmt.path, "r") do io
-            contents = read(io, String)
-
             # transpile to JS
-            code = transpile_from_input(contents)
+            code = transpile_from_input(
+                read(io, String)
+            )
         end
     elseif import_type == EJImport.JS
         open(stmt.path, "r") do io

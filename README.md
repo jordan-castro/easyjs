@@ -38,14 +38,14 @@ easyjs
 ### Examples
 Imagine you have a EasyJS file like so:
 ```rust
-fn foo() { // <-- functions use the fn keyword. This will transpile into a "function foo()"
+fn foo() { // <-- functions use the fn keyword.  this will transpile into a "function foo() {}"
     print("foo") // <-- This will console.log("foo")
     // or you could just use
     console.log("foo") // <-- most JS objects completely come over. 
 }
 
-yeyo := fn() { // <-- this will transpile into a "const yeyo = ()"
-
+bar := fn(x,y) {  // <-- This will transpile into a "const bar = () => {};"
+    ...
 }
 ```
 You can compile this using our easyjs CLI.

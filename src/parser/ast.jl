@@ -128,6 +128,12 @@ struct FunctionLiteral <: Expression
     body::Union{BlockStatement, Nothing}
 end
 
+struct LambdaLiteral <: Expression
+    token::Lexer.Token # <-- The : token.
+    paramaters::Array{Identifier}
+    body::BlockStatement
+end
+
 struct CallExpression <: Expression
     token::Lexer.Token # <-- The '(' token
     fn::Expression # <-- Identifier or FunctionLiteral
@@ -293,4 +299,8 @@ end
 
 function tostring(js::JavaScriptStatement)
     return js.token.Literal * " " * js.code
+end
+
+function tostring(ll::LambdaLiteral) 
+    return ll.token.Literal * " (" * join(ll.paramaters, ", ") * ")" * tostring(ll.body)
 end
