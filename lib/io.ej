@@ -1,5 +1,1 @@
-fn print(msg) {
-    javascript{
-        console.log(msg);
-    }
-}
+print := fn(msg) { console.log(msg); }

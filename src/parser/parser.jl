@@ -22,7 +22,6 @@ const CALL = 7        # my_function(X)
 const DOT = 8         # .field or .method
 const JAVASCRIPT = 9  # javascript code
 
-
 """
 This is what goes in front of the token.
 
@@ -233,6 +232,10 @@ function parse_const_var_statement!(p::Parser)
 
     value = parse_expression!(p, LOWEST)
     
+    if value === nothing
+        return nothing
+    end
+
     if peektokenis_eos(p)
         nexttoken!(p)
     end
@@ -569,10 +572,9 @@ end
 function parse_import_statement!(p::Parser)
     token = p.c_token
 
-    if !(peektokenis(p, Lexer.IDENT) || peektokenis(p, Lexer.STRING))
+    if !expectpeek!(p, Lexer.STRING)
         return nothing
     end
-    nexttoken!(p)
 
     path = p.c_token.Literal
     as = ""
@@ -612,6 +614,9 @@ end
 function parse_lambda_literal!(p::Parser)
     token = p.c_token
 
+    if !expectpeek!(p, Lexer.L_PAREN)
+        return nothing
+    end
     # parse the ()
     parameters = parse_function_paramaters!(p)
 
