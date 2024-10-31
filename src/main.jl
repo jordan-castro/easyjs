@@ -1,5 +1,8 @@
 module EasyJS
 
+using Pkg
+Pkg.activate(".")
+
 include("utils/version.jl")
 include("repl/repl.jl")
 include("transpiler/transpiler.jl")
