@@ -151,7 +151,7 @@ function jsify_expression!(js::JSCode, exp::PARSER.Expression)
     elseif typeof(exp) == PARSER.JavaScriptExpression
         return exp.code[2:end-1]
     elseif typeof(exp) == PARSER.LambdaLiteral
-        str = ""
+        str = "("
         for (i, v) in enumerate(exp.paramaters)
             str *= jsify_expression!(js, v)
             if i < length(exp.paramaters)
@@ -213,7 +213,7 @@ function jsify_import_statement!(js::JSCode, stmt::PARSER.ImportStatement)
             code = read(io, String)
         end
     elseif import_type == EJImport.STD
-        open((@__DIR__) * "/../../lib/" * stmt.path * ".ej", "r") do io
+        open((@__DIR__) * "/../../lib/" * stmt.path * ".ej") do io
             code = transpile_from_input(read(io, String))
         end
     end
