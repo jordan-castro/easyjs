@@ -19,6 +19,9 @@ abstract type Expression <: Node end
 struct DefaultDontUseExpression <: Expression
 end
 
+struct EmptyExpression <: Expression
+end
+
 struct Identifier <: Expression
     token::Lexer.Token # <-- The IDENT token
     value::String
@@ -162,6 +165,23 @@ struct JavaScriptExpression <: Expression
     code::String    
 end
 
+struct ArrayLiteral <: Expression
+    token::Lexer.Token # <-- The [ token
+    elements::Array{Expression}
+end
+
+struct IndexExpression <: Expression
+    token::Lexer.Token # <-- The [ token
+    left::Expression
+    index::Expression
+    rigth::Expression
+end
+
+struct ObjectLiteral <: Expression
+    token::Lexer.Token # <-- The { token
+    elements::Dict{Expression, Expression}
+end
+
 # Define a concrete struct for Program
 mutable struct Program
     statements::Vector{Statement}
@@ -303,4 +323,20 @@ end
 
 function tostring(ll::LambdaLiteral) 
     return ll.token.Literal * " (" * join(ll.paramaters, ", ") * ")" * tostring(ll.body)
+end
+
+function tostring(al::ArrayLiteral)
+    return "[" * join(map(tostring, al.elements), ", ") * "]"
+end
+
+function tostring(ol::ObjectLiteral)
+    elements = []
+    for (k, v) in ol.elements
+        push!(elements, tostring(k) * ": " * tostring(v))
+    end
+    return "{" * join(elements, ", ") * "}"
+end
+
+function tostring(ie::IndexExpression)
+    return tostring(ie.left) * "[" * tostring(ie.index) * "]"
 end

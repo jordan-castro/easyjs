@@ -228,3 +228,33 @@ program = PARSER.parseprogram!(p)
 @test program.statements[1].value.token.Type == PARSER.Lexer.FUNCTION
 @test typeof(program.statements[1].value.body) == PARSER.BlockStatement
 @test length(p.errors) == 0
+
+input = "
+    array := [1,2,3]
+    empty_array = []
+
+    // indexing on an array and replacing it's value.
+    array[0] = 1
+"
+lexer = PARSER.Lexer.Lex(input, 1, 1, ' ')
+p = PARSER.newparser(lexer)
+program = PARSER.parseprogram!(p)
+
+@test length(program.statements) == 4
+@test typeof(program.statements[1]) == PARSER.ConstVariableStatement
+@test typeof(program.statements[1].value) == PARSER.ArrayLiteral
+@test program.statements[1].value.token.Type == PARSER.Lexer.L_BRACKET
+@test typeof(program.statements[4]) == PARSER.ExpressionStatement
+@test typeof(program.statements[4].expression) == PARSER.IndexExpression
+
+input = "
+    {
+        name: \"jj\",
+        age: 1
+    }
+"
+lexer = PARSER.Lexer.Lex(input, 1, 1, ' ')
+p = PARSER.newparser(lexer)
+program = PARSER.parseprogram!(p)
+
+@test length(program.statements) == 1

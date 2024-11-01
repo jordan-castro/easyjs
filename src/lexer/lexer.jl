@@ -80,6 +80,10 @@ function nexttoken!(l::Lex)
         type = SEMICOLON
     elseif cc == "\n"
         type = EOL
+    elseif cc == "["
+        type = L_BRACKET
+    elseif cc == "]"
+        type = R_BRACKET
     elseif cc == "!"
         if peekchar(l) == '='
             type = NOT_EQ

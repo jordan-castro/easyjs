@@ -168,6 +168,22 @@ function jsify_expression!(js::JSCode, exp::PARSER.Expression)
         end
         str *= ") => {" * jsify_statement!(js, exp.body) * "}"
         return str
+    elseif typeof(exp) == PARSER.ArrayLiteral
+        str = "["
+        for (i, v) in enumerate(exp.elements)
+            str *= jsify_expression!(js, v)
+            if i < length(exp.elements)
+                str *= ","
+            end
+        end
+        str *= "]"
+        return str
+    elseif typeof(exp) == PARSER.IndexExpression
+        str = jsify_expression!(js, exp.left) *  jsify_expression!(js, exp.index)
+        if typeof(exp.rigth) !== PARSER.EmptyExpression
+            str *= "=" * jsify_expression!(js, exp.rigth)
+        end
+        return str
     else
         return ""
     end
