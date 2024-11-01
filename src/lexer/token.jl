@@ -74,6 +74,9 @@ const ELIF = "ELIF"
 const RETURN = "RETURN"
 const AS = "AS"
 const JAVASCRIPT = "JAVASCRIPT"
+const FOR = "FOR"
+const IN = "IN"
+const OF = "OF"
 
 ## specials
 const colon_specials = Dict(
@@ -93,7 +96,10 @@ const keywords = Dict(
     "elif" => ELIF,
     "return" => RETURN,
     "as" => AS,
-    "javascript" => JAVASCRIPT
+    "javascript" => JAVASCRIPT,
+    "in" => IN,
+    "for" => FOR,
+    "of" => OF
 )
 
 """

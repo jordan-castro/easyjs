@@ -149,6 +149,34 @@ struct ConstVariableStatement <: Statement
     value::Expression
 end
 
+struct ForStatement <: Statement # <-- this is a while loop in EasyJS
+    token::Lexer.Token # <-- The 'for' token
+    condition::Expression # <-- instead of while loops.
+    body::BlockStatement
+end
+
+struct ForRangeStatement <: Statement
+    token::Lexer.Token # <-- The 'for' token
+    init::Statement # <-- The identifier i.e. i = 0;
+    condition::Expression # <-- i < 10
+    increment::Expression # <-- i += 1
+    body::BlockStatement
+end
+
+struct ForInStatement <: Statement
+    token::Lexer.Token # <-- The 'for' token
+    left::Identifier
+    right::Expression
+    body::BlockStatement
+end
+
+struct ForOfStatement <: Statement
+    token::Lexer.Token # <-- The 'for' token
+    left::Identifier
+    right::Expression
+    body::BlockStatement
+end
+
 struct DotExpression <: Expression
     token::Lexer.Token # <-- The '.' token
     left::Expression

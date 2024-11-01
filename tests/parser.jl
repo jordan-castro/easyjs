@@ -259,3 +259,12 @@ p = PARSER.newparser(lexer)
 program = PARSER.parseprogram!(p)
 
 @test length(program.statements) == 2
+
+input = "
+    
+"
+lexer = PARSER.Lexer.Lex(input, 1, 1, ' ')
+p = PARSER.newparser(lexer)
+program = PARSER.parseprogram!(p)
+
+@test length(program.statements) == 2
