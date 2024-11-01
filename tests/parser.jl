@@ -248,6 +248,7 @@ program = PARSER.parseprogram!(p)
 @test typeof(program.statements[4].expression) == PARSER.IndexExpression
 
 input = "
+    {}
     {
         name: \"jj\",
         age: 1
@@ -257,4 +258,4 @@ lexer = PARSER.Lexer.Lex(input, 1, 1, ' ')
 p = PARSER.newparser(lexer)
 program = PARSER.parseprogram!(p)
 
-@test length(program.statements) == 1
+@test length(program.statements) == 2

@@ -184,6 +184,14 @@ function jsify_expression!(js::JSCode, exp::PARSER.Expression)
             str *= "=" * jsify_expression!(js, exp.rigth)
         end
         return str
+    elseif typeof(exp) == PARSER.ObjectLiteral
+        str = "{"
+        for (key, value) in exp.elements
+            str *= jsify_expression!(js, key) * ":" * jsify_expression!(js, value)
+            str *= ","
+        end
+        str *= "}"
+        return str
     else
         return ""
     end

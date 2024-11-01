@@ -709,7 +709,6 @@ function parse_index_expression!(p::Parser, left::Expression)
 end
 
 function parse_object_literal!(p::Parser)
-    println("parse_object_literal!")
     token = p.c_token # {
     elements = Dict{Expression,Expression}()
 
@@ -736,7 +735,7 @@ function parse_object_literal!(p::Parser)
             end
             nexttoken!(p) # :
             value = parse_expression!(p, LOWEST)
-            
+
             if key === nothing || value === nothing
                 return nothing
             end
@@ -745,7 +744,7 @@ function parse_object_literal!(p::Parser)
         nexttoken!(p)
     end
 
-    if !expectpeek!(p, Lexer.R_BRACE) # }
+    if !cur_tokenis(p, Lexer.R_BRACE) # }
         return nothing
     end
 
