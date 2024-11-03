@@ -1,1 +1,1 @@
-const EASY_JS_VERSION = "0.0.3"
+const EASY_JS_VERSION = "0.1.0"

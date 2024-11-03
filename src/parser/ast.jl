@@ -121,7 +121,7 @@ struct IfExpression <: Expression
     token::Lexer.Token # <-- The 'if' token
     condition::Expression
     consequence::BlockStatement
-    alternative::Union{BlockStatement, Nothing, IfExpression} # <-- A IfExpression can either be by itself, have a else, or a elseif.
+    alternative # <-- A IfExpression can either be by itself, have a else, or a elseif.
 end
 
 struct AsyncExpression <: Expression
@@ -133,7 +133,7 @@ struct FunctionLiteral <: Expression
     token::Lexer.Token # <-- The 'fn' token.
     name::Identifier # <-- The name of the function.
     paramaters::Array{Identifier}
-    body::Union{BlockStatement, Nothing}
+    body::BlockStatement
 end
 
 struct LambdaLiteral <: Expression

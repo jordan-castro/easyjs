@@ -2,15 +2,17 @@
 
 fn get_elements(query) {
     elements = []
-    if query.className !== undefined {
+    if query.className != undefined {
         elements.append(document.getElementsByClassName(query.className))
     }
 
-    if query.id !== undefined {
+    if query.id != undefined {
         elements.push(document.getElementById(query.id))
     }
 
-    if query.tagName !== undefined {
-        elements.append
+    if query.tagName != undefined {
+        // elements.append
     }
+
+    return elements
 }

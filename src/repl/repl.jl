@@ -18,7 +18,7 @@ const easyjsasci = "    ___       ___       ___       ___            ___       _
 """
 Start the REPL.
 """
-function start(runtime_option="node")
+function start(runtime_option, crash_on_error)
     runtime = JSRuntime.start_runtime(runtime_option)
 
     println(easyjsasci)
@@ -42,7 +42,27 @@ function start(runtime_option="node")
             continue
         end
 
-        try
+        if !crash_on_error
+            try
+                lexer = TRANSPILER.PARSER.Lexer.Lex(input, 1, 1, ' ')
+                parser = TRANSPILER.PARSER.newparser(lexer)
+                program = TRANSPILER.PARSER.parseprogram!(parser)
+
+                # check errors
+                if length(parser.errors) > 0
+                    printparse_errors(parser.errors)
+                else
+                    jscode.script = []
+                    TRANSPILER.transpile!(program, jscode)
+                    TRANSPILER.transpile!(program, jshistory)
+                    js_response = JSRuntime.send_command(runtime, TRANSPILER.tostring(jscode))
+                    println(strip(split(js_response, ">")[2]))
+                end
+            catch e
+                println(e)
+                continue
+            end
+        else
             lexer = TRANSPILER.PARSER.Lexer.Lex(input, 1, 1, ' ')
             parser = TRANSPILER.PARSER.newparser(lexer)
             program = TRANSPILER.PARSER.parseprogram!(parser)
@@ -55,11 +75,8 @@ function start(runtime_option="node")
                 TRANSPILER.transpile!(program, jscode)
                 TRANSPILER.transpile!(program, jshistory)
                 js_response = JSRuntime.send_command(runtime, TRANSPILER.tostring(jscode))
-                println(strip(split(js_response,">")[2]))
+                println(strip(split(js_response, ">")[2]))
             end
-        catch e 
-            println(e)
-            continue
         end
     end
     # close runtime

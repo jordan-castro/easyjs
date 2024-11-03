@@ -66,7 +66,7 @@ end
 
 function jsify_statement!(js::JSCode, stmt::PARSER.Statement)
     if typeof(stmt) == PARSER.ExpressionStatement
-        return jsify_expression!(js, stmt.expression)
+        return jsify_expression!(js, stmt.expression) * ";"
     elseif typeof(stmt) == PARSER.VariableStatement
         return jsify_varstatement!(js, stmt)
     elseif typeof(stmt) == PARSER.ReturnStatement
@@ -198,7 +198,7 @@ function jsify_expression!(js::JSCode, exp::PARSER.Expression)
         str = "async " * jsify_expression!(js, exp.expression)
         return str
     elseif typeof(exp) == PARSER.InExpression
-        return jsify_expression!(js, exp.left) * " in " * jsify_expression!(js, exp.right)
+        return jsify_expression!(js, exp.right) * ".includes(" * jsify_expression!(js, exp.left) * ")"
     elseif typeof(exp) == PARSER.OfExpression
         return jsify_expression!(js, exp.left) * " of " * jsify_expression!(js, exp.right)
     elseif typeof(exp) == PARSER.RangeExpression
@@ -288,15 +288,22 @@ function jsify_for_statement!(js::JSCode, stmt::PARSER.ForStatement)
             str *= jsified_condition * " "
         end
         str *= "{ " * jsify_blockstatement!(p, stmt.body) * " }"
-    # elseif typeof(stmt.condition) == PARSER.OfExpression
-    #     str = "for (let " * jsify_expression!(js, stmt.condition) * ")" * " {" * jsify_blockstatement!(js, stmt.body) * "}"
-    # elseif typeof(stmt.condition) == PARSER.InExpression
-    #     str = "for (let "
-    #     if typeof(stmt.condition.right) == PARSER.RangeExpression
-    #         left = jsify_expression!(js, stmt.condition.left)
-    #         str *= left * "=" * stmt.condition.right.r_start.value * ";"
-    #         str *= left * ""
-    #     end
+    elseif typeof(stmt.condition) == PARSER.OfExpression
+        str = "for (let " * jsify_expression!(js, stmt.condition) * ") {" * jsify_blockstatement!(js, stmt.body) * "}"
+    elseif typeof(stmt.condition) == PARSER.InExpression
+        ident = jsify_expression!(js, stmt.condition.left)
+        str = "for (let " * ident
+
+        if typeof(stmt.condition.right) == PARSER.RangeExpression
+            range = stmt.condition.right
+            str *= " = " * jsify_expression!(js, range.r_start) * ";"
+            str *= ident * " < " * jsify_expression!(js, range.r_end) * ";"
+            str *= ident * "++"
+        else
+            str *= " in " * jsify_expression!(js, stmt.condition.right)
+        end
+
+        str *= ") {" * jsify_blockstatement!(js, stmt.body) * "}"
     end
 
     return str

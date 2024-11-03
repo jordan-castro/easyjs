@@ -435,6 +435,10 @@ function parse_if_expression!(p::Parser)
         alternative = parse_if_expression!(p)
     end
 
+    if alternative === nothing
+        return nothing
+    end
+
     return IfExpression(token, condition, consequence, alternative)
 end
 
@@ -556,6 +560,9 @@ function parse_function_literal!(p::Parser)
     end
 
     body = parse_block_statement!(p)
+    if body === nothing
+        return nothing
+    end
 
     return FunctionLiteral(token, name, parameters, body)
 end
