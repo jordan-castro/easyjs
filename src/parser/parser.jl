@@ -125,10 +125,8 @@ function newparser(lexer::Lexer.Lex)
     register_prefix!(parser, Lexer.L_BRACKET, parse_array_literal!)
     register_prefix!(parser, Lexer.L_BRACE, parse_object_literal!)
     register_prefix!(parser, Lexer.ASYNC, parse_async_expression!)
-    register_prefix!(parser, Lexer.IN, parse_prefix_expression!)
-    register_prefix!(parser, Lexer.OF, parse_prefix_expression!)
-    register_prefix!(parser, Lexer.DOT, parse_prefix_expression!)
-    register_prefix!(parser, Lexer.DOTDOT, parse_prefix_expression!)
+    # register_prefix!(parser, Lexer.DOT, parse_prefix_expression!)
+    # register_prefix!(parser, Lexer.DOTDOT, parse_prefix_expression!)
 
     # register_prefix!(parser, Lexer.ASSIGN, parse_prefix_expression!)
 
@@ -798,6 +796,7 @@ function parse_for_statement!(p::Parser)
         nexttoken!(p) # (
         has_paren = true
     end
+
     nexttoken!(p) # go to the expression
     condition = parse_expression!(p, LOWEST)
     if condition === nothing
@@ -844,6 +843,7 @@ function parse_range_expression!(p::Parser, left::Expression)
 end
 
 function parse_in_expression!(p::Parser, left::Expression)
+    nexttoken!(p)
     right = parse_expression!(p, LOWEST)
     if right === nothing
         return nothing
@@ -852,6 +852,8 @@ function parse_in_expression!(p::Parser, left::Expression)
 end
 
 function parse_of_expression!(p::Parser, left::Expression)
+    nexttoken!(p)
+
     right = parse_expression!(p, LOWEST)
     if right === nothing
         return nothing

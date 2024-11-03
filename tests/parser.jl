@@ -294,8 +294,11 @@ lexer = PARSER.Lexer.Lex(input, 1, 1, ' ')
 p = PARSER.newparser(lexer)
 program = PARSER.parseprogram!(p)
 
-@test length(program.statements) == 3
+if length(p.errors) > 0
+    println(p.errors)
+end
 @test length(p.errors) == 0
+@test length(program.statements) == 3
 @test typeof(program.statements[1]) == PARSER.ForStatement
 @test typeof(program.statements[1].condition) == PARSER.InExpression
 @test typeof(program.statements[1].condition.left) == PARSER.Identifier

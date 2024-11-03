@@ -276,6 +276,7 @@ function jsify_import_statement!(js::JSCode, stmt::PARSER.ImportStatement)
 end
 
 function jsify_for_statement!(js::JSCode, stmt::PARSER.ForStatement)
+    str = ""
     if typeof(stmt.condition) == PARSER.InfixExpression
         str = "while " * jsify_expression!(js, stmt.condition) * "{ " * jsify_blockstatement!(js, stmt.body) * "}"
     elseif typeof(stmt.condition) == PARSER.Boolean
@@ -287,8 +288,15 @@ function jsify_for_statement!(js::JSCode, stmt::PARSER.ForStatement)
             str *= jsified_condition * " "
         end
         str *= "{ " * jsify_blockstatement!(p, stmt.body) * " }"
-    else
-        str = "for (" * jsify_expression!(js, stmt.condition) * ")" * " {" * jsify_blockstatement!(js, stmt.body) * "}"
+    # elseif typeof(stmt.condition) == PARSER.OfExpression
+    #     str = "for (let " * jsify_expression!(js, stmt.condition) * ")" * " {" * jsify_blockstatement!(js, stmt.body) * "}"
+    # elseif typeof(stmt.condition) == PARSER.InExpression
+    #     str = "for (let "
+    #     if typeof(stmt.condition.right) == PARSER.RangeExpression
+    #         left = jsify_expression!(js, stmt.condition.left)
+    #         str *= left * "=" * stmt.condition.right.r_start.value * ";"
+    #         str *= left * ""
+    #     end
     end
 
     return str
