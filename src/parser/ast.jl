@@ -156,24 +156,26 @@ end
 
 struct ForStatement <: Statement # <-- this is a while loop in EasyJS
     token::Lexer.Token # <-- The 'for' token
-    condition::Expression # <-- instead of while loops.
+    condition::Expression # <-- the expression
     body::BlockStatement
 end
 
-struct ForRangeStatement <: Statement
-    token::Lexer.Token # <-- The 'for' token
-    init::Statement # <-- The identifier i.e. i = 0;
-    condition::Expression # <-- i < 10
-    increment::Expression # <-- i += 1
-    body::BlockStatement
-end
-
-struct ForImpliedRangeStatement <: Statement
-    token::Lexer.Token # <-- The 'for' token
-    left::Identifier
-    operation::Lexer.Token # <-- The 'in' or 'of' token..
+struct InExpression <: Expression
+    token::Lexer.Token
+    left::Expression
     right::Expression
-    body::BlockStatement
+end
+
+struct OfExpression <: Expression
+    token::Lexer.Token
+    left::Expression
+    right::Expression
+end
+
+struct RangeExpression <: Expression
+    token::Lexer.Token # <-- The '..' token
+    r_start::Expression
+    r_end::Expression
 end
 
 struct DotExpression <: Expression
@@ -382,10 +384,6 @@ function tostring(fs::ForStatement)
     return "for " * tostring(fs.condition) * " " * tostring(fs.body)
 end
 
-function tostring(frs::ForRangeStatement)
-    return "for " * tostring(frs.init) * " ; " * tostring(frs.condition) * " ; " * tostring(frs.update) * " " * tostring(frs.body)
-end
-
-function tostring(fs::ForImpliedRangeStatement)
-    return "for " * tostring(fs.left) * " " * fs.operation * " " * tostring(fs.right) * " " * tostring(fs.body)
+function tostring(re::RangeExpression)
+    return tostring(re.r_start) * ".." * tostring(re.r_end)
 end

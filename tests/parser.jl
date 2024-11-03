@@ -286,14 +286,17 @@ program = PARSER.parseprogram!(p)
 @test typeof(program.statements[2].value) == PARSER.AsyncExpression
 
 input = "
-    for (i = 0; i < 10; i = i + 1) {}
-    for i = 0; i < 10; i = i + 1 {}
+    for i in 0..10 {}
+    for true {}
+    for i < 10 {}
 "
 lexer = PARSER.Lexer.Lex(input, 1, 1, ' ')
 p = PARSER.newparser(lexer)
 program = PARSER.parseprogram!(p)
 
-print(p.errors)
-
-@test length(program.statements) == 2
+@test length(program.statements) == 3
 @test length(p.errors) == 0
+@test typeof(program.statements[1]) == PARSER.ForStatement
+@test typeof(program.statements[1].condition) == PARSER.InExpression
+@test typeof(program.statements[1].condition.left) == PARSER.Identifier
+@test typeof(program.statements[1].condition.right) == PARSER.RangeExpression

@@ -24,6 +24,10 @@ const JAVASCRIPT = 9              # javascript code
 const LESSGREATER_OR_EQUALS = 10  # <= or >=
 const BRACKET = 11                # [
 const BRACE = 12                  # {
+const DOTDOT = 13                 # ..
+const IN = 14                     # in
+const OF = 15                     # of
+# const ASSIGN = 16                 # in the case of x.field = new value
 
 """
 This is what goes in front of the token.
@@ -45,7 +49,11 @@ const precedences = Dict(
     Lexer.LT_OR_EQ => LESSGREATER_OR_EQUALS,
     Lexer.GT_OR_EQ => LESSGREATER_OR_EQUALS,
     Lexer.L_BRACKET => BRACKET,
-    Lexer.L_BRACE => BRACE
+    Lexer.L_BRACE => BRACE,
+    Lexer.DOTDOT => DOTDOT,
+    Lexer.IN => IN,
+    Lexer.OF => OF,
+    # Lexer.ASSIGN => ASSIGN
 )
 
 function cur_tokenis(p::Parser, type::String)
@@ -117,6 +125,12 @@ function newparser(lexer::Lexer.Lex)
     register_prefix!(parser, Lexer.L_BRACKET, parse_array_literal!)
     register_prefix!(parser, Lexer.L_BRACE, parse_object_literal!)
     register_prefix!(parser, Lexer.ASYNC, parse_async_expression!)
+    register_prefix!(parser, Lexer.IN, parse_prefix_expression!)
+    register_prefix!(parser, Lexer.OF, parse_prefix_expression!)
+    register_prefix!(parser, Lexer.DOT, parse_prefix_expression!)
+    register_prefix!(parser, Lexer.DOTDOT, parse_prefix_expression!)
+
+    # register_prefix!(parser, Lexer.ASSIGN, parse_prefix_expression!)
 
     # register infix
     register_infix!(parser, Lexer.PLUS, parse_infix_expression!)
@@ -133,6 +147,9 @@ function newparser(lexer::Lexer.Lex)
     register_infix!(parser, Lexer.LT_OR_EQ, parse_infix_expression!)
     register_infix!(parser, Lexer.GT_OR_EQ, parse_infix_expression!)
     register_infix!(parser, Lexer.L_BRACKET, parse_index_expression!)
+    register_infix!(parser, Lexer.DOTDOT, parse_range_expression!)
+    register_infix!(parser, Lexer.IN, parse_in_expression!)
+    register_infix!(parser, Lexer.OF, parse_of_expression!)
 
     return parser
 end
@@ -773,4 +790,72 @@ function parse_async_expression!(p::Parser)
     return AsyncExpression(token, parse_function_literal!(p))
 end
 
+function parse_for_statement!(p::Parser)
+    token = p.c_token # for
+    has_paren = false
+
+    if peektokenis(p, Lexer.L_PAREN)
+        nexttoken!(p) # (
+        has_paren = true
+    end
+    nexttoken!(p) # go to the expression
+    condition = parse_expression!(p, LOWEST)
+    if condition === nothing
+        return nothing
+    end
+
+    if has_paren
+        if !expectpeek!(p, Lexer.R_PAREN)
+            return nothing
+        end
+    end
+
+    if !expectpeek!(p, Lexer.L_BRACE)
+        return nothing
+    end
+
+    body = parse_block_statement!(p)
+    if body === nothing
+        return nothing
+    end
+
+    return ForStatement(token, condition, body)
+end
+
+function parse_range_expression!(p::Parser, left::Expression)
+    token = p.c_token # ..
+
+    if typeof(left) != IntegerLiteral
+        push!(p.errors, "Range must start and end with a INTEGER")
+        return nothing
+    end
+
+    if !expectpeek!(p, Lexer.INT)
+        return nothing
+    end
+
+    right = parse_expression!(p, LOWEST)
+
+    if right === nothing
+        return nothing
+    end
+
+    return RangeExpression(token, left, right)
+end
+
+function parse_in_expression!(p::Parser, left::Expression)
+    right = parse_expression!(p, LOWEST)
+    if right === nothing
+        return nothing
+    end
+    return InExpression(p.c_token, left, right)
+end
+
+function parse_of_expression!(p::Parser, left::Expression)
+    right = parse_expression!(p, LOWEST)
+    if right === nothing
+        return nothing
+    end
+    return OfExpression(p.c_token, left, right)
+end
 end

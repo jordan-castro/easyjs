@@ -21,6 +21,9 @@ s = ArgParseSettings()
     "--pretty"
         help = "Enable pretty output formatting"
         action = :store_true
+    "--runtime"
+        help = "Choose a runtime for your repl."
+        default = "node"
 end
 
 args = parse_args(s)
@@ -28,11 +31,12 @@ command = args["command"]
 input_file = args["inputfile"]
 output_file = args["outputfile"]
 pretty = args["pretty"]
+runtime = args["runtime"]
 
 if command == "version"
     println(EASY_JS_VERSION)
 elseif command == "repl"
-    REPL.start()
+    REPL.start(runtime)
 elseif command == "compile"
     of = output_file
     if input_file === nothing

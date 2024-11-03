@@ -42,6 +42,7 @@ const NOT_EQ = "!="
 const GT_OR_EQ = ">="
 const LT_OR_EQ = "<="
 const DOT = "."
+const DOTDOT = ".."
 
 # Delimiters
 const COMMA = ","

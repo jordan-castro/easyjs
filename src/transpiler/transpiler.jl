@@ -79,6 +79,8 @@ function jsify_statement!(js::JSCode, stmt::PARSER.Statement)
         return jsify_import_statement!(js, stmt)
     elseif typeof(stmt) == PARSER.JavaScriptStatement
         return stmt.code[2:end-1]
+    elseif typeof(stmt) == PARSER.ForStatement
+        return jsify_for_statement!(js, stmt)
     end
 end
 
@@ -195,6 +197,23 @@ function jsify_expression!(js::JSCode, exp::PARSER.Expression)
     elseif typeof(exp) == PARSER.AsyncExpression
         str = "async " * jsify_expression!(js, exp.expression)
         return str
+    elseif typeof(exp) == PARSER.InExpression
+        return jsify_expression!(js, exp.left) * " in " * jsify_expression!(js, exp.right)
+    elseif typeof(exp) == PARSER.OfExpression
+        return jsify_expression!(js, exp.left) * " of " * jsify_expression!(js, exp.right)
+    elseif typeof(exp) == PARSER.RangeExpression
+        str = "["
+        r_start = exp.r_start.value
+        r_end = exp.r_end.value
+
+        arr = []
+        for i in r_start:r_end
+            push!(arr, i)
+        end
+        str *= join(arr, ",")
+        str *= "]"
+
+        return str
     else
         return ""
     end
@@ -254,6 +273,25 @@ function jsify_import_statement!(js::JSCode, stmt::PARSER.ImportStatement)
     end
 
     return code
+end
+
+function jsify_for_statement!(js::JSCode, stmt::PARSER.ForStatement)
+    if typeof(stmt.condition) == PARSER.InfixExpression
+        str = "while " * jsify_expression!(js, stmt.condition) * "{ " * jsify_blockstatement!(js, stmt.body) * "}"
+    elseif typeof(stmt.condition) == PARSER.Boolean
+        str = "while "
+        jsified_condition = jsify_expression!(js, stmt.condition)
+        if !occursin(jsified_condition, "(")
+            str *= "(" * jsified_condition * ")"
+        else
+            str *= jsified_condition * " "
+        end
+        str *= "{ " * jsify_blockstatement!(p, stmt.body) * " }"
+    else
+        str = "for (" * jsify_expression!(js, stmt.condition) * ")" * " {" * jsify_blockstatement!(js, stmt.body) * "}"
+    end
+
+    return str
 end
 
 end

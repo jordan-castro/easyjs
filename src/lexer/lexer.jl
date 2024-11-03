@@ -61,7 +61,13 @@ function nexttoken!(l::Lex)
             type = ASSIGN
         end
     elseif cc == "."
-        type = DOT # Dot expression.
+        if peekchar(l) == '.'
+            readchar!(l)
+            type = DOTDOT
+            custom_literal = ".."
+        else
+            type = DOT
+        end
     elseif cc == "+"
         type = PLUS
     elseif cc == "{"

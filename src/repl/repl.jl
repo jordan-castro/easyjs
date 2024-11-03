@@ -18,9 +18,8 @@ const easyjsasci = "    ___       ___       ___       ___            ___       _
 """
 Start the REPL.
 """
-function start()
-    # runtime = openjsruntime("node")
-    runtime = JSRuntime.start_runtime("node")
+function start(runtime_option="node")
+    runtime = JSRuntime.start_runtime(runtime_option)
 
     println(easyjsasci)
     println("EasyJS " * EASY_JS_VERSION)
