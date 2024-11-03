@@ -77,6 +77,7 @@ const JAVASCRIPT = "JAVASCRIPT"
 const FOR = "FOR"
 const IN = "IN"
 const OF = "OF"
+const ASYNC = "ASYNC"
 
 ## specials
 const colon_specials = Dict(
@@ -99,7 +100,8 @@ const keywords = Dict(
     "javascript" => JAVASCRIPT,
     "in" => IN,
     "for" => FOR,
-    "of" => OF
+    "of" => OF,
+    "async" => ASYNC
 )
 
 """

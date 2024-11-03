@@ -144,7 +144,7 @@ function jsify_expression!(js::JSCode, exp::PARSER.Expression)
                 str *= ","
             end
         end
-        str *= ");"
+        str *= ")"
         return str
     elseif typeof(exp) == PARSER.Boolean
         if exp.value
@@ -191,6 +191,9 @@ function jsify_expression!(js::JSCode, exp::PARSER.Expression)
             str *= ","
         end
         str *= "}"
+        return str
+    elseif typeof(exp) == PARSER.AsyncExpression
+        str = "async " * jsify_expression!(js, exp.expression)
         return str
     else
         return ""

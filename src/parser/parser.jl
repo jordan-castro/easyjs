@@ -116,6 +116,7 @@ function newparser(lexer::Lexer.Lex)
     register_prefix!(parser, Lexer.JAVASCRIPT, parse_javascript_expression!)
     register_prefix!(parser, Lexer.L_BRACKET, parse_array_literal!)
     register_prefix!(parser, Lexer.L_BRACE, parse_object_literal!)
+    register_prefix!(parser, Lexer.ASYNC, parse_async_expression!)
 
     # register infix
     register_infix!(parser, Lexer.PLUS, parse_infix_expression!)
@@ -178,6 +179,8 @@ function parsestatement!(p::Parser)
         return parse_import_statement!(p)
     elseif p.c_token.Type == Lexer.JAVASCRIPT
         return JavaScriptStatement(p.c_token, p.c_token.Literal)
+    elseif p.c_token.Type == Lexer.FOR
+        return parse_for_statement!(p)
     else # our default (expression) statements
         return parse_expression_statement!(p)
     end
@@ -606,6 +609,11 @@ end
 function parse_dot_expression!(p::Parser, left::Expression)
     token = p.c_token
 
+    if peektokenis(p, Lexer.IF)
+        nexttoken!(p) # if
+        return parse_dot_if_expression!(p, left)
+    end
+
     if !expectpeek!(p, Lexer.IDENT)
         return nothing
     end
@@ -713,6 +721,7 @@ function parse_object_literal!(p::Parser)
     elements = Dict{Expression,Expression}()
 
     if peektokenis(p, Lexer.R_BRACE) # -> }
+        nexttoken!(p) # }
         return ObjectLiteral(token, elements)
     end
 
@@ -727,21 +736,24 @@ function parse_object_literal!(p::Parser)
             if braces == 0
                 break
             end
-        else
-            key = parse_expression!(p, LOWEST)
-            if !expectpeek!(p, Lexer.COLON)
-                println("no colon")
-                return nothing
-            end
-            nexttoken!(p) # :
-            value = parse_expression!(p, LOWEST)
-
-            if key === nothing || value === nothing
-                return nothing
-            end
-            elements[key] = value
         end
-        nexttoken!(p)
+
+        key = parse_expression!(p, LOWEST)
+        if !expectpeek!(p, Lexer.COLON) # :
+            return nothing
+        end
+        nexttoken!(p) # value
+        value = parse_expression!(p, LOWEST)
+
+        if key === nothing || value === nothing
+            return nothing
+        end
+        elements[key] = value
+
+        # check for comma
+        if peektokenis(p, Lexer.COMMA) # ,
+            nexttoken!(p)
+        end
     end
 
     if !cur_tokenis(p, Lexer.R_BRACE) # }
@@ -749,6 +761,16 @@ function parse_object_literal!(p::Parser)
     end
 
     return ObjectLiteral(token, elements)
+end
+
+function parse_async_expression!(p::Parser)
+    token = p.c_token # async
+    
+    if !expectpeek!(p, Lexer.FUNCTION)
+        return nothing
+    end
+
+    return AsyncExpression(token, parse_function_literal!(p))
 end
 
 end

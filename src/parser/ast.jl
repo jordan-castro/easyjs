@@ -124,6 +124,11 @@ struct IfExpression <: Expression
     alternative::Union{BlockStatement, Nothing, IfExpression} # <-- A IfExpression can either be by itself, have a else, or a elseif.
 end
 
+struct AsyncExpression <: Expression
+    token::Lexer.Token # <-- The 'async' token
+    expression::Expression
+end
+
 struct FunctionLiteral <: Expression
     token::Lexer.Token # <-- The 'fn' token.
     name::Identifier # <-- The name of the function.
@@ -163,16 +168,10 @@ struct ForRangeStatement <: Statement
     body::BlockStatement
 end
 
-struct ForInStatement <: Statement
+struct ForImpliedRangeStatement <: Statement
     token::Lexer.Token # <-- The 'for' token
     left::Identifier
-    right::Expression
-    body::BlockStatement
-end
-
-struct ForOfStatement <: Statement
-    token::Lexer.Token # <-- The 'for' token
-    left::Identifier
+    operation::Lexer.Token # <-- The 'in' or 'of' token..
     right::Expression
     body::BlockStatement
 end
@@ -181,6 +180,12 @@ struct DotExpression <: Expression
     token::Lexer.Token # <-- The '.' token
     left::Expression
     right::Expression
+end
+
+struct DotIfExpression <: Expression
+    token::Lexer.Token # <-- The 'if' token
+    left::Expression
+    body::BlockStatement
 end
 
 struct JavaScriptStatement <: Statement
@@ -367,4 +372,20 @@ end
 
 function tostring(ie::IndexExpression)
     return tostring(ie.left) * "[" * tostring(ie.index) * "]"
+end
+
+function tostring(ae::AsyncExpression)
+    return "async " * tostring(ae.expression)
+end
+
+function tostring(fs::ForStatement)
+    return "for " * tostring(fs.condition) * " " * tostring(fs.body)
+end
+
+function tostring(frs::ForRangeStatement)
+    return "for " * tostring(frs.init) * " ; " * tostring(frs.condition) * " ; " * tostring(frs.update) * " " * tostring(frs.body)
+end
+
+function tostring(fs::ForImpliedRangeStatement)
+    return "for " * tostring(fs.left) * " " * fs.operation * " " * tostring(fs.right) * " " * tostring(fs.body)
 end
