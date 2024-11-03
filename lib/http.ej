@@ -1,12 +1,10 @@
-/**
-*
-* EasyJS http library.
-*
-*
-*/
-module http
-
 // Make a get request using the Fetch api.
-fn get(url, headers, body) async {
-    return fetch(url, headers, body, method="GET")
+async fn get(url, headers) {
+    options := {
+        method: "GET",
+        headers: headers
+    }
+    return await fetch(url, options)
 }
+
+async fn post(url, options) {}

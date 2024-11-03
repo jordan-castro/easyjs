@@ -253,18 +253,47 @@ input = "
         name: \"jj\",
         age: 1
     }
+
+    obj_foo := fn() {
+        return {
+            \"yeyo\": 1
+        }
+    }
 "
 lexer = PARSER.Lexer.Lex(input, 1, 1, ' ')
 p = PARSER.newparser(lexer)
 program = PARSER.parseprogram!(p)
 
-@test length(program.statements) == 2
+@test length(program.statements) == 3
 
 input = "
-    
+    async fn hello() {
+        console.log(\"hello world\")
+    }
+
+    say_eyo := async fn() {
+        console.log(\"eyo\")
+    }
 "
 lexer = PARSER.Lexer.Lex(input, 1, 1, ' ')
 p = PARSER.newparser(lexer)
 program = PARSER.parseprogram!(p)
 
 @test length(program.statements) == 2
+@test typeof(program.statements[1]) == PARSER.ExpressionStatement
+@test typeof(program.statements[2]) == PARSER.ConstVariableStatement
+@test typeof(program.statements[1].expression) == PARSER.AsyncExpression
+@test typeof(program.statements[2].value) == PARSER.AsyncExpression
+
+input = "
+    for (i = 0; i < 10; i = i + 1) {}
+    for i = 0; i < 10; i = i + 1 {}
+"
+lexer = PARSER.Lexer.Lex(input, 1, 1, ' ')
+p = PARSER.newparser(lexer)
+program = PARSER.parseprogram!(p)
+
+print(p.errors)
+
+@test length(program.statements) == 2
+@test length(p.errors) == 0
