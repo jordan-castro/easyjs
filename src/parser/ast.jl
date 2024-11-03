@@ -19,6 +19,9 @@ abstract type Expression <: Node end
 struct DefaultDontUseExpression <: Expression
 end
 
+struct EmptyExpression <: Expression
+end
+
 struct Identifier <: Expression
     token::Lexer.Token # <-- The IDENT token
     value::String
@@ -146,6 +149,34 @@ struct ConstVariableStatement <: Statement
     value::Expression
 end
 
+struct ForStatement <: Statement # <-- this is a while loop in EasyJS
+    token::Lexer.Token # <-- The 'for' token
+    condition::Expression # <-- instead of while loops.
+    body::BlockStatement
+end
+
+struct ForRangeStatement <: Statement
+    token::Lexer.Token # <-- The 'for' token
+    init::Statement # <-- The identifier i.e. i = 0;
+    condition::Expression # <-- i < 10
+    increment::Expression # <-- i += 1
+    body::BlockStatement
+end
+
+struct ForInStatement <: Statement
+    token::Lexer.Token # <-- The 'for' token
+    left::Identifier
+    right::Expression
+    body::BlockStatement
+end
+
+struct ForOfStatement <: Statement
+    token::Lexer.Token # <-- The 'for' token
+    left::Identifier
+    right::Expression
+    body::BlockStatement
+end
+
 struct DotExpression <: Expression
     token::Lexer.Token # <-- The '.' token
     left::Expression
@@ -160,6 +191,23 @@ end
 struct JavaScriptExpression <: Expression
     token::Lexer.Token # <-- The javascript token.
     code::String    
+end
+
+struct ArrayLiteral <: Expression
+    token::Lexer.Token # <-- The [ token
+    elements::Array{Expression}
+end
+
+struct IndexExpression <: Expression
+    token::Lexer.Token # <-- The [ token
+    left::Expression
+    index::Expression
+    rigth::Expression
+end
+
+struct ObjectLiteral <: Expression
+    token::Lexer.Token # <-- The { token
+    elements::Dict{Expression, Expression}
 end
 
 # Define a concrete struct for Program
@@ -303,4 +351,20 @@ end
 
 function tostring(ll::LambdaLiteral) 
     return ll.token.Literal * " (" * join(ll.paramaters, ", ") * ")" * tostring(ll.body)
+end
+
+function tostring(al::ArrayLiteral)
+    return "[" * join(map(tostring, al.elements), ", ") * "]"
+end
+
+function tostring(ol::ObjectLiteral)
+    elements = []
+    for (k, v) in ol.elements
+        push!(elements, tostring(k) * ": " * tostring(v))
+    end
+    return "{" * join(elements, ", ") * "}"
+end
+
+function tostring(ie::IndexExpression)
+    return tostring(ie.left) * "[" * tostring(ie.index) * "]"
 end

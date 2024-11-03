@@ -90,7 +90,7 @@ function jsify_expression!(js::JSCode, exp::PARSER.Expression)
     if typeof(exp) == PARSER.IntegerLiteral
         return string(exp.value)
     elseif typeof(exp) == PARSER.StringLiteral
-        return "\"" * exp.value * "\""
+        return '"' * exp.value * '"'
     elseif typeof(exp) == PARSER.PrefixExpression
         return PARSER.tostring(exp) # we already cover this in the parser
     elseif typeof(exp) == PARSER.InfixExpression
@@ -101,6 +101,10 @@ function jsify_expression!(js::JSCode, exp::PARSER.Expression)
             str *= "(" * jsify_expression!(js, exp.condition) * ")"
         else
             str *= jsify_expression!(js, exp.condition)
+            # check if str ends with a ";"
+            if endswith(str, ";")
+                str = str[1:end-1]
+            end
         end
         str *= " {" * jsify_statement!(js, exp.consequence) * "}"
         if exp.alternative !== nothing
@@ -132,6 +136,10 @@ function jsify_expression!(js::JSCode, exp::PARSER.Expression)
         str *= "("
         for (i, v) in enumerate(exp.arguments)
             str *= jsify_expression!(js, v)
+            # check if str ends with a ";"
+            if endswith(str, ";")
+                str = str[1:end-1]
+            end
             if i < length(exp.arguments)
                 str *= ","
             end
@@ -159,6 +167,30 @@ function jsify_expression!(js::JSCode, exp::PARSER.Expression)
             end
         end
         str *= ") => {" * jsify_statement!(js, exp.body) * "}"
+        return str
+    elseif typeof(exp) == PARSER.ArrayLiteral
+        str = "["
+        for (i, v) in enumerate(exp.elements)
+            str *= jsify_expression!(js, v)
+            if i < length(exp.elements)
+                str *= ","
+            end
+        end
+        str *= "]"
+        return str
+    elseif typeof(exp) == PARSER.IndexExpression
+        str = jsify_expression!(js, exp.left) *  jsify_expression!(js, exp.index)
+        if typeof(exp.rigth) !== PARSER.EmptyExpression
+            str *= "=" * jsify_expression!(js, exp.rigth)
+        end
+        return str
+    elseif typeof(exp) == PARSER.ObjectLiteral
+        str = "{"
+        for (key, value) in exp.elements
+            str *= jsify_expression!(js, key) * ":" * jsify_expression!(js, value)
+            str *= ","
+        end
+        str *= "}"
         return str
     else
         return ""

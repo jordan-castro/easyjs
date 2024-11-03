@@ -2,7 +2,7 @@ module PARSER
 
 include("ast.jl")
 
-mutable struct Parser 
+mutable struct Parser
     l::Lexer.Lex
     c_token::Lexer.Token
     peek_token::Lexer.Token
@@ -13,14 +13,17 @@ mutable struct Parser
 end
 
 const LOWEST = 1
-const EQUALS = 2      # ==
-const LESSGREATER = 3 # < or >
-const SUM = 4         # +
-const PRODUCT = 5     # *
-const PREFIX = 6      # -X or !X
-const CALL = 7        # my_function(X)
-const DOT = 8         # .field or .method
-const JAVASCRIPT = 9  # javascript code
+const EQUALS = 2                  # ==
+const LESSGREATER = 3             # < or >
+const SUM = 4                     # +
+const PRODUCT = 5                 # *
+const PREFIX = 6                  # -X or !X
+const CALL = 7                    # my_function(X)
+const DOT = 8                     # .field or .method
+const JAVASCRIPT = 9              # javascript code
+const LESSGREATER_OR_EQUALS = 10  # <= or >=
+const BRACKET = 11                # [
+const BRACE = 12                  # {
 
 """
 This is what goes in front of the token.
@@ -38,7 +41,11 @@ const precedences = Dict(
     Lexer.ASTERISK => PRODUCT,
     Lexer.L_PAREN => CALL,
     Lexer.DOT => DOT,
-    Lexer.JAVASCRIPT => JAVASCRIPT
+    Lexer.JAVASCRIPT => JAVASCRIPT,
+    Lexer.LT_OR_EQ => LESSGREATER_OR_EQUALS,
+    Lexer.GT_OR_EQ => LESSGREATER_OR_EQUALS,
+    Lexer.L_BRACKET => BRACKET,
+    Lexer.L_BRACE => BRACE
 )
 
 function cur_tokenis(p::Parser, type::String)
@@ -107,6 +114,8 @@ function newparser(lexer::Lexer.Lex)
     register_prefix!(parser, Lexer.STRING, parse_string_literal!)
     register_prefix!(parser, Lexer.COMMENT, parse_comment!)
     register_prefix!(parser, Lexer.JAVASCRIPT, parse_javascript_expression!)
+    register_prefix!(parser, Lexer.L_BRACKET, parse_array_literal!)
+    register_prefix!(parser, Lexer.L_BRACE, parse_object_literal!)
 
     # register infix
     register_infix!(parser, Lexer.PLUS, parse_infix_expression!)
@@ -120,6 +129,9 @@ function newparser(lexer::Lexer.Lex)
     register_infix!(parser, Lexer.L_PAREN, parse_call_expression!)
     register_infix!(parser, Lexer.DOT, parse_dot_expression!)
     register_infix!(parser, Lexer.JAVASCRIPT, parse_infix_expression!)
+    register_infix!(parser, Lexer.LT_OR_EQ, parse_infix_expression!)
+    register_infix!(parser, Lexer.GT_OR_EQ, parse_infix_expression!)
+    register_infix!(parser, Lexer.L_BRACKET, parse_index_expression!)
 
     return parser
 end
@@ -157,7 +169,7 @@ function parsestatement!(p::Parser)
             return parsevarstatement!(p)
         elseif peektokenis(p, Lexer.CONST_ASSIGNMENT)
             return parse_const_var_statement!(p)
-        else 
+        else
             return parse_expression_statement!(p) # default to expression
         end
     elseif p.c_token.Type == Lexer.RETURN
@@ -210,10 +222,10 @@ function parsevarstatement!(p::Parser)
     nexttoken!(p)
 
     value = parse_expression!(p, LOWEST)
-    
+
     if peektokenis_eos(p)
         nexttoken!(p)
-    end 
+    end
 
     return VariableStatement(token, name, value)
 end
@@ -231,7 +243,7 @@ function parse_const_var_statement!(p::Parser)
     nexttoken!(p)
 
     value = parse_expression!(p, LOWEST)
-    
+
     if value === nothing
         return nothing
     end
@@ -399,7 +411,7 @@ function parse_if_expression!(p::Parser)
             return nothing
         end
         alternative = parse_block_statement!(p)
-        
+
     elseif peektokenis(p, Lexer.ELIF)
         nexttoken!(p)  # Advance to `elif`
         alternative = parse_if_expression!(p)
@@ -417,7 +429,7 @@ function parse_if_expression_without_parenthesis!(p::Parser)
     nexttoken!(p) # hop off the "if" token.
     condition = parse_expression!(p, LOWEST)
     alternative = nothing
-    
+
     if condition === nothing
         return nothing
     end
@@ -435,7 +447,7 @@ function parse_if_expression_without_parenthesis!(p::Parser)
             return nothing
         end
         alternative = parse_block_statement!(p)
-        
+
     elseif peektokenis(p, Lexer.ELIF)
         nexttoken!(p)  # Advance to `elif`
         alternative = parse_if_expression!(p)
@@ -510,7 +522,7 @@ function parse_function_literal!(p::Parser)
     end
 
     # otherwise this is for sure a function.
-    if !expectpeek!(p, Lexer.IDENT) 
+    if !expectpeek!(p, Lexer.IDENT)
         return nothing
     end
     name = Identifier(p.c_token, p.c_token.Literal)
@@ -532,7 +544,7 @@ end
 
 function parse_call_arguments!(p::Parser)
     args = []
-    
+
     if peektokenis(p, Lexer.R_PAREN)
         nexttoken!(p)
         return args
@@ -593,7 +605,7 @@ end
 
 function parse_dot_expression!(p::Parser, left::Expression)
     token = p.c_token
-    
+
     if !expectpeek!(p, Lexer.IDENT)
         return nothing
     end
@@ -629,8 +641,114 @@ function parse_lambda_literal!(p::Parser)
     if body === nothing
         return nothing
     end
-    
+
     return LambdaLiteral(token, parameters, body)
+end
+
+function parse_array_arguments!(p::Parser)
+    args = []
+
+    if peektokenis(p, Lexer.R_BRACKET) # -> ]
+        nexttoken!(p) # ]
+        return args
+    end
+
+    nexttoken!(p) # Expression
+    push!(args, parse_expression!(p, LOWEST))
+
+    while peektokenis(p, Lexer.COMMA)
+        nexttoken!(p) # ,
+        nexttoken!(p) # Expression
+
+        el = parse_expression!(p, LOWEST)
+        if el === nothing
+            continue
+        end
+
+        push!(args, el)
+    end
+
+    if !expectpeek!(p, Lexer.R_BRACKET) # ]
+        return nothing
+    end
+
+    return args
+end
+
+function parse_array_literal!(p::Parser)
+    token = p.c_token # [
+    elements = parse_array_arguments!(p)
+    return ArrayLiteral(token, elements)
+end
+
+function parse_index_expression!(p::Parser, left::Expression)
+    token = p.c_token # [
+
+    if peektokenis(p, Lexer.R_BRACKET) # -> ]
+        return nothing
+    end
+
+    index = parse_expression!(p, LOWEST) # [0] | [some_ident] | [some_fn()] | [some.dot.expression]
+
+    if index === nothing
+        return nothing
+    end
+
+    if peektokenis(p, Lexer.ASSIGN) # -> =
+        nexttoken!(p) # =
+        nexttoken!(p) # Expression
+        right = parse_expression!(p, LOWEST)
+
+        if right === nothing
+            return nothing
+        else
+            return IndexExpression(token, left, index, right)
+        end
+    end
+    return IndexExpression(token, left, index, EmptyExpression())
+end
+
+function parse_object_literal!(p::Parser)
+    token = p.c_token # {
+    elements = Dict{Expression,Expression}()
+
+    if peektokenis(p, Lexer.R_BRACE) # -> }
+        return ObjectLiteral(token, elements)
+    end
+
+    braces = 1
+    while !peektokenis(p, Lexer.EOF)
+        nexttoken!(p) # Expression or { or }
+
+        if cur_tokenis(p, Lexer.L_BRACE) # {
+            braces += 1
+        elseif cur_tokenis(p, Lexer.R_BRACE) # }
+            braces -= 1
+            if braces == 0
+                break
+            end
+        else
+            key = parse_expression!(p, LOWEST)
+            if !expectpeek!(p, Lexer.COLON)
+                println("no colon")
+                return nothing
+            end
+            nexttoken!(p) # :
+            value = parse_expression!(p, LOWEST)
+
+            if key === nothing || value === nothing
+                return nothing
+            end
+            elements[key] = value
+        end
+        nexttoken!(p)
+    end
+
+    if !cur_tokenis(p, Lexer.R_BRACE) # }
+        return nothing
+    end
+
+    return ObjectLiteral(token, elements)
 end
 
 end
