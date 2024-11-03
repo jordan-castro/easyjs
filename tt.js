@@ -1,4 +1,4 @@
-let x=[1,2,3];
-x
-x[0]
-x[0]=1
+const test = () => {return 1; };
+test();
+let tt=() => {return 2; };
+tt();

@@ -1,3 +1,1 @@
-fn parse_json(json) {
-    return JSON.parse(json)
-}
+to_json := fn(str) { return JSON.parse(str); }

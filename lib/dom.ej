@@ -1,18 +1,16 @@
-// This implements the document object in EasyJS.
-// This library can only be used in the browser.
+// ! This can only be used in the browser.
 
-fn get_element_by_id(id) {
-    document.getElementById(id)
-}
+fn get_elements(query) {
+    elements = []
+    if query.className !== undefined {
+        elements.append(document.getElementsByClassName(query.className))
+    }
 
-fn get_elements_by_class_name(class_name) {
-    document.getElementsByClassName(class_name)
-}
+    if query.id !== undefined {
+        elements.push(document.getElementById(query.id))
+    }
 
-fn get_elements_by_tag(tag) {
-    return document.getElementsByTagName(tag)
-}
-
-fn get_element_by_tag(tag) {
-    return get_elements_by_tag(tag)[0]
+    if query.tagName !== undefined {
+        elements.append
+    }
 }
