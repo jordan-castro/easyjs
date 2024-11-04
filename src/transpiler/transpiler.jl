@@ -11,10 +11,14 @@ mutable struct JSCode
     import_paths::Vector{String} # <-- All paths that have been imported.
 end
 
-function transpile_from_input(input::String)
+function transpile_from_input(input::String, throw_errors::Bool=false)
     l = PARSER.Lexer.Lex(input, 1, 1, ' ')
     p = PARSER.newparser(l)
     program = PARSER.parseprogram!(p)
+
+    if throw_errors && length(p.errors) > 0
+        return p.errors
+    end
 
     return tostring(transpile!(program))
 end
@@ -47,10 +51,18 @@ function tostring(js::JSCode, pretty::Bool=false)
     src = ""
 
     if pretty
-        return src *= remove_repeating_semis(join(js.script, "\n"))
+        src = join(js.script, "\n")
     else
-        return minifyjavascript(join(js.script, ";"))
+        src = join(js.script, ";")
     end
+    
+    src = remove_repeating_semis(src)
+
+    if !pretty
+        src = minifyjavascript(src)
+    end
+
+    return src
 end
 
 function transpile!(program::PARSER.Program, js::JSCode=JSCode([], [], [], []))
@@ -98,9 +110,9 @@ function jsify_expression!(js::JSCode, exp::PARSER.Expression)
     elseif typeof(exp) == PARSER.InfixExpression
         return PARSER.tostring(exp) # we already cover this in the parser
     elseif typeof(exp) == PARSER.IfExpression
-        str = "if "
+        str = "if ("
         if typeof(exp.condition) == PARSER.Identifier
-            str *= "(" * jsify_expression!(js, exp.condition) * ")"
+            str *= jsify_expression!(js, exp.condition)
         else
             str *= jsify_expression!(js, exp.condition)
             # check if str ends with a ";"
@@ -108,7 +120,7 @@ function jsify_expression!(js::JSCode, exp::PARSER.Expression)
                 str = str[1:end-1]
             end
         end
-        str *= " {" * jsify_statement!(js, exp.consequence) * "}"
+        str *= ") {" * jsify_statement!(js, exp.consequence) * "}"
         if exp.alternative !== nothing
             if typeof(exp.alternative) == PARSER.BlockStatement
                 str *= " else {" * jsify_statement!(js, exp.alternative) * "}"
@@ -157,7 +169,11 @@ function jsify_expression!(js::JSCode, exp::PARSER.Expression)
     elseif typeof(exp) == PARSER.Identifier
         return exp.value
     elseif typeof(exp) == PARSER.DotExpression
-        return jsify_expression!(js, exp.left) * "." * jsify_expression!(js, exp.right)
+        right = jsify_expression!(js, exp.right)
+        if typeof(exp.right) == PARSER.InfixExpression
+            right = right[2:end-1]
+        end
+        return jsify_expression!(js, exp.left) * "." * right
     elseif typeof(exp) == PARSER.JavaScriptExpression
         return exp.code[2:end-1]
     elseif typeof(exp) == PARSER.LambdaLiteral
