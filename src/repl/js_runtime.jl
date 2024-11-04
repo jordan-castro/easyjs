@@ -24,7 +24,7 @@ function send_command(p::Base.Process, command::String)
         end
     end
 
-    return output[1]
+    return join(output[1:end-1], "\n")
 end
 
 function start_runtime(js_runtime_option::String)
@@ -32,11 +32,8 @@ function start_runtime(js_runtime_option::String)
 
     if js_runtime_option == "node"
         p = open(`node -i`, "r+")
-        # command = `node -i`
     elseif js_runtime_option == "deno"
         p = open(`deno repl`, "r+")
-    elseif js_runtime_option == "bun"
-        p = open(`bun repl`, "r+")
     else
         return nothing # this runtime option is not supported.
     end
@@ -52,25 +49,23 @@ function close_runtime(p::Base.Process)
     wait(p)
 end
 
-# p = start_runtime("node")
+function pretty_response(response::String)
+    if startswith(response, ">")
+        return response[2:end]
+    end
+    return response
+end
 
-# # Main loop to send commands interactively
-# while true
-#     print("> ")
-#     command = readline(stdin)
-#     if command == "quit"
-#         break
-#     elseif strip(command) == ""
-#         continue
-#     end
-
-#     # Print the REPL output from the command
-#     output = send_command(p, command)
-#     println(join(output, "\n"))
-# end
-
-# # Clean up
-# close(p.in)
-# wait(p)
+function run_file(js_runtime_option::String, path::String)
+    p = nothing
+    if js_runtime_option == "node"
+        p = open(`node $path`, "r")
+    elseif js_runtime_option == "deno"
+        p = open(`deno $path`, "r")
+    elseif js_runtime_option == "bun"
+        p = open(`bun $path`, "r")
+    end
+    sleep(1)
+end
 
 end
