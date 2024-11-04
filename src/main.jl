@@ -4,6 +4,7 @@ using Pkg
 Pkg.activate(".")
 
 include("utils/version.jl")
+include("utils/try.jl")
 include("repl/repl.jl")
 include("transpiler/transpiler.jl")
 
@@ -18,7 +19,7 @@ s = ArgParseSettings(
 
 @add_arg_table s begin
     "command"
-        help = "EasyJS command (compile, repl)"
+        help = "EasyJS command (compile, repl, run, or just a .ej file)"
         default = "repl"
     "inputfile"
         help = "EasyJS input script"
@@ -56,21 +57,39 @@ elseif command == "compile"
     if of === nothing
         of = split(input_file, ".")[1] * ".js"
     end
-    input = read(input_file, String)
-    lexer = TRANSPILER.PARSER.Lexer.Lex(input, 1, 1, ' ')
-    parser = TRANSPILER.PARSER.newparser(lexer)
-    program = TRANSPILER.PARSER.parseprogram!(parser)
-
-    if length(parser.errors) > 0
-        REPL.printparse_errors(parser.errors)
+    input = tryread(input_file, String)
+    if input == ""
+        println("Please specify an input file")
         return
     end
-
-    jscode = TRANSPILER.transpile!(program)
-    js = TRANSPILER.tostring(jscode, pretty)
-    write(of, "// Compiled with EasyJS version $EASY_JS_VERSION\n" * js)
-elseif endswith(command, ".ej")
+    result = TRANSPILER.transpile_from_input(input, true)
+    if typeof(result) == String
+        write(of, "// Compiled with EasyJS version $EASY_JS_VERSION\n" * result)
+    else
+        for err in result
+            println(err)
+        end
+    end
+elseif command == "run"
     # compile and run
+    input = tryread(input_file, String)
+    if input == ""
+        println("Please specify an input file")
+        return
+    end
+    out = split(input_file, ".")[1] * ".js"
+    result = TRANSPILER.transpile_from_input(input, true)
+    if typeof(result) == String
+        println("Writing env")
+        write(out, "// Compiled with EasyJS version $EASY_JS_VERSION\n" * result)
+        println("Compiled, running with $runtime")
+        REPL.JSRuntime.run_file(runtime, out)
+    else
+        for err in result
+            println(err)
+        end
+    end
+
 else
     println("Unknown command: " * command)
 end

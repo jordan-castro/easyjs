@@ -75,7 +75,7 @@ function start(runtime_option, crash_on_error)
                 TRANSPILER.transpile!(program, jscode)
                 TRANSPILER.transpile!(program, jshistory)
                 js_response = JSRuntime.send_command(runtime, TRANSPILER.tostring(jscode))
-                println(strip(split(js_response, ">")[2]))
+                println(JSRuntime.pretty_response(js_response))
             end
         end
     end
