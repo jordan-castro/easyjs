@@ -1,0 +1,9 @@
+fn fibonacci(n) { // <-- easyJS is dynamically typed. 
+    if n == 0 {
+        return 0 // <-- optional semicolons.
+    } elif n == 1 {
+        return 1 // <-- optinal return statement.
+    } else {
+        return fibonacci(n - 1) + fibonacci(n - 2)
+    }
+}
