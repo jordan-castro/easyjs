@@ -77,7 +77,7 @@ elseif command == "run"
         println("Please specify an input file")
         return
     end
-    out = split(input_file, ".")[1] * ".js"
+    out = "." * string(hash(input)) * ".js"
     result = TRANSPILER.transpile_from_input(input, true)
     if typeof(result) == String
         println("Writing env")

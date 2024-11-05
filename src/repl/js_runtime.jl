@@ -57,15 +57,10 @@ function pretty_response(response::String)
 end
 
 function run_file(js_runtime_option::String, path::String)
-    p = nothing
-    if js_runtime_option == "node"
-        p = open(`node $path`, "r")
-    elseif js_runtime_option == "deno"
-        p = open(`deno $path`, "r")
-    elseif js_runtime_option == "bun"
-        p = open(`bun $path`, "r")
-    end
-    sleep(1)
+    command = `$js_runtime_option $path`
+    run(command)
+    # delete file
+    rm(path)
 end
 
 end
