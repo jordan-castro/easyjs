@@ -27,6 +27,7 @@ const BRACE = 12                  # {
 const DOTDOT = 13                 # ..
 const IN = 14                     # in
 const OF = 15                     # of
+const AWAIT = 16                  # await
 # const ASSIGN = 16                 # in the case of x.field = new value
 
 """
@@ -53,6 +54,7 @@ const precedences = Dict(
     Lexer.DOTDOT => DOTDOT,
     Lexer.IN => IN,
     Lexer.OF => OF,
+    Lexer.AWAIT => AWAIT
     # Lexer.ASSIGN => ASSIGN
 )
 
@@ -125,6 +127,7 @@ function newparser(lexer::Lexer.Lex)
     register_prefix!(parser, Lexer.L_BRACKET, parse_array_literal!)
     register_prefix!(parser, Lexer.L_BRACE, parse_object_literal!)
     register_prefix!(parser, Lexer.ASYNC, parse_async_expression!)
+    register_prefix!(parser, Lexer.AWAIT, parse_await_expressoin!)
     # register_prefix!(parser, Lexer.DOT, parse_prefix_expression!)
     # register_prefix!(parser, Lexer.DOTDOT, parse_prefix_expression!)
 
@@ -866,5 +869,16 @@ function parse_of_expression!(p::Parser, left::Expression)
         return nothing
     end
     return OfExpression(p.c_token, left, right)
+end
+
+function parse_await_expressoin!(p::Parser)
+    token = p.c_token
+    nexttoken!(p)
+    value = parse_expression!(p, LOWEST)
+    if value === nothing
+        return nothing
+    end
+
+    return AwaitExpression(token, value)
 end
 end

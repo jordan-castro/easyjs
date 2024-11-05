@@ -303,3 +303,16 @@ end
 @test typeof(program.statements[1].condition) == PARSER.InExpression
 @test typeof(program.statements[1].condition.left) == PARSER.Identifier
 @test typeof(program.statements[1].condition.right) == PARSER.RangeExpression
+
+input = "
+    x = await 1
+"
+lexer = PARSER.Lexer.Lex(input, 1, 1, ' ')
+p = PARSER.newparser(lexer)
+program = PARSER.parseprogram!(p)
+
+if length(p.errors) > 0
+    println(p.errors)
+end
+@test length(p.errors) == 0
+@test length(program.statements) == 1

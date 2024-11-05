@@ -1,0 +1,7 @@
+import "io"
+
+async fn load_json(url) {
+    print(await fetch(url))
+}
+
+x := load_json("https://jsonplaceholder.typicode.com/todos/1")

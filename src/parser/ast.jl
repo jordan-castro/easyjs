@@ -129,6 +129,11 @@ struct AsyncExpression <: Expression
     expression::Expression
 end
 
+struct AwaitExpression <: Expression
+    token::Lexer.Token # <-- The 'await' token
+    value::Expression
+end
+
 struct FunctionLiteral <: Expression
     token::Lexer.Token # <-- The 'fn' token.
     name::Identifier # <-- The name of the function.

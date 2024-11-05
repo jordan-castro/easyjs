@@ -230,6 +230,8 @@ function jsify_expression!(js::JSCode, exp::PARSER.Expression)
         str *= "]"
 
         return str
+    elseif typeof(exp) == PARSER.AwaitExpression
+        str = " await " * jsify_expression!(js, exp.value)
     else
         return ""
     end

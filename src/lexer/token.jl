@@ -79,6 +79,7 @@ const FOR = "FOR"
 const IN = "IN"
 const OF = "OF"
 const ASYNC = "ASYNC"
+const AWAIT = "AWAIT"
 
 ## specials
 const colon_specials = Dict(
@@ -102,7 +103,8 @@ const keywords = Dict(
     "in" => IN,
     "for" => FOR,
     "of" => OF,
-    "async" => ASYNC
+    "async" => ASYNC,
+    "await" => AWAIT
 )
 
 """
