@@ -841,8 +841,7 @@ fn parse_index_expression(p: &mut Parser, left: ast::Expression) -> ast::Express
             return ast::Expression::IndexExpression(
                 token.to_owned(),
                 Box::new(left),
-                Box::new(index),
-                Box::new(right),
+                Box::new(index)
             );
         }
     }
@@ -850,8 +849,7 @@ fn parse_index_expression(p: &mut Parser, left: ast::Expression) -> ast::Express
     ast::Expression::IndexExpression(
         token,
         Box::new(left),
-        Box::new(index),
-        Box::new(ast::Expression::EmptyExpression),
+        Box::new(index)
     )
 }
 

@@ -6,9 +6,17 @@
 - add import statement support
 - add macro for stdlib injection
 - add dot.if expression support
+- fix [i] = ? 
 
 ## EasyJS
 - write wasm implementator in easyjs
 - add std
     - http
     - json
+
+## Scripts
+- add a build script (for not wasm)
+
+## Misc
+- add PyScript import support
+- add wasm import support

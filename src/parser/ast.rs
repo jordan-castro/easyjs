@@ -93,7 +93,7 @@ pub enum Expression {
     // []
     ArrayLiteral(tk::Token, Box<Vec<Expression>>),
     // [i]
-    IndexExpression(tk::Token, Box<Expression>, Box<Expression>, Box<Expression>),
+    IndexExpression(tk::Token, Box<Expression>, Box<Expression>),
     // {}
     ObjectLiteral(tk::Token, Vec<Vec<Box<Expression>>>),
     /// = something else
@@ -125,7 +125,7 @@ impl Expression {
             Expression::DotIfExpression(_, _, _) => "DotIfExpression",
             Expression::JavaScriptExpression(_, _) => "JavaScriptExpression",
             Expression::ArrayLiteral(_, _) => "ArrayLiteral",
-            Expression::IndexExpression(_, _, _, _) => "IndexExpression",
+            Expression::IndexExpression(_, _, _) => "IndexExpression",
             Expression::ObjectLiteral(_, _) => "ObjectLiteral",
             Expression::AssignExpression(_, _, _) => "AssignExpression",
         }

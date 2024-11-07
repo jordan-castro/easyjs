@@ -429,18 +429,13 @@ impl Transpiler {
 
                 res
             }
-            Expression::IndexExpression(token, left, index, right) => {
+            Expression::IndexExpression(token, left, index) => {
                 let mut res = String::new();
 
                 res.push_str(&self.transpile_expression(left.as_ref().to_owned()));
                 res.push_str("[");
                 res.push_str(&self.transpile_expression(index.as_ref().to_owned()));
                 res.push_str("]");
-
-                if !right.is_empty() {
-                    res.push_str(" = ");
-                    res.push_str(&self.transpile_expression(right.as_ref().to_owned()));
-                }
 
                 res
             }
