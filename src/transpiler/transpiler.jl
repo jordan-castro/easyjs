@@ -55,7 +55,7 @@ function tostring(js::JSCode, pretty::Bool=false)
     else
         src = join(js.script, ";")
     end
-    
+
     src = remove_repeating_semis(src)
 
     if !pretty
@@ -197,7 +197,7 @@ function jsify_expression!(js::JSCode, exp::PARSER.Expression)
         str *= "]"
         return str
     elseif typeof(exp) == PARSER.IndexExpression
-        str = jsify_expression!(js, exp.left) *  jsify_expression!(js, exp.index)
+        str = jsify_expression!(js, exp.left) * jsify_expression!(js, exp.index)
         if typeof(exp.rigth) !== PARSER.EmptyExpression
             str *= "=" * jsify_expression!(js, exp.rigth)
         end

@@ -316,3 +316,9 @@ if length(p.errors) > 0
 end
 @test length(p.errors) == 0
 @test length(program.statements) == 1
+
+input = "\n"
+tokens = PARSER.Lexer.readalltokens(input)
+
+@test length(tokens) == 1
+@test tokens[1] == PARSER.Lexer.EOL

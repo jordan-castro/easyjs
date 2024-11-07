@@ -98,7 +98,7 @@ end
 Check if the peek token is a end of statement token. i.e. ; or \n
 """
 function peektokenis_eos(p::Parser)
-    return peektokenis(p, Lexer.EOL) || peektokenis(p, Lexer.SEMICOLON)
+    return peektokenis(p, Lexer.SEMICOLON)
 end
 
 """
@@ -375,7 +375,7 @@ function parse_prefix_expression!(p::Parser)
 end
 
 """
-Infix : comes after. `5 + <-- infix`
+Infix : comes after. `5 + 5 <-- infix`
 """
 function parse_infix_expression!(p::Parser, left::Expression)
     token = p.c_token

@@ -3,9 +3,7 @@
 import "wasm"
 
 struct EasyWasm {
-    source
-
     static async fn load_from_file(file_path) {
-        return EasyWasm.load_from_bytes()
+        return await EasyWasm.load_from_bytes()
     }
 }

@@ -1,12 +1,10 @@
-module EasyJS
-
 using Pkg
 Pkg.activate(".")
 
-include("utils/version.jl")
-include("utils/try.jl")
-include("repl/repl.jl")
-include("transpiler/transpiler.jl")
+include("src/utils/version.jl")
+include("src/utils/try.jl")
+include("src/repl/repl.jl")
+include("src/transpiler/transpiler.jl")
 
 using ArgParse
 
@@ -92,5 +90,4 @@ elseif command == "run"
 
 else
     println("Unknown command: " * command)
-end
 end

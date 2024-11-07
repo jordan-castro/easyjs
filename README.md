@@ -6,7 +6,7 @@ Transpiled means that it goes from one language to another, it is not compiled n
 Similar to CofeeScript and TypeScript. The main difference being that it is an easy to use language.
 
 > [!WARNING]  
-> This language is still far from v1.0.0. We are currently on v0.0.3
+> This language is still far from v1.0.0. We are currently on v0.1.0
 
 ## Why EasyJS?
 At my last job, I worked with a product that would track user engagement on websites and apps. At this job I realized how common it was for people to not know
@@ -41,7 +41,7 @@ Imagine you have a EasyJS file like so:
 fn foo() { // <-- functions use the fn keyword.  this will transpile into a "function foo() {}"
     print("foo") // <-- This will console.log("foo")
     // or you could just use
-    console.log("foo") // <-- most JS objects completely come over. 
+    console.log("foo") // <-- mostly all JS objects  transfer over. 
 }
 
 bar := fn(x,y) {  // <-- This will transpile into a "const bar = () => {};"
@@ -149,7 +149,7 @@ struct Person {
     }
 
     fn read_diary() { // <-- struct functions are private by default.
-        diary.for(item) { // <-- foreach loop.
+        for item of diary { // <-- 
             print(item)
         }
     }
@@ -229,7 +229,6 @@ A lot of things, but to get started the main things which every JS developer wil
  1. Easy to read and modern syntax.
  2. Catches errors before it hits the runtime.
  3. Optional typing.
-
 
 ## How I see this going
 I see EasyJS being used in place of JS/TS in a lot of places. It will be easier and faster to use the intuitve syntax of EasyJS to write
