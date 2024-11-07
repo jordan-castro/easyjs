@@ -14,6 +14,15 @@ how JavaScript works and get lost in it's syntax. At the same time, I simply dis
 
 Keep in mind that the first few versions of EasyJS will probably be extremely slow and very basic. It's probably not going to work very well to be honest (at first).
 
+## Install
+To install you have a few options.
+
+### Download
+Downloand and run the installer at [easyjs](https://github.com/grupojvm/easyjs)
+
+### GIT
+Clone this Git repo and run `cargo build --release` to build the binary. It does not take long to build since easyjs only uses 2 dependencies.
+
 ## How to use
 You have many different options to use. 
 
@@ -49,7 +58,7 @@ bar := fn(x,y) {  // <-- This will transpile into a "const bar = () => {};"
 }
 ```
 You can compile this using our easyjs CLI.
-`easyjs compile file.ej` --> this will transcribe to a file.min.js
+`easyjs compile file.ej` --> this will transcribe to a file.js
 
 Or you can inline the .ej file
 ```html
@@ -83,7 +92,7 @@ fn fibonacci(n) { // <-- easyJS is dynamically typed.
 ```
 VS the JavaScript equivalent
 ```javascript
-const fibonacci = (n) => {
+function fibonacci(n) {
     if (n === 0) {
         return 0;
     } else if (n === 1) {

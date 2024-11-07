@@ -2,7 +2,7 @@
 
 fn get_elements(query) {
     elements = []
-    if query.className != undefined {
+    if query.className.first != undefined {
         elements.append(document.getElementsByClassName(query.className))
     }
 

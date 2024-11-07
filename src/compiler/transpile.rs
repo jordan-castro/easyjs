@@ -11,10 +11,6 @@ pub struct Transpiler {
     imports: Vec<String>,
 }
 
-// fn transpile_from_input(input:String) {
-
-// }
-
 impl Transpiler {
     pub fn new() -> Self {
         Transpiler {
@@ -32,17 +28,17 @@ impl Transpiler {
     fn to_string(&self, pretty: bool) -> String {
         let mut res = String::new();
 
-        if pretty {
-            for script in self.scripts.iter() {
+        for script in self.scripts.iter() {
+            if pretty {
+                let script = script.replace(";", ";\n");
                 res.push_str(&format!("{}\n", script));
+            } else {
+                res.push_str(&script);
             }
-        } else {
-            res.push_str(&format!("{}\n", self.scripts.join("\n")));
         }
 
         res
     }
-
     pub fn transpile(&mut self, p: ast::Program, pretty: bool) -> String {
         let code = self.transpile_from(p, pretty);
         code
@@ -74,7 +70,7 @@ impl Transpiler {
             }
             ast::Statement::ImportStatement(token, path, optinal_as) => {
                 Some(self.transpile_import_stmt(token, path, optinal_as))
-            },
+            }
             ast::Statement::ExpressionStatement(token, expression) => {
                 Some(self.transpile_expression_stmt(token, expression.as_ref().to_owned()))
             }
@@ -88,9 +84,11 @@ impl Transpiler {
                     value.as_ref().to_owned(),
                 ))
             }
-            ast::Statement::ForStatement(token, condition, body) => {
-                Some(self.transpile_for_stmt(token, condition.as_ref().to_owned(), body.as_ref().to_owned()))
-            },
+            ast::Statement::ForStatement(token, condition, body) => Some(self.transpile_for_stmt(
+                token,
+                condition.as_ref().to_owned(),
+                body.as_ref().to_owned(),
+            )),
             ast::Statement::JavaScriptStatement(token, js) => None,
             _ => None,
         }
@@ -162,7 +160,12 @@ impl Transpiler {
         )
     }
 
-    fn transpile_import_stmt(&mut self, token: token::Token, path: String, optional_as: Option<String>) -> String {
+    fn transpile_import_stmt(
+        &mut self,
+        token: token::Token,
+        path: String,
+        optional_as: Option<String>,
+    ) -> String {
         "".to_string()
         // format!("import {};", self.transpile_expression(path))
     }
@@ -171,7 +174,12 @@ impl Transpiler {
         format!("{};", self.transpile_expression(js))
     }
 
-    fn transpile_for_stmt(&mut self, token: token::Token, condition: ast::Expression, body: ast::Statement) -> String {
+    fn transpile_for_stmt(
+        &mut self,
+        token: token::Token,
+        condition: ast::Expression,
+        body: ast::Statement,
+    ) -> String {
         let mut res = String::new();
         match condition {
             ast::Expression::Boolean(token, value) => {
@@ -370,14 +378,12 @@ impl Transpiler {
 
                 res.push_str(&self.transpile_expression(left.as_ref().to_owned()));
                 res.push_str(".");
-
-                match right.as_ref().to_owned() {
-                    Expression::InfixExpression(token, left, operator, right) => {
-                        let r = self.transpile_expression(right.as_ref().to_owned());
-                        res.push_str(r.strip_prefix("(").unwrap().strip_suffix(")").unwrap());
-                    }
-                    _ => res.push_str(&self.transpile_expression(right.as_ref().to_owned())),
+                let mut r = self.transpile_expression(right.as_ref().to_owned());
+                
+                if r.starts_with("(") {
+                    r = r[1..r.len() - 1].to_string();
                 }
+                res.push_str(&r);
 
                 res
             }

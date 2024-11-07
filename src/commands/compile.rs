@@ -1,6 +1,7 @@
 use crate::lexer::lex;
 use crate::parser::par;
 use crate::compiler::transpile::Transpiler;
+use crate::utils::version;
 
 pub fn compile(input: String, pretty: bool) -> String {
     let lexer = lex::Lex::new(input);
@@ -16,5 +17,6 @@ pub fn compile(input: String, pretty: bool) -> String {
 
     let mut transpiler = Transpiler::new();
 
-    transpiler.transpile(program, pretty)
+    let js = transpiler.transpile(program, pretty);
+    format!("// Compiled by EasyJS version {}\n{}", version::VERSION_CODE, js)
 }

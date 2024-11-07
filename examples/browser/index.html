@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EasyJS running in the browser example</title>
+
+    <script type="module">
+        import init, { compile_easy_js } from "/easyjs.js";
+        init().then(() => {
+            console.log(document.body);
+            // Find all scripts with the custom "easyjs" type
+            const scripts = document.querySelectorAll('script[type="easyjs"]');
+            for (let script of scripts) {
+                const code = compile_easy_js(script.textContent);
+                // Create a new script element to execute the code
+                const easyScript = document.createElement('script');
+                easyScript.type = 'text/javascript';
+                easyScript.textContent = code;
+                // Clone and replace to force execution
+                const clonedScript = easyScript.cloneNode(true);
+                document.body.appendChild(clonedScript);
+                document.body.removeChild(script);
+            }
+        });
+    </script>
+
+</head>
+
+<body>
+    <script>
+        // JS function, this is global.
+        function subtract(x, y) {
+            return x - y;
+        }
+    </script>
+
+    <script type="easyjs">
+        // EasyJS function, this is global
+        fn add(x,y) {
+            return x + y
+        }
+
+        // calling a browser builtin
+        alert("running in easyjs")
+        // calling a EasyJS defined function
+        console.log(add(1,1))
+
+        // calling a JS defined function
+        console.log(subtract(1,1))
+    </script>
+</body>
+
+</html>

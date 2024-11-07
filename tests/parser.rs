@@ -258,6 +258,7 @@ mod tests {
         let input = "
         x := [0,1,2,3]
         y = ['1', '2', '3']
+        z = []
         "
         .to_string();
 
@@ -269,7 +270,7 @@ mod tests {
         println!("{:#?}", program.statements);
 
         assert_eq!(p.errors.len(), 0);
-        assert_eq!(program.statements.len(), 2);
+        assert_eq!(program.statements.len(), 3);
     }
 
     #[test]
@@ -353,4 +354,5 @@ mod tests {
         assert_eq!(p.errors.len(), 0);
         assert_eq!(program.statements.len(), 1);
     }
+
 }
