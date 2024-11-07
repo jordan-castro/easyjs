@@ -2,13 +2,13 @@ use core::str;
 
 use easyjs::{commands::{compile::compile, repl::start_repl}, repl::runtime::run_file, utils};
 
-use clap::{ArgAction, Parser, Subcommand};
+use clap::{Parser, Subcommand};
 
 #[derive(Parser, Debug)]
 #[command(name = "EasyJS", version = utils::version::VERSION_CODE, author = "Jordan Castro <jorda@grupojvm.com>")]
 #[command(about = "EasyJS compiler, repl, and runner.")]
+/// Activate debug mode
 struct Args {
-    /// Activate debug mode
     #[arg(short, long)]
     debug: bool,
 

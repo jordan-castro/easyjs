@@ -355,4 +355,21 @@ mod tests {
         assert_eq!(program.statements.len(), 1);
     }
 
+    #[test]
+    fn test_assign_expression() {
+        let input = "
+            x = {name: 1}
+            x.name = 2
+        ".to_string();
+
+        let l: lex::Lex = lex::Lex::new(input);
+        let mut p = par::Parser::new(l);
+        let program = p.parse_program();
+
+        println!("{:?}", p.errors);
+        println!("{:#?}", program.statements);
+
+        assert_eq!(p.errors.len(), 0);
+        assert_eq!(program.statements.len(), 2);
+    }
 }

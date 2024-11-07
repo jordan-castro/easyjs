@@ -32,6 +32,7 @@ const DOTDOT: i64 = 13; // ..
 const IN: i64 = 14; // in
 const OF: i64 = 15; // of
 const AWAIT: i64 = 16; // await
+const ASSIGN: i64 = 17;
 
 /// Find the precedence of a token.
 fn precedences(tk: &str) -> i64 {
@@ -55,6 +56,7 @@ fn precedences(tk: &str) -> i64 {
         token::IN => IN,
         token::OF => OF,
         token::AWAIT => AWAIT,
+        token::ASSIGN => ASSIGN,
         _ => LOWEST,
     }
 }
@@ -126,7 +128,6 @@ impl Parser {
             token::L_BRACE => true,
             token::ASYNC => true,
             token::AWAIT => true,
-
             _ => false,
         }
     }
@@ -151,6 +152,7 @@ impl Parser {
             token::DOTDOT => true,
             token::IN => true,
             token::OF => true,
+            token::ASSIGN => true,
             _ => false,
         }
     }
@@ -175,6 +177,7 @@ impl Parser {
             token::DOTDOT => parse_range_expression(self, left),
             token::IN => parse_in_expression(self, left),
             token::OF => parse_of_expression(self, left),
+            token::ASSIGN => parse_assign_expression(self, left),
             _ => ast::Expression::EmptyExpression,
         }
     }
@@ -894,4 +897,12 @@ fn parse_of_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression
     }
 
     ast::Expression::OfExpression(token, Box::new(left), Box::new(right))
+}
+
+fn parse_assign_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression {
+    let token = p.c_token.clone(); // =
+    p.next_token();
+    let right = parse_expression(p, LOWEST);
+
+    ast::Expression::AssignExpression(token, Box::new(left), Box::new(right))
 }
