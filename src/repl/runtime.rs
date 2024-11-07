@@ -1,8 +1,7 @@
 use crate::{commands::compile, utils};
 use std::{
-    hash::Hash,
     io::{BufRead, BufReader, Read, Write},
-    process::{Child, ChildStdout, Command, Output, Stdio},
+    process::{Child, ChildStdout, Command, Stdio},
     thread::sleep,
     time::Duration,
 };
@@ -13,9 +12,9 @@ pub struct Runtime {
     /// Our JS runtime process
     process: Child,
     /// NodeJS, Deno, Bun, etc?
-    runtime: String,
+    _runtime: String,
     /// Should we crash on error?
-    crash_on_error: bool,
+    _crash_on_error: bool,
     stdout_reader: BufReader<ChildStdout>,
 }
 
@@ -43,8 +42,8 @@ impl Runtime {
 
         let mut runtime = Runtime {
             process: p,
-            runtime: runtime.to_string(),
-            crash_on_error: crash_on_error,
+            _runtime: runtime.to_string(),
+            _crash_on_error: crash_on_error,
             stdout_reader: stdout_reader,
         };
 

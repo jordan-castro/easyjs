@@ -1,5 +1,3 @@
-use std::any::Any;
-
 use crate::lexer::{lex, token};
 use crate::parser::ast;
 
@@ -23,7 +21,7 @@ const EQUALS: i64 = 2; // ==
 const LESSGREATER: i64 = 3; // < or >
 const SUM: i64 = 4; // +
 const PRODUCT: i64 = 5; // *
-const PREFIX: i64 = 6; // -X or !X
+// const PREFIX: i64 = 6; // -X or !X
 const CALL: i64 = 7; // my_function(X)
 const DOT: i64 = 8; // .field or .method
 const JAVASCRIPT: i64 = 9; // javascript code
@@ -213,7 +211,7 @@ impl Parser {
     }
 
     /// is our current token and eos.
-    fn cur_token_is_eos(&self) -> bool {
+    fn _cur_token_is_eos(&self) -> bool {
         self.cur_token_is(token::SEMICOLON) || self.cur_token_is(token::EOL)
     }
 
@@ -813,7 +811,7 @@ fn parse_dot_expression(p: &mut Parser, left: ast::Expression) -> ast::Expressio
     ast::Expression::DotExpression(token, Box::new(left), Box::new(right))
 }
 
-fn parse_dot_if_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression {
+fn parse_dot_if_expression(_p: &mut Parser, _left: ast::Expression) -> ast::Expression {
     ast::Expression::EmptyExpression
 }
 

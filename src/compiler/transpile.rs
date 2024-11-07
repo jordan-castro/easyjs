@@ -1,8 +1,6 @@
-use std::fmt::format;
-
-use crate::lexer::{lex, token};
+use crate::lexer::token;
 use crate::parser::ast::Expression;
-use crate::parser::{ast, par};
+use crate::parser::ast;
 
 pub struct Transpiler {
     scripts: Vec<String>,

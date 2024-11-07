@@ -6,7 +6,7 @@ Transpiled means that it goes from one language to another, it is not compiled n
 Similar to CofeeScript and TypeScript. The main difference being that it is an easy to use language.
 
 > [!WARNING]  
-> This language is still far from v1.0.0. We are currently on v0.1.0
+> This language is still far from v1.0.0 we are currently on v0.1.1
 
 ## Why EasyJS?
 At my last job, I worked with a product that would track user engagement on websites and apps. At this job I realized how common it was for people to not know
