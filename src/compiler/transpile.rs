@@ -4,7 +4,7 @@ use crate::lexer::{lex, token};
 use crate::parser::ast::Expression;
 use crate::parser::{ast, par};
 
-struct Transpiler {
+pub struct Transpiler {
     scripts: Vec<String>,
     variables: Vec<String>,
     functions: Vec<String>,
@@ -15,19 +15,18 @@ struct Transpiler {
 
 // }
 
-pub fn transpile(p: ast::Program, pretty: bool) -> String {
-    let code = Transpiler::transpile_from(p, pretty);
-    code
-}
-
 impl Transpiler {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Transpiler {
             scripts: vec![],
             variables: vec![],
             functions: vec![],
             imports: vec![],
         }
+    }
+
+    pub fn reset(&mut self) {
+        self.scripts = vec![];
     }
 
     fn to_string(&self, pretty: bool) -> String {
@@ -44,21 +43,23 @@ impl Transpiler {
         res
     }
 
-    fn transpile_from(p: ast::Program, pretty: bool) -> String {
-        let mut t = Transpiler::new();
+    pub fn transpile(&mut self, p: ast::Program, pretty: bool) -> String {
+        let code = self.transpile_from(p, pretty);
+        code
+    }
 
+    fn transpile_from(&mut self, p: ast::Program, pretty: bool) -> String {
         for stmt in p.statements {
             if stmt.is_empty() {
                 continue;
             }
 
-            let script = t.transpile_stmt(stmt);
+            let script = self.transpile_stmt(stmt);
             if let Some(script) = script {
-                t.scripts.push(script);
+                self.scripts.push(script);
             }
         }
-
-        t.to_string(pretty)
+        self.to_string(pretty)
     }
 
     fn transpile_stmt(&mut self, stmt: ast::Statement) -> Option<String> {

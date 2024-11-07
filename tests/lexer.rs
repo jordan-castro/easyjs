@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use nv::lexer::{lex, token};
+    use easyjs::lexer::{lex, token};
 
     #[test]
     fn test_lexer() {

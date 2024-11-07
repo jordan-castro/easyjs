@@ -1,9 +1,9 @@
 #[cfg(test)]
 mod tests {
-    use nv::lexer::token::new_token;
-    use nv::lexer::{lex, token};
-    use nv::parser::ast::{Expression, Program};
-    use nv::parser::{ast, par};
+    use easyjs::lexer::token::new_token;
+    use easyjs::lexer::{lex, token};
+    use easyjs::parser::ast::{Expression, Program};
+    use easyjs::parser::{ast, par};
 
     #[test]
     fn test_vars() {
