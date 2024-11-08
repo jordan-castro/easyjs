@@ -91,6 +91,7 @@ impl Parser {
             token::IDENT => parse_identifier(self),
             token::INT => parse_integer_literal(self),
             token::BANG => parse_prefix_expression(self),
+            token::NOT => parse_not_expression(self),
             token::MINUS => parse_prefix_expression(self),
             token::TRUE => parse_boolean(self),
             token::FALSE => parse_boolean(self),
@@ -115,6 +116,7 @@ impl Parser {
             token::IDENT => true,
             token::INT => true,
             token::BANG => true,
+            token::NOT => true,
             token::MINUS => true,
             token::TRUE => true,
             token::FALSE => true,
@@ -908,4 +910,16 @@ fn parse_assign_expression(p: &mut Parser, left: ast::Expression) -> ast::Expres
     let right = parse_expression(p, LOWEST);
 
     ast::Expression::AssignExpression(token, Box::new(left), Box::new(right))
+}
+
+fn parse_not_expression(p: &mut Parser) -> ast::Expression {
+    let token = p.c_token.to_owned(); // not
+    p.next_token();
+
+    let expression = parse_expression(p, LOWEST);
+
+    if expression.is_empty() {
+        return ast::empty_expression();
+    }
+    ast::Expression::NotExpression(token, Box::new(expression))
 }

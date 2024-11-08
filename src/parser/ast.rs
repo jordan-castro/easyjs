@@ -97,7 +97,9 @@ pub enum Expression {
     // {}
     ObjectLiteral(tk::Token, Vec<Vec<Box<Expression>>>),
     /// = something else
-    AssignExpression(tk::Token, Box<Expression>, Box<Expression>)
+    AssignExpression(tk::Token, Box<Expression>, Box<Expression>),
+    /// not expression
+    NotExpression(tk::Token, Box<Expression>),
 }
 
 impl Expression {
@@ -128,6 +130,7 @@ impl Expression {
             Expression::IndexExpression(_, _, _) => "IndexExpression",
             Expression::ObjectLiteral(_, _) => "ObjectLiteral",
             Expression::AssignExpression(_, _, _) => "AssignExpression",
+            Expression::NotExpression(_, _) => "NotExpression",
         }
     }
 

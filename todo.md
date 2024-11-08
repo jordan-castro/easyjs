@@ -6,8 +6,8 @@
 - add import statement support
 - add macro for stdlib injection
 - add dot.if expression support
+- ~~add not for ! expression~~
 - ~~fix [i] = ? ~~
-- add a default command.
 
 ## EasyJS
 - write wasm implementator in easyjs

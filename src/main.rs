@@ -12,10 +12,6 @@ struct Args {
     #[arg(short, long)]
     debug: bool,
 
-    /// Output file
-    #[arg(short, long, default_value = "output.txt")]
-    output: String,
-
     /// Subcommand to run
     #[command(subcommand)]
     command: Commands,

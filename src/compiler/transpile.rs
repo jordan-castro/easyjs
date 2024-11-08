@@ -526,6 +526,9 @@ impl Transpiler {
                     self.transpile_expression(left.as_ref().to_owned()),
                     self.transpile_expression(right.as_ref().to_owned())
                 )
+            },
+            Expression::NotExpression(token, exp) => {
+                format!("!{}", self.transpile_expression(exp.as_ref().to_owned()))
             }
             _ => String::from(""),
         }
