@@ -75,6 +75,6 @@ fn main() {
         },
         Commands::Run { file, runtime } => {
             run_file(&runtime, &file);
-        }
+        },
     }
 }

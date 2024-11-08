@@ -7,7 +7,7 @@ use crate::compiler::transpile::Transpiler;
 use crate::repl::runtime::Runtime;
 
 /// Repl for EasyJS
-const PROMPT: &str = ">> ";
+const PROMPT: &str = "> ";
 
 const EASY_JS_ASCII:&str = "    ___       ___       ___       ___            ___       ___   
    /\\  \\     /\\  \\     /\\  \\     /\\__\\          /\\  \\     /\\  \\  

@@ -417,7 +417,6 @@ impl Transpiler {
                 let mut res = String::new();
 
                 res.push_str("[");
-
                 let els = elements.as_ref().to_owned();
                 let joined_els = els
                     .iter()

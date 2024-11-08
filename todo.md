@@ -6,7 +6,8 @@
 - add import statement support
 - add macro for stdlib injection
 - add dot.if expression support
-- fix [i] = ? 
+- ~~fix [i] = ? ~~
+- add a default command.
 
 ## EasyJS
 - write wasm implementator in easyjs
@@ -20,3 +21,8 @@
 ## Misc
 - add PyScript import support
 - add wasm import support
+
+## Repl
+- Fix repl lag.
+- Fix > showing in response.
+- Debugger should print the statements.

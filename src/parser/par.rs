@@ -824,6 +824,7 @@ fn parse_index_expression(p: &mut Parser, left: ast::Expression) -> ast::Express
     if p.peek_token_is(token::R_BRACKET) {
         return ast::Expression::EmptyExpression;
     }
+    p.next_token();
 
     let index = parse_expression(p, LOWEST);
 
@@ -831,20 +832,24 @@ fn parse_index_expression(p: &mut Parser, left: ast::Expression) -> ast::Express
         return ast::Expression::EmptyExpression;
     }
 
-    if p.peek_token_is(token::ASSIGN) {
-        p.next_token();
-        p.next_token();
-
-        let right = parse_expression(p, LOWEST);
-
-        if !right.eq(ast::Expression::EmptyExpression) {
-            return ast::Expression::IndexExpression(
-                token.to_owned(),
-                Box::new(left),
-                Box::new(index)
-            );
-        }
+    if !p.expect_peek(token::R_BRACKET) {
+        return ast::Expression::EmptyExpression;
     }
+
+    // if p.peek_token_is(token::ASSIGN) {
+    //     p.next_token();
+    //     p.next_token();
+
+    //     let right = parse_expression(p, LOWEST);
+
+    //     if !right.eq(ast::Expression::EmptyExpression) {
+    //         return ast::Expression::IndexExpression(
+    //             token.to_owned(),
+    //             Box::new(left),
+    //             Box::new(index)
+    //         );
+    //     }
+    // }
 
     ast::Expression::IndexExpression(
         token,
