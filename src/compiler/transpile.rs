@@ -1,8 +1,8 @@
-use std::fmt::format;
-
 use crate::lexer::token;
 use crate::parser::ast;
 use crate::parser::ast::Expression;
+
+use super::import::{get_import_type, import_easy_js, ImportType};
 
 pub struct Transpiler {
     scripts: Vec<String>,
@@ -92,7 +92,8 @@ impl Transpiler {
                 condition.as_ref().to_owned(),
                 body.as_ref().to_owned(),
             )),
-            ast::Statement::JavaScriptStatement(token, js) => None,
+            ast::Statement::JavaScriptStatement(token, js) => Some(
+                self.transpile_javascript_stmt(token, js),),
             _ => None,
         }
     }
@@ -174,24 +175,35 @@ impl Transpiler {
         // TODO: check import file path type,
         // supported in EasyJS is ".ej", ".js", ".json", ".wasm"
         // no ".ts" <-- they're the competition
+        let import_type = get_import_type(&path);
 
-        match optional_as {
-            Expression::AsExpression(token, exp) => {
-                res.push_str("import ");
-                res.push_str("{");
-                res.push_str("default as ");
-                res.push_str(&self.transpile_expression(exp.as_ref().to_owned()));
-                res.push_str("} ");
-                res.push_str("from \"");
-                res.push_str(&path);
-                res.push_str("\"");
-            }
-            _ => {
-                res.push_str(format!("import \"{}\"", path).as_str());
-            }
+        match import_type {
+            ImportType::JavaScript => {
+                match optional_as {
+                    Expression::AsExpression(token, exp) => {
+                        res.push_str("import ");
+                        res.push_str("{");
+                        res.push_str("default as ");
+                        res.push_str(&self.transpile_expression(exp.as_ref().to_owned()));
+                        res.push_str("} ");
+                        res.push_str("from \"");
+                        res.push_str(&path);
+                        res.push_str("\"");
+                    }
+                    _ => {
+                        res.push_str(format!("import \"{}\"", path).as_str());
+                    }
+                }
+                res.push_str(";");
+            },
+            ImportType::EasyJS => {
+                // compile the EasyJS file
+                res.push_str(&import_easy_js(&path));
+            },
+            ImportType::WASM => {},
+            ImportType::STD => {}
         }
 
-        res.push_str(";");
         res
     }
 
@@ -244,8 +256,8 @@ impl Transpiler {
         // "".to_string()
     }
 
-    fn transpile_javascript_stmt(&mut self, token: token::Token, js: ast::Expression) -> String {
-        format!("{};", self.transpile_expression(js))
+    fn transpile_javascript_stmt(&mut self, token: token::Token, js: String) -> String {
+        format!("{}", js)
     }
 
     fn transpile_for_stmt(
@@ -467,12 +479,7 @@ impl Transpiler {
 
                 res
             }
-            Expression::JavaScriptExpression(token, js) => js
-                .strip_prefix("{")
-                .unwrap()
-                .strip_suffix("}")
-                .unwrap()
-                .to_string(),
+            Expression::JavaScriptExpression(token, js) => js,
             Expression::LambdaLiteral(token, paramters, body) => {
                 let mut res = String::new();
 

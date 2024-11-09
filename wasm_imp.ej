@@ -1,13 +1,17 @@
 from "/easyjs.js" import def init, compile_easy_js
+
 init().then(fn() {
     console.log(document.body)
     // Find all scripts with the custom "easyjs" type
     scripts := document.querySelectorAll('script[type="easyjs"]')
+
     for script in scripts {
         code := compile_easy_js(script.textContent)
+    
         easyjs_script := document.createElement('script')
         easyjs_script.type = 'text/javascript'
         easyjs_script.textContent = code
+    
         // clone and replace to force exec
         cloned_script := easyjs_script.cloneNode(true)
         document.body.appendChild(cloned_script)
