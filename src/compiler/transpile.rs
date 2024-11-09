@@ -2,7 +2,9 @@ use crate::lexer::token;
 use crate::parser::ast;
 use crate::parser::ast::Expression;
 
-use super::import::{get_import_type, import_easy_js, ImportType};
+use super::import::{
+    get_import_type, import_easy_js, import_std_lib, import_wasm_module, ImportType,
+};
 
 pub struct Transpiler {
     scripts: Vec<String>,
@@ -92,8 +94,9 @@ impl Transpiler {
                 condition.as_ref().to_owned(),
                 body.as_ref().to_owned(),
             )),
-            ast::Statement::JavaScriptStatement(token, js) => Some(
-                self.transpile_javascript_stmt(token, js),),
+            ast::Statement::JavaScriptStatement(token, js) => {
+                Some(self.transpile_javascript_stmt(token, js))
+            }
             _ => None,
         }
     }
@@ -195,13 +198,17 @@ impl Transpiler {
                     }
                 }
                 res.push_str(";");
-            },
+            }
             ImportType::EasyJS => {
                 // compile the EasyJS file
                 res.push_str(&import_easy_js(&path));
-            },
-            ImportType::WASM => {},
-            ImportType::STD => {}
+            }
+            ImportType::WASM => {
+                res.push_str(&import_wasm_module(&path));
+            }
+            ImportType::STD => {
+                res.push_str(&import_std_lib(&path));
+            }
         }
 
         res
@@ -214,43 +221,57 @@ impl Transpiler {
         imports: Vec<Expression>,
     ) -> String {
         let mut res = String::new();
-        res.push_str("import ");
 
         // TODO: check import file path type,
         // supported in EasyJS is ".ej", ".js", ".json", ".wasm"
         // no ".ts" <-- they're the competition
 
-        let mut has_brace = false;
-        for i in 0..imports.len() {
-            let imp = &imports[i];
-            match imp {
-                Expression::DefExpression(token, exp) => {
-                    if has_brace {
-                        // can not have a brace here...
-                        return "".to_string();
-                    }
-                    res.push_str(&self.transpile_expression(exp.as_ref().to_owned()));
-                }
-                _ => {
-                    if !has_brace {
-                        res.push_str("{");
-                        has_brace = true;
-                    }
-                    res.push_str(&self.transpile_expression(imp.to_owned()));
-                }
-            }
+        match get_import_type(&path) {
+            ImportType::EasyJS => {
+                res.push_str(&import_easy_js(&path));
+            },
+            ImportType::STD => {
+                res.push_str(&import_std_lib(&path));
+            },
+            ImportType::WASM => {
+                res.push_str(&import_wasm_module(&path));
+            },
+            ImportType::JavaScript => {
+                res.push_str("import ");
 
-            if i < imports.len() - 1 {
-                res.push_str(", ");
+                let mut has_brace = false;
+                for i in 0..imports.len() {
+                    let imp = &imports[i];
+                    match imp {
+                        Expression::DefExpression(token, exp) => {
+                            if has_brace {
+                                // can not have a brace here...
+                                return "".to_string();
+                            }
+                            res.push_str(&self.transpile_expression(exp.as_ref().to_owned()));
+                        }
+                        _ => {
+                            if !has_brace {
+                                res.push_str("{");
+                                has_brace = true;
+                            }
+                            res.push_str(&self.transpile_expression(imp.to_owned()));
+                        }
+                    }
+
+                    if i < imports.len() - 1 {
+                        res.push_str(", ");
+                    }
+                }
+                if has_brace {
+                    res.push_str("}");
+                }
+
+                res.push_str("from ");
+                res.push_str(&format!("\"{}\"", path).as_str());
+                res.push_str(";");
             }
         }
-        if has_brace {
-            res.push_str("}");
-        }
-
-        res.push_str("from ");
-        res.push_str(&format!("\"{}\"", path).as_str());
-        res.push_str(";");
 
         res
         // "".to_string()

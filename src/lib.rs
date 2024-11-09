@@ -4,6 +4,7 @@ pub mod parser;
 pub mod compiler;
 pub mod repl;
 pub mod commands;
+pub mod std;
 
 use wasm_bindgen::prelude::*;
 

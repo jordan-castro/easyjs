@@ -1,18 +1,20 @@
 // ! This can only be used in the browser.
 
-fn get_elements(query) {
-    elements = []
-    if query.className.first != undefined {
-        elements.append(document.getElementsByClassName(query.className))
+// shorthand for document.
+dom := {
+    create_element: fn (name) {
+        return document.createElement(name)
     }
 
-    if query.id != undefined {
-        elements.push(document.getElementById(query.id))
+    select_all: fn (query) {
+        return document.querySelectorAll(query)
     }
 
-    if query.tagName != undefined {
-        // elements.append
-    }
+    add_to_body: fn (node) {
+        document.body.appendChild(node)
+    } 
 
-    return elements
+    remove_from_body: fn (node) {
+        document.body.removeChild(node)
+    }
 }

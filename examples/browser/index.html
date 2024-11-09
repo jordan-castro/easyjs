@@ -6,10 +6,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EasyJS running in the browser example</title>
 
-    <script type="module">
-// Compiled by EasyJS version 0.1.4
-import init, {compile_easy_js}from "/easyjs.js";init().then(() => {console.log(document.body);;const scripts = document.querySelectorAll('script[type="easyjs"]');for (let script of scripts){const code = compile_easy_js(script.textContent);const easyjs_script = document.createElement('script');easyjs_script.type = 'text/javascript';easyjs_script.textContent = code;;const cloned_script = easyjs_script.cloneNode(true);document.body.appendChild(cloned_script);document.body.removeChild(script);}});    </script>
+    <style>
+        body {
+            background-color: black;
+        }
+    </style>
 
+    <script type="module">
+        
+// Compiled by EasyJS version 0.1.4
+// Compiled by EasyJS version 0.1.4
+;;const dom = {create_element:(name) => {return document.createElement(name);},select_all:(query) => {return document.querySelectorAll(query);},add_to_body:(node) => {document.body.appendChild(node);},remove_from_body:(node) => {document.body.removeChild(node);}};// Compiled by EasyJS version 0.1.4
+const print = console.log;import init, {compile_easy_js}from "/easyjs.js";init().then(() => {console.log(document.body);;const scripts = dom.select_all('script[type="easyjs"]');for (let script of scripts){const code = compile_easy_js(script.textContent);const easyjs_script = dom.create_element('script');if (script.hasAttribute('module')) {easyjs_script.type = 'module';}else { easyjs_script.type = 'text/javascript';};easyjs_script.textContent = code;;const cloned_script = easyjs_script.cloneNode(true);dom.add_to_body(cloned_script);dom.remove_from_body(script);}});
+
+    </script>
 </head>
 
 <body>
@@ -20,7 +30,7 @@ import init, {compile_easy_js}from "/easyjs.js";init().then(() => {console.log(d
         }
     </script>
 
-    <script type="easyjs">
+    <script type="easyjs" module>
         // EasyJS function, this is global
         fn add(x,y) {
             return x + y
@@ -35,7 +45,7 @@ import init, {compile_easy_js}from "/easyjs.js";init().then(() => {console.log(d
         console.log(subtract(1,1))
     </script>
 
-    <script type="easyjs">
+    <script type="easyjs" module>
         document.title = "This worked!"
     </script>
 </body>

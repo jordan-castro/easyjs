@@ -7,7 +7,7 @@ use crate::compiler::transpile::Transpiler;
 use crate::repl::runtime::Runtime;
 
 /// Repl for EasyJS
-const PROMPT: &str = "> ";
+const PROMPT: &str = ">> ";
 
 const EASY_JS_ASCII:&str = "    ___       ___       ___       ___            ___       ___   
    /\\  \\     /\\  \\     /\\  \\     /\\__\\          /\\  \\     /\\  \\  
@@ -19,10 +19,10 @@ const EASY_JS_ASCII:&str = "    ___       ___       ___       ___            ___
 
 
 pub fn start(runtime_option: &str, crash_on_error: bool, debug:bool) {
-    println!("{}", EASY_JS_ASCII);
-    println!("EasyJS {}", version::VERSION_CODE);
     let mut runtime = Runtime::new(runtime_option, crash_on_error);
     let mut transpiler = Transpiler::new();
+    println!("{}", EASY_JS_ASCII);
+    println!("EasyJS {}", version::VERSION_CODE);
 
     loop {
         transpiler.reset();
@@ -56,7 +56,11 @@ pub fn start(runtime_option: &str, crash_on_error: bool, debug:bool) {
         let output: Vec<String> = runtime.send_command(&js);
 
         for line in output {
-            println!("{}", line);
+            if line.starts_with(">") {
+                println!("{}", line.strip_prefix("> ").unwrap());
+            } else {
+                println!("{}", line);
+            }
         }
     }
 

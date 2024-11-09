@@ -15,10 +15,6 @@ pub fn new_token(typ:&str, literal:&str) -> Token {
     }
 }
 
-pub fn new_token_from_String(typ:String, literal:String) -> Token {
-    Token{typ, literal}
-}
-
 // Types below
 
 pub const ILLEGAL:&str = "ILLEGAL";

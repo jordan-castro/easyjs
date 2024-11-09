@@ -1,8 +1,13 @@
 use crate::{commands::compile::compile, utils::reader::read_file};
+use crate::std::load_std;
 
 /// Import EasyJS STD lib.
 pub fn import_std_lib(lib_path: &str) -> String {
     // Make sure this is a file of ours.
+    let contents = load_std(&lib_path);
+    if contents.len() > 0 {
+        return compile(contents, false);
+    }
 
     String::new()
 }
