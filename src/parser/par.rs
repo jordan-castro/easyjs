@@ -21,7 +21,7 @@ const EQUALS: i64 = 2; // ==
 const LESSGREATER: i64 = 3; // < or >
 const SUM: i64 = 4; // +
 const PRODUCT: i64 = 5; // *
-// const PREFIX: i64 = 6; // -X or !X
+                        // const PREFIX: i64 = 6; // -X or !X
 const CALL: i64 = 7; // my_function(X)
 const DOT: i64 = 8; // .field or .method
 const JAVASCRIPT: i64 = 9; // javascript code
@@ -33,6 +33,8 @@ const IN: i64 = 14; // in
 const OF: i64 = 15; // of
 const AWAIT: i64 = 16; // await
 const ASSIGN: i64 = 17;
+const DEF: i64 = 18;
+const AS: i64 = 19;
 
 /// Find the precedence of a token.
 fn precedences(tk: &str) -> i64 {
@@ -57,6 +59,8 @@ fn precedences(tk: &str) -> i64 {
         token::OF => OF,
         token::AWAIT => AWAIT,
         token::ASSIGN => ASSIGN,
+        token::DEF => DEF,
+        token::AS => AS,
         _ => LOWEST,
     }
 }
@@ -105,6 +109,8 @@ impl Parser {
             token::L_BRACE => parse_object_literal(self),
             token::ASYNC => parse_async_expressoin(self),
             token::AWAIT => parse_await_expression(self),
+            token::DEF => parse_def_expression(self),
+            token::AS => parse_as_expression(self),
 
             _ => ast::Expression::EmptyExpression,
         }
@@ -130,6 +136,8 @@ impl Parser {
             token::L_BRACE => true,
             token::ASYNC => true,
             token::AWAIT => true,
+            token::DEF => true,
+            token::AS => true,
             _ => false,
         }
     }
@@ -155,6 +163,7 @@ impl Parser {
             token::IN => true,
             token::OF => true,
             token::ASSIGN => true,
+            token::AS => true,
             _ => false,
         }
     }
@@ -259,6 +268,7 @@ fn parse_statement(parser: &mut Parser) -> ast::Statement {
         }
         token::RETURN => parse_return_statement(parser),
         token::IMPORT => parse_import_statement(parser),
+        token::FROM => parse_from_import_statement(parser),
         token::JAVASCRIPT => ast::Statement::JavaScriptStatement(
             parser.c_token.to_owned(),
             parser.c_token.to_owned().literal,
@@ -294,7 +304,7 @@ fn parse_const_var_statement(p: &mut Parser) -> ast::Statement {
     }
 
     let name = ast::Expression::Identifier(token.to_owned(), token.to_owned().literal);
-    
+
     p.next_token();
 
     let value = parse_expression(p, LOWEST);
@@ -342,28 +352,49 @@ fn parse_expression_statement(p: &mut Parser) -> ast::Statement {
 }
 
 fn parse_import_statement(p: &mut Parser) -> ast::Statement {
-    let token = p.c_token.clone();
+    let token = p.c_token.clone(); // import
 
-    if !p.expect_peek(token::STRING) {
+    if !p.expect_peek(token::STRING) { // path
         return ast::Statement::EmptyStatement;
     }
 
     let path = p.c_token.literal.to_owned();
-    let mut as_ = String::new();
-
-    // check for an as
-    if p.peek_token_is(token::AS) {
+    let as_exp = if p.peek_token_is(token::AS) {
         p.next_token();
+        let eyo = parse_expression(p, LOWEST);
+        eyo
+    } else {
+        ast::empty_expression()
+    };
 
-        if !p.expect_peek(token::IDENT) {
-            return ast::Statement::EmptyStatement;
+    ast::Statement::ImportStatement(token, path, Box::new(as_exp))
+}
+
+fn parse_from_import_statement(p: &mut Parser) -> ast::Statement {
+    let token = p.c_token.clone(); // from
+
+    if !p.expect_peek(token::STRING) {
+        // "lib"
+        return ast::empty_statement();
+    }
+    let path = p.c_token.literal.to_owned();
+    if !p.expect_peek(token::IMPORT) {
+        // import
+        return ast::empty_statement();
+    }
+    p.next_token(); // consume import
+
+    let mut imports = vec![];
+    imports.push(parse_expression(p, LOWEST)); // remember it could be a def ident
+    while p.peek_token_is(token::COMMA) { // if the next token is a comma
+        p.next_token(); // consume the comma
+        if !p.expect_peek(token::IDENT) { // expect a ident
+            return ast::empty_statement();
         }
-        as_ = p.c_token.literal.to_owned();
+        imports.push(parse_identifier(p)) // grab that jaunt
     }
 
-    let as_option = if as_.len() > 0 { Some(as_) } else { None };
-
-    ast::Statement::ImportStatement(token, path, as_option)
+    ast::Statement::FromImportStatement(token, path, Box::new(imports))
 }
 
 fn parse_block_statement(p: &mut Parser) -> ast::Statement {
@@ -853,11 +884,7 @@ fn parse_index_expression(p: &mut Parser, left: ast::Expression) -> ast::Express
     //     }
     // }
 
-    ast::Expression::IndexExpression(
-        token,
-        Box::new(left),
-        Box::new(index)
-    )
+    ast::Expression::IndexExpression(token, Box::new(left), Box::new(index))
 }
 
 fn parse_range_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression {
@@ -922,4 +949,24 @@ fn parse_not_expression(p: &mut Parser) -> ast::Expression {
         return ast::empty_expression();
     }
     ast::Expression::NotExpression(token, Box::new(expression))
+}
+
+fn parse_as_expression(p: &mut Parser) -> ast::Expression {
+    let token = p.c_token.to_owned(); // as
+
+    if !p.expect_peek(token::IDENT) {
+        return ast::empty_expression();
+    }
+
+    let right = parse_expression(p, LOWEST);
+
+    ast::Expression::AsExpression(token, Box::new(right))
+}
+
+fn parse_def_expression(p: &mut Parser) -> ast::Expression {
+    let token = p.c_token.to_owned(); // def
+    if !p.expect_peek(token::IDENT) {
+        return ast::empty_expression();
+    }
+    ast::Expression::DefExpression(token, Box::new(parse_identifier(p)))
 }

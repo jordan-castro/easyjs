@@ -1,8 +1,8 @@
 use std::fmt::format;
 
 use crate::lexer::token;
-use crate::parser::ast::Expression;
 use crate::parser::ast;
+use crate::parser::ast::Expression;
 
 pub struct Transpiler {
     scripts: Vec<String>,
@@ -69,7 +69,10 @@ impl Transpiler {
                 Some(self.transpile_return_stmt(token, expression.as_ref().to_owned()))
             }
             ast::Statement::ImportStatement(token, path, optinal_as) => {
-                Some(self.transpile_import_stmt(token, path, optinal_as))
+                Some(self.transpile_import_stmt(token, path, optinal_as.as_ref().to_owned()))
+            }
+            ast::Statement::FromImportStatement(token, path, imports) => {
+                Some(self.transpile_from_import_stmt(token, path, imports.as_ref().to_owned()))
             }
             ast::Statement::ExpressionStatement(token, expression) => {
                 Some(self.transpile_expression_stmt(token, expression.as_ref().to_owned()))
@@ -164,10 +167,81 @@ impl Transpiler {
         &mut self,
         token: token::Token,
         path: String,
-        optional_as: Option<String>,
+        optional_as: Expression,
     ) -> String {
-        "".to_string()
-        // format!("import {};", self.transpile_expression(path))
+        let mut res = String::new();
+
+        // TODO: check import file path type,
+        // supported in EasyJS is ".ej", ".js", ".json", ".wasm"
+        // no ".ts" <-- they're the competition
+
+        match optional_as {
+            Expression::AsExpression(token, exp) => {
+                res.push_str("import ");
+                res.push_str("{");
+                res.push_str("default as ");
+                res.push_str(&self.transpile_expression(exp.as_ref().to_owned()));
+                res.push_str("} ");
+                res.push_str("from \"");
+                res.push_str(&path);
+                res.push_str("\"");
+            }
+            _ => {
+                res.push_str(format!("import \"{}\"", path).as_str());
+            }
+        }
+
+        res.push_str(";");
+        res
+    }
+
+    fn transpile_from_import_stmt(
+        &mut self,
+        token: token::Token,
+        path: String,
+        imports: Vec<Expression>,
+    ) -> String {
+        let mut res = String::new();
+        res.push_str("import ");
+
+        // TODO: check import file path type,
+        // supported in EasyJS is ".ej", ".js", ".json", ".wasm"
+        // no ".ts" <-- they're the competition
+
+        let mut has_brace = false;
+        for i in 0..imports.len() {
+            let imp = &imports[i];
+            match imp {
+                Expression::DefExpression(token, exp) => {
+                    if has_brace {
+                        // can not have a brace here...
+                        return "".to_string();
+                    }
+                    res.push_str(&self.transpile_expression(exp.as_ref().to_owned()));
+                }
+                _ => {
+                    if !has_brace {
+                        res.push_str("{");
+                        has_brace = true;
+                    }
+                    res.push_str(&self.transpile_expression(imp.to_owned()));
+                }
+            }
+
+            if i < imports.len() - 1 {
+                res.push_str(", ");
+            }
+        }
+        if has_brace {
+            res.push_str("}");
+        }
+
+        res.push_str("from ");
+        res.push_str(&format!("\"{}\"", path).as_str());
+        res.push_str(";");
+
+        res
+        // "".to_string()
     }
 
     fn transpile_javascript_stmt(&mut self, token: token::Token, js: ast::Expression) -> String {
@@ -275,7 +349,13 @@ impl Transpiler {
         match expression {
             ast::Expression::IntegerLiteral(token, value) => value.to_string(),
             Expression::StringLiteral(token, value) => {
-                format!("\"{}\"", value)
+                let quote_type = if (&value.contains("'")).to_owned() {
+                    "\""
+                } else {
+                    "\'"
+                };
+                // let quote_type = token.literal.chars().nth(0).unwrap();
+                format!("{}{}{}", quote_type, value, quote_type)
             }
             Expression::PrefixExpression(token, op, value) => {
                 format!(
@@ -379,7 +459,7 @@ impl Transpiler {
                 res.push_str(&self.transpile_expression(left.as_ref().to_owned()));
                 res.push_str(".");
                 let mut r = self.transpile_expression(right.as_ref().to_owned());
-                
+
                 if r.starts_with("(") {
                     r = r[1..r.len() - 1].to_string();
                 }
@@ -519,16 +599,19 @@ impl Transpiler {
                     "await {}",
                     self.transpile_expression(exp.as_ref().to_owned())
                 )
-            },
+            }
             Expression::AssignExpression(token, left, right) => {
                 format!(
                     "{} = {}",
                     self.transpile_expression(left.as_ref().to_owned()),
                     self.transpile_expression(right.as_ref().to_owned())
                 )
-            },
+            }
             Expression::NotExpression(token, exp) => {
                 format!("!{}", self.transpile_expression(exp.as_ref().to_owned()))
+            }
+            Expression::AsExpression(token, exp) => {
+                format!(" as {}", self.transpile_expression(exp.as_ref().to_owned()))
             }
             _ => String::from(""),
         }

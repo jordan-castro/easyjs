@@ -86,6 +86,8 @@ pub const OF: &str = "OF";
 pub const ASYNC: &str = "ASYNC";
 pub const AWAIT: &str = "AWAIT";
 pub const NOT: &str = "NOT";
+pub const FROM: &str = "FROM";
+pub const DEF: &str = "DEF";
 
 /// Lookup the ident based on a string
 pub fn lookup_ident(ident: &str) -> &'static str {
@@ -107,6 +109,8 @@ pub fn lookup_ident(ident: &str) -> &'static str {
         "async" => ASYNC,
         "await" => AWAIT,
         "not" => NOT,
+        "from" => FROM,
+        "def" => DEF,
         _ => IDENT, // Default case for unknown identifiers
     }
 }

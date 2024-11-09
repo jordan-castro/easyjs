@@ -214,8 +214,10 @@ mod tests {
     #[test]
     fn test_import_statement() {
         let input = "
-            import \"io\"
+            import \"io\" 
             import \"json\" as json
+            from 'json' import to_json
+            from 'json' import def to_json, from_json, is_json
         "
         .to_string();
 
@@ -227,7 +229,7 @@ mod tests {
         println!("{:#?}", program.statements);
 
         assert_eq!(p.errors.len(), 0);
-        assert_eq!(program.statements.len(), 2);
+        assert_eq!(program.statements.len(), 4);
     }
 
     #[test]

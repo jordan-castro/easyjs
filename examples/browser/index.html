@@ -7,24 +7,8 @@
     <title>EasyJS running in the browser example</title>
 
     <script type="module">
-        import init, { compile_easy_js } from "/easyjs.js";
-        init().then(() => {
-            console.log(document.body);
-            // Find all scripts with the custom "easyjs" type
-            const scripts = document.querySelectorAll('script[type="easyjs"]');
-            for (let script of scripts) {
-                const code = compile_easy_js(script.textContent);
-                // Create a new script element to execute the code
-                const easyScript = document.createElement('script');
-                easyScript.type = 'text/javascript';
-                easyScript.textContent = code;
-                // Clone and replace to force execution
-                const clonedScript = easyScript.cloneNode(true);
-                document.body.appendChild(clonedScript);
-                document.body.removeChild(script);
-            }
-        });
-    </script>
+// Compiled by EasyJS version 0.1.4
+import init, {compile_easy_js}from "/easyjs.js";init().then(() => {console.log(document.body);;const scripts = document.querySelectorAll('script[type="easyjs"]');for (let script of scripts){const code = compile_easy_js(script.textContent);const easyjs_script = document.createElement('script');easyjs_script.type = 'text/javascript';easyjs_script.textContent = code;;const cloned_script = easyjs_script.cloneNode(true);document.body.appendChild(cloned_script);document.body.removeChild(script);}});    </script>
 
 </head>
 
