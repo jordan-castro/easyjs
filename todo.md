@@ -10,14 +10,18 @@
 - ~~fix [i] = ? ~~
 - add from import * support
 - ~~fix ' and " not working together.~~
-- add builtins
-- add from, import as. support to easyjs imports.
+- ~~add builtins~~
+- add from, import as support to easyjs imports.
+- add require keyword
 
 ## EasyJS
 - ~~write wasm implementator in easyjs~~
 - add std
     - http
     - json
+
+## Builtins
+- 
 
 ## Scripts
 - ~~add a build script (for not wasm)~~

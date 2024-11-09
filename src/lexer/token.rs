@@ -85,6 +85,15 @@ pub const NOT: &str = "NOT";
 pub const FROM: &str = "FROM";
 pub const DEF: &str = "DEF";
 
+pub fn is_builtin(ident: &str) -> bool {
+    match ident {
+        "print" => true,
+        "last" => true,
+        "first" => true,
+        _ => false
+    }
+}
+
 /// Lookup the ident based on a string
 pub fn lookup_ident(ident: &str) -> &'static str {
     match ident {
@@ -122,12 +131,7 @@ pub fn lookup_colon_special(cs:&str) -> &'static str {
 
 impl Token {
     /// Get a pretty string rep of a token.
-    pub fn pretty(self) -> String {
-        let mut msg: String = "Type: ".to_owned();
-        msg.push_str(&self.typ);
-        msg.push_str(" Literal: ");
-        msg.push_str(&self.literal);
-
-        msg
+    pub fn pretty_print(&self) {
+        println!("{:#?}", self);
     }
 }

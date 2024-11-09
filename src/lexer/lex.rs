@@ -250,12 +250,22 @@ impl Lex {
                 // check for identifier
                 if self.current_char.is_alphabetic() {
                     let literal = &self.read_identifier();
+
+                    // is builtin?
+                    if token::is_builtin(literal) {
+                        let t= token::new_token(token::BUILTIN, literal);
+                        self.read_char();
+                        return t;
+                    }
+
                     // probably a identifier
                     let ident = token::lookup_ident(literal);
 
                     // if this a JS?
                     if ident == token::JAVASCRIPT {
-                        return token::new_token(token::JAVASCRIPT, &self.read_javascript());
+                        let t = token::new_token(token::JAVASCRIPT, &self.read_javascript());
+                        self.read_char();
+                        return t;
                     }
                     // return the identifier
                     token::new_token(ident, literal)

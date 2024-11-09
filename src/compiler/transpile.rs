@@ -640,8 +640,44 @@ impl Transpiler {
             }
             Expression::AsExpression(token, exp) => {
                 format!(" as {}", self.transpile_expression(exp.as_ref().to_owned()))
+            },
+            Expression::Builtin(token, name, args) => {
+                self.transpile_builtin(name, args.as_ref().to_owned())
             }
             _ => String::from(""),
         }
+    }
+
+    fn join_expressions(&mut self, expressions: Vec<Expression>) -> String {
+        expressions
+            .iter()
+            .map(|p| self.transpile_expression(p.to_owned()))
+            .collect::<Vec<_>>()
+            .join(",")
+    }
+
+    fn transpile_builtin(&mut self, name: String, args: Vec<Expression>) -> String {
+        let mut res = String::new();
+        match name.as_str() {
+            "print" => {
+                res.push_str("console.log(");
+                res.push_str(&self.join_expressions(args));
+                res.push_str(")");
+            },
+            "last" => {
+                let exp = self.transpile_expression(args.get(0).unwrap().to_owned());
+                res.push_str(&exp);
+                res.push_str(format!("[{}.length - 1]", exp).as_str());
+            },
+            "first" => {
+                let exp = self.transpile_expression(args.get(0).unwrap().to_owned());
+                res.push_str(&exp);
+                res.push_str("[0]");
+            }
+            _ => {}
+        }
+
+        res
+        // "".to_string()
     }
 }

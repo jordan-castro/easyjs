@@ -35,6 +35,7 @@ const AWAIT: i64 = 16; // await
 const ASSIGN: i64 = 17;
 const DEF: i64 = 18;
 const AS: i64 = 19;
+const BUILTIN: i64 = 20;
 
 /// Find the precedence of a token.
 fn precedences(tk: &str) -> i64 {
@@ -61,6 +62,7 @@ fn precedences(tk: &str) -> i64 {
         token::ASSIGN => ASSIGN,
         token::DEF => DEF,
         token::AS => AS,
+        token::BUILTIN => BUILTIN,
         _ => LOWEST,
     }
 }
@@ -111,6 +113,7 @@ impl Parser {
             token::AWAIT => parse_await_expression(self),
             token::DEF => parse_def_expression(self),
             token::AS => parse_as_expression(self),
+            token::BUILTIN => parse_builtin_expression(self),
 
             _ => ast::Expression::EmptyExpression,
         }
@@ -138,6 +141,7 @@ impl Parser {
             token::AWAIT => true,
             token::DEF => true,
             token::AS => true,
+            token::BUILTIN => true,
             _ => false,
         }
     }
@@ -354,7 +358,8 @@ fn parse_expression_statement(p: &mut Parser) -> ast::Statement {
 fn parse_import_statement(p: &mut Parser) -> ast::Statement {
     let token = p.c_token.clone(); // import
 
-    if !p.expect_peek(token::STRING) { // path
+    if !p.expect_peek(token::STRING) {
+        // path
         return ast::Statement::EmptyStatement;
     }
 
@@ -386,9 +391,11 @@ fn parse_from_import_statement(p: &mut Parser) -> ast::Statement {
 
     let mut imports = vec![];
     imports.push(parse_expression(p, LOWEST)); // remember it could be a def ident
-    while p.peek_token_is(token::COMMA) { // if the next token is a comma
+    while p.peek_token_is(token::COMMA) {
+        // if the next token is a comma
         p.next_token(); // consume the comma
-        if !p.expect_peek(token::IDENT) { // expect a ident
+        if !p.expect_peek(token::IDENT) {
+            // expect a ident
             return ast::empty_statement();
         }
         imports.push(parse_identifier(p)) // grab that jaunt
@@ -969,4 +976,22 @@ fn parse_def_expression(p: &mut Parser) -> ast::Expression {
         return ast::empty_expression();
     }
     ast::Expression::DefExpression(token, Box::new(parse_identifier(p)))
+}
+
+fn parse_builtin_expression(p: &mut Parser) -> ast::Expression {
+    let token = p.c_token.to_owned(); // builtin
+    let name = p.c_token.literal.to_owned();
+
+    if !p.expect_peek(token::L_PAREN) {
+        return ast::empty_expression();
+    }
+
+    // get the arguments if any
+    let args = parse_call_arguments(p);
+
+    ast::Expression::Builtin(
+        token,
+        name,
+        Box::new(args),
+    )
 }
