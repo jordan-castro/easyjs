@@ -1,12 +1,12 @@
 # EasyJS
-EasyJS is a new transpiled programming language which makes it easy to write web applications easily and naturally. 
+EasyJS is a new programming language which makes it easy to write web applications easily and naturally. 
 Using a modern like syntax to interact FULLY with the DOM, server, and anywhere else that JS runs. 
 
-Transpiled means that it goes from one language to another, it is not compiled nor interperted. It goes from EasyJS to JS. 
-Similar to CofeeScript and TypeScript. The main difference being that it is an easy to use language.
+EasyJS works by compiling down into efficient and performant JavaScript.
+Similar to CofeeScript and TypeScript. The main difference being that it is an easy to use language, and can run natively on web.
 
 > [!WARNING]  
-> This language is still far from v1.0.0 we are currently on v0.1.1
+> This language is still far from v1.0.0 we are currently on v0.1.4
 
 ## Why EasyJS?
 At my last job, I worked with a product that would track user engagement on websites and apps. At this job I realized how common it was for people to not know
@@ -47,13 +47,13 @@ easyjs
 ### Examples
 Imagine you have a EasyJS file like so:
 ```rust
-fn foo() { // <-- functions use the fn keyword.  this will transpile into a "function foo() {}"
+fn foo() { // <-- functions use the fn keyword.  this will compile into a "function foo() {}"
     print("foo") // <-- This will console.log("foo")
     // or you could just use
     console.log("foo") // <-- mostly all JS objects  transfer over. 
 }
 
-bar := fn(x,y) {  // <-- This will transpile into a "const bar = () => {};"
+bar := fn(x,y) {  // <-- This will compile into a "const bar = () => {};"
     ...
 }
 ```
@@ -230,7 +230,7 @@ var variable = "a global string" // global variable equivalent
 ```
 
 ## I think the main thing is
-I'm building EasyJS to run wherever JavaScript runs, this is because it transpiles into js. That means you could in theory use it with node, bun, deno, on the browser, apps, ect. The whole idea is to make an easier, modern, intuitive language that replaces nasty JS.
+I'm building EasyJS to run wherever JavaScript runs, this is because it compiles into js. That means you could in theory use it with node, bun, deno, on the browser, apps, ect. The whole idea is to make an easier, modern, intuitive language that replaces nasty JS.
 
 ## What's wrong with JS?
 A lot of things, but to get started the main things which every JS developer will mention

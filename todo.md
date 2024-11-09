@@ -13,6 +13,8 @@
 - ~~add builtins~~
 - add from, import as support to easyjs imports.
 - add require keyword
+- hash variable names so that you can use let, var, const, class as variable names
+- add kwargs support
 
 ## EasyJS
 - ~~write wasm implementator in easyjs~~
@@ -34,3 +36,6 @@
 - ~~Fix repl lag.~~
 - ~~Fix > showing in response.~~
 - Debugger should print the statements.
+
+## Docs
+- Hello World example

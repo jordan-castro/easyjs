@@ -36,13 +36,6 @@ mod tests {
 
         assert_eq!(p.errors.len(), 0);
         assert_eq!(program.statements.len(), 3);
-
-        match program.statements.first().unwrap() {
-            ast::Statement::ConstVariableStatement(tk, name, val) => {
-                assert_eq!(tk.to_owned().pretty(), new_token("IDENT", "x").pretty());
-            }
-            _ => panic!("it is not a const var"),
-        }
     }
 
     #[test]

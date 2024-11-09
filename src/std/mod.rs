@@ -30,7 +30,6 @@ struct EasyWasm {
     }
 }";
 const WASM: &str = "";
-const PRINT: &str = "print := console.log";
 const HTTP: &str = "// Make a get request using the Fetch api.
 async fn get(url, headers, body) {
     return fetch(url, headers, body)
@@ -38,7 +37,23 @@ async fn get(url, headers, body) {
 
 async fn post(url, headers, body) {
     return fetch(url, headers, body)
-}";
+}
+
+some := expect(get(\"url\"), \"Error getting URL\")
+
+let asd12dsamc = {
+    success: false,
+    result: null
+};
+try {
+    asd12dsamc['result'] = get(url);
+    asd12dsamc['success'] = true
+} catch (e) {
+    console.error(e)
+    console.error(\"Error getting url\")
+}
+
+const some = asd12dsamc['result']";
 
 /// Load a STD library from EasyJS version 0.1.4, or an empty string if not found.
 pub fn load_std(name: &str) -> String {
@@ -47,7 +62,6 @@ match name {
 "dom" => DOM,
 "easy_wasm" => EASY_WASM,
 "wasm" => WASM,
-"print" => PRINT,
 "http" => HTTP,
 _ => "",
 }.to_string()}
