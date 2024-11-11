@@ -252,8 +252,9 @@ impl Lex {
                     let literal = &self.read_identifier();
 
                     // is builtin?
-                    if token::is_builtin(literal) {
+                    if token::is_builtin(literal, self.peek_char()) {
                         let t= token::new_token(token::BUILTIN, literal);
+                        self.read_char(); // consume the BANG
                         self.read_char();
                         return t;
                     }

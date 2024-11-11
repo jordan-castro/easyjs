@@ -39,6 +39,7 @@ with open("src/std/mod.rs", "w") as f:
     for file in lib_files:
         with open(file, "r") as lib_file:
             contents = clean_file_contents(lib_file.read())
+            file = file.replace("\\", "/")
             name = file.split('/')[-1].split('.')[0]
             source = name.upper()
 

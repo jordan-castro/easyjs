@@ -13,8 +13,9 @@
 - ~~add builtins~~
 - add from, import as support to easyjs imports.
 - add require keyword
-- hash variable names so that you can use let, var, const, class as variable names
+- ~~hash variable names so that you can use let, var, const, class as variable names~~
 - add kwargs support
+- add macro support
 
 ## EasyJS
 - ~~write wasm implementator in easyjs~~
@@ -23,7 +24,8 @@
     - json
 
 ## Builtins
-- 
+- trycatch builtin error handling
+- use macros for all builtins (macros end with a !)
 
 ## Scripts
 - ~~add a build script (for not wasm)~~

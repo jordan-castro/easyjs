@@ -85,13 +85,21 @@ pub const NOT: &str = "NOT";
 pub const FROM: &str = "FROM";
 pub const DEF: &str = "DEF";
 
-pub fn is_builtin(ident: &str) -> bool {
-    match ident {
+/// Check if a ident is a builtin.
+/// All builtins require the next char to be a '!' <- this is the macro expanion.
+/// 
+/// `ident: &str`: the ident to check.
+/// 
+/// `next_char: char`: the next char after the ident  <- should be a BANG.
+pub fn is_builtin(ident: &str, next_char: char) -> bool {
+    let has_builtin_match = match ident {
         "print" => true,
         "last" => true,
         "first" => true,
         _ => false
-    }
+    };
+
+    return has_builtin_match && next_char.to_string().as_str() == BANG
 }
 
 /// Lookup the ident based on a string

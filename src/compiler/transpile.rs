@@ -1,4 +1,8 @@
-use crate::lexer::token;
+use std::fmt::format;
+use std::hash::{DefaultHasher, Hash, Hasher};
+
+use crate::utils::js_helpers::is_javascript_keyword;
+use crate::{lexer::token, utils::h::hash_string};
 use crate::parser::ast;
 use crate::parser::ast::Expression;
 
@@ -114,7 +118,7 @@ impl Transpiler {
                     self.variables.push(name.clone());
                     response.push_str("let ");
                 }
-                response.push_str(name.as_str());
+                response.push_str(&hash_string(name.as_str()));
                 response.push_str("=");
                 response.push_str(&self.transpile_expression(value));
                 response.push_str(";");
@@ -485,7 +489,18 @@ impl Transpiler {
             Expression::Boolean(token, value) => {
                 format!("{}", value)
             }
-            Expression::Identifier(token, name) => name,
+            Expression::Identifier(token, name) => {
+                if is_javascript_keyword(&name) {
+                    hash_string(&name)
+                } else {
+                    name
+                }
+                // hash that jaunt!
+                // hash_string(&name)
+                // let mut s = DefaultHasher::new();
+                // let _ = &name.hash(&mut s);
+                // format!("{}{}", name[..1].to_string(), s.finish().to_string()[..6].to_string())
+            },
             Expression::DotExpression(token, left, right) => {
                 let mut res = String::new();
 

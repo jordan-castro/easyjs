@@ -9,7 +9,7 @@ is_debug = True
 if len(args) > 1 and args[1] == "release":
     is_debug = False
 
-subprocess.call(["python3", "scripts/load_std.py"])
+subprocess.call([sys.executable, "scripts/load_std.py"])
 if is_debug:
     subprocess.call(["cargo", "build"])
 else:

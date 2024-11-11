@@ -1,5 +1,4 @@
 // EasyJS STD version 0.1.4
-const JSON: &str = "to_json := fn(str) { return JSON.parse(str); }";
 const DOM: &str = "// ! This can only be used in the browser.
 
 // shorthand for document.
@@ -29,7 +28,6 @@ struct EasyWasm {
         return await EasyWasm.load_from_bytes()
     }
 }";
-const WASM: &str = "";
 const HTTP: &str = "// Make a get request using the Fetch api.
 async fn get(url, headers, body) {
     return fetch(url, headers, body)
@@ -54,14 +52,16 @@ try {
 }
 
 const some = asd12dsamc['result']";
+const JSON: &str = "to_json := fn(str) { return JSON.parse(str); }";
+const WASM: &str = "";
 
 /// Load a STD library from EasyJS version 0.1.4, or an empty string if not found.
 pub fn load_std(name: &str) -> String {
 match name {
-"json" => JSON,
 "dom" => DOM,
 "easy_wasm" => EASY_WASM,
-"wasm" => WASM,
 "http" => HTTP,
+"json" => JSON,
+"wasm" => WASM,
 _ => "",
 }.to_string()}
