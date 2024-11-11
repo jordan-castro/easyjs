@@ -112,7 +112,10 @@ impl Transpiler {
             )),
             ast::Statement::JavaScriptStatement(token, js) => {
                 Some(self.transpile_javascript_stmt(token, js))
-            }
+            },
+            ast::Statement::StructStatement(token, name, methods) => Some(
+                self.transpile_struct_stmt(name.as_ref().to_owned(), methods.as_ref().to_owned()),
+            )
             _ => None,
         }
     }
@@ -404,6 +407,30 @@ impl Transpiler {
         let semi = if res.len() > 0 { ";" } else { "" };
         format!("{}{}", res, semi)
         // format!("{};", self.transpile_expression(expression))
+    }
+
+    fn transpile_struct_stmt(&mut self, name : ast::Expression, methods : Vec<ast::Statement>) -> String {
+        let mut res = String::new();
+        res.push_str("class ");
+        res.push_str(&self.transpile_expression(name));
+        res.push_str("{");
+
+        for method in methods {
+            match method {
+                ast::Statement::ExpressionStatement(_token, exp) => {
+                    match exp.as_ref().to_owned() {
+                        ast::Expression::FunctionLiteral(_token, name, paramaters,body) => {
+                            
+                        },
+                        _ => {}
+                    }
+                },
+                _ => {}
+            }
+            // let stmt = self.transpile_stmt(method).unwrap();
+        }
+
+        res
     }
 
     fn transpile_expression(&mut self, expression: ast::Expression) -> String {
@@ -740,6 +767,7 @@ impl Transpiler {
         self.macros
             .insert(name.to_owned(), Macro::new(name, parsed_args, body));
     }
+
 
 }
 

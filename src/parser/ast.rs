@@ -20,6 +20,14 @@ pub enum Statement {
     ForStatement(tk::Token, Box<Expression>, Box<Statement>),
     // javascript{}
     JavaScriptStatement(tk::Token, String),
+    /// ```easyjs
+    /// struct name {
+    ///     fn new(self, length) { // constructor
+    ///        self.length = length // <- set the length
+    ///     }
+    /// }
+    /// ```
+    StructStatement(tk::Token, Box<Expression>, Box<Vec<Expression>>)
 }
 
 impl Statement {
@@ -34,7 +42,8 @@ impl Statement {
             Statement::BlockStatement(_, _) => "BlockStatement",
             Statement::ConstVariableStatement(_, _, _) => "ConstVarStatement",
             Statement::ForStatement(_, _, _) => "ForStatement",
-            Statement::JavaScriptStatement(_, _) => "JavaScriptStatement"
+            Statement::JavaScriptStatement(_, _) => "JavaScriptStatement",
+            Statement::StructStatement(_, _, _) => "StructStatement"
         }
     }
 

@@ -274,6 +274,7 @@ fn parse_statement(parser: &mut Parser) -> ast::Statement {
             parser.c_token.to_owned().literal,
         ),
         token::FOR => parse_for_statement(parser),
+        token::STRUCT => parse_struct_statement(parser),
         _ => parse_expression_statement(parser),
     }
 }
@@ -1056,4 +1057,40 @@ fn parse_macro_decleration(p: &mut Parser) -> ast::Expression {
 
     ast::Expression::MacroDecleration(token, Box::new(name), Box::new(args), Box::new(body))
     // ast::Expression::MacroLiteral(token)
+}
+
+fn parse_struct_statement(p: &mut Parser) -> ast::Statement {
+    let token = p.c_token.to_owned(); // struct
+
+    if !p.expect_peek(token::IDENT) {
+        return ast::empty_statement();
+    }
+    let ident = parse_identifier(p);
+
+    if !p.expect_peek(token::L_BRACE) {
+        return ast::empty_statement();
+    }
+
+    let mut methods = vec![];
+    if p.peek_token_is(token::R_BRACE) {
+        p.next_token(); // consume the }
+        return ast::Statement::StructStatement(token, Box::new(ident), Box::new(methods));
+    }
+
+    if !p.expect_peek(token::FUNCTION) {
+        return ast::empty_statement();
+    }
+
+    // start parsing the functions
+    while !p.peek_token_is(token::R_BRACE) {
+        let func = parse_function_literal(p);
+        if !func.is_empty() {
+            methods.push(func);
+        }
+    }
+
+    // consume the }
+    p.next_token();
+
+    ast::Statement::StructStatement(token, Box::new(ident), Box::new(methods))
 }

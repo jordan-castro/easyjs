@@ -17,6 +17,8 @@
 - add kwargs support
 - ~~add macro support~~
 - ~~String interpolation using $ and ${}~~
+- macros can return values.
+- Possibly allow fast-performance-interpreted EasyJS using 
 
 ## EasyJS
 - ~~write wasm implementator in easyjs~~
