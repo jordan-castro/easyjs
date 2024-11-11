@@ -83,3 +83,12 @@ person := {
 // ARRAYS
 numbers := [1, 2, 3, 4, 5]
 ```
+
+### Strings
+EasyJS supports single quoute `'` and double quote `"` strings.
+```dart
+hello = "Hello"
+world = "World"
+
+$print("$hello, $world!") // <-- how to interpolate.
+```
