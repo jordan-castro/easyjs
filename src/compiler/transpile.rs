@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use super::macros::Macro;
-use crate::lexer::lex;
+use crate::lexer::lex::{self, ALLOWED_IN_IDENT};
 use crate::parser::ast::{Expression, Statement};
 use crate::parser::{ast, par};
 use crate::utils::js_helpers::is_javascript_keyword;
@@ -410,13 +410,24 @@ impl Transpiler {
         match expression {
             ast::Expression::IntegerLiteral(token, value) => value.to_string(),
             Expression::StringLiteral(token, value) => {
-                let quote_type = if (&value.contains("'")).to_owned() {
+                let quote_type = if (&value.contains("$")).to_owned() {
+                    "`"
+                } else if (&value.contains("'")).to_owned() {
                     "\""
                 } else {
                     "\'"
                 };
+
+                let str_value = string_interpolation(&value);
+                // supporting string $ interpolation.
+                // 1. check if string contains $
+                // 2. get the positions of all $
+                // 3. if any of the positions is followed by a {, then ignore it because this should be interpreted by itself.
+                // 4. for all other positions, get the start and end position of the identifier using lex::ALLOWED_IN_IDENT.contains(char)
+                // 5. once we have the start and end position of the identifier, add ${} around the identifier
+
                 // let quote_type = token.literal.chars().nth(0).unwrap();
-                format!("{}{}{}", quote_type, value, quote_type)
+                format!("{}{}{}", quote_type, str_value, quote_type)
             }
             Expression::PrefixExpression(token, op, value) => {
                 format!(
@@ -730,28 +741,46 @@ impl Transpiler {
             .insert(name.to_owned(), Macro::new(name, parsed_args, body));
     }
 
-    // fn transpile_builtin(&mut self, name: String, args: Vec<Expression>) -> String {
-    //     let mut res = String::new();
-    //     match name.as_str() {
-    //         "print" => {
-    //             res.push_str("console.log(");
-    //             res.push_str(&self.join_expressions(args));
-    //             res.push_str(")");
-    //         },
-    //         "last" => {
-    //             let exp = self.transpile_expression(args.get(0).unwrap().to_owned());
-    //             res.push_str(&exp);
-    //             res.push_str(format!("[{}.length - 1]", exp).as_str());
-    //         },
-    //         "first" => {
-    //             let exp = self.transpile_expression(args.get(0).unwrap().to_owned());
-    //             res.push_str(&exp);
-    //             res.push_str("[0]");
-    //         }
-    //         _ => {}
-    //     }
+}
 
-    //     res
-    //     // "".to_string()
-    // }
+/// Interpolate the string with $$$$$
+fn string_interpolation(input: &str) -> String {
+    let mut result = String::new();
+
+    let mut prev_char = ' ';
+    let mut next_char = ' ';
+    let mut listen_for_ending = false;
+    let mut found_at = 0;
+
+    for (i, c) in input.char_indices() {
+        if i == 0 && input.len() > 0 {
+            next_char = input.chars().nth(i + 1).unwrap();
+        }
+        if i > 0 {
+            prev_char = input.chars().nth(i - 1).unwrap();
+        }
+        if c == '$' && prev_char != '\\' && next_char != '{' {
+            listen_for_ending = true;
+            found_at = i;
+            result.push(c);
+            result.push('{');
+            continue;
+        }
+
+        if listen_for_ending && i > found_at {
+            if !c.is_alphabetic() && !ALLOWED_IN_IDENT.contains(c) {
+                listen_for_ending = false; // reset
+                result.push('}');
+            }
+        }
+
+        result.push(c);
+
+        // Check if we're at the end of the string and need to close the interpolation block
+        if listen_for_ending && i == input.len() - 1 {
+            result.push('}');
+        }
+    }
+
+    result
 }
