@@ -24,17 +24,17 @@ const PRODUCT: i64 = 5; // *
                         // const PREFIX: i64 = 6; // -X or !X
 const CALL: i64 = 7; // my_function(X)
 const DOT: i64 = 8; // .field or .method
-const JAVASCRIPT: i64 = 9; // javascript code
-const LESSGREATER_OR_EQUALS: i64 = 10; // <= or >=
-const BRACKET: i64 = 11; // [
-const BRACE: i64 = 12; // {
-const DOTDOT: i64 = 13; // ..
-const IN: i64 = 14; // in
-const OF: i64 = 15; // of
-const AWAIT: i64 = 16; // await
-const ASSIGN: i64 = 17;
-const DEF: i64 = 18;
-const AS: i64 = 19;
+const LESSGREATER_OR_EQUALS: i64 = 9; // <= or >=
+const BRACKET: i64 = 10; // [
+const BRACE: i64 = 11; // {
+const DOTDOT: i64 = 12; // ..
+const IN: i64 = 13; // in
+const OF: i64 = 14; // of
+const AWAIT: i64 = 15; // await
+const ASSIGN: i64 = 16;
+const DEF: i64 = 17;
+const AS: i64 = 18;
+const MACRO: i64 = 19;
 
 /// Find the precedence of a token.
 fn precedences(tk: &str) -> i64 {
@@ -49,7 +49,6 @@ fn precedences(tk: &str) -> i64 {
         token::ASTERISK => PRODUCT,
         token::L_PAREN => CALL,
         token::DOT => DOT,
-        token::JAVASCRIPT => JAVASCRIPT,
         token::LT_OR_EQ => LESSGREATER_OR_EQUALS,
         token::GT_OR_EQ => LESSGREATER_OR_EQUALS,
         token::L_BRACKET => BRACKET,
@@ -61,6 +60,7 @@ fn precedences(tk: &str) -> i64 {
         token::ASSIGN => ASSIGN,
         token::DEF => DEF,
         token::AS => AS,
+        token::MACRO => MACRO,
         _ => LOWEST,
     }
 }
@@ -104,13 +104,13 @@ impl Parser {
             token::FUNCTION => parse_function_literal(self),
             token::STRING => parse_string_literal(self),
             token::COMMENT => parse_comment(self),
-            token::JAVASCRIPT => parse_javascript_expression(self),
             token::L_BRACKET => parse_array_literal(self),
             token::L_BRACE => parse_object_literal(self),
             token::ASYNC => parse_async_expressoin(self),
             token::AWAIT => parse_await_expression(self),
             token::DEF => parse_def_expression(self),
             token::AS => parse_as_expression(self),
+            token::MACRO => parse_macro_expression(self),
 
             _ => ast::Expression::EmptyExpression,
         }
@@ -131,13 +131,13 @@ impl Parser {
             token::FUNCTION => true,
             token::STRING => true,
             token::COMMENT => true,
-            token::JAVASCRIPT => true,
             token::L_BRACKET => true,
             token::L_BRACE => true,
             token::ASYNC => true,
             token::AWAIT => true,
             token::DEF => true,
             token::AS => true,
+            token::MACRO => true,
             _ => false,
         }
     }
@@ -265,7 +265,7 @@ fn parse_statement(parser: &mut Parser) -> ast::Statement {
             } else {
                 parse_expression_statement(parser)
             }
-        }
+        },
         token::RETURN => parse_return_statement(parser),
         token::IMPORT => parse_import_statement(parser),
         token::FROM => parse_from_import_statement(parser),
@@ -579,11 +579,16 @@ fn parse_if_expression(p: &mut Parser) -> ast::Expression {
 
 fn parse_function_literal(p: &mut Parser) -> ast::Expression {
     let token = p.c_token.clone();
-    let mut is_macro = false;
 
     if p.peek_token_is(token::L_PAREN) {
         // this is a lambda
         return parse_lambda_literal(p);
+    }
+    
+    // check if a macro function
+    if p.peek_token_is(token::MACRO) {
+        p.next_token();
+        return parse_macro_decleration(p);
     }
 
     // ok lets make sure this is a function
@@ -593,11 +598,6 @@ fn parse_function_literal(p: &mut Parser) -> ast::Expression {
     }
     let name = parse_identifier(p);
 
-    // check if a macro function
-    if p.peek_token_is(token::BANG) {
-        p.next_token(); // consume !
-        is_macro = true;
-    }
 
     if !p.expect_peek(token::L_PAREN) {
         return ast::Expression::EmptyExpression;
@@ -621,10 +621,6 @@ fn parse_function_literal(p: &mut Parser) -> ast::Expression {
         Box::new(parameters),
         Box::new(body),
     );
-
-    if is_macro {
-        return ast::Expression::MacroExpression(token, Box::new(fn_literal))
-    }
 
     fn_literal
 }
@@ -686,10 +682,6 @@ fn parse_string_literal(p: &mut Parser) -> ast::Expression {
 
 fn parse_comment(p: &mut Parser) -> ast::Expression {
     ast::Expression::CommentExpression(p.c_token.to_owned(), p.c_token.to_owned().literal)
-}
-
-fn parse_javascript_expression(p: &mut Parser) -> ast::Expression {
-    ast::Expression::JavaScriptExpression(p.c_token.to_owned(), p.c_token.to_owned().literal)
 }
 
 fn parse_array_literal(p: &mut Parser) -> ast::Expression {
@@ -985,4 +977,115 @@ fn parse_def_expression(p: &mut Parser) -> ast::Expression {
         return ast::empty_expression();
     }
     ast::Expression::DefExpression(token, Box::new(parse_identifier(p)))
+}
+
+fn parse_macro_expression(p: &mut Parser) -> ast::Expression {
+    let token = p.c_token.to_owned(); // $
+
+    if !p.expect_peek(token::IDENT) {
+        return ast::empty_expression();
+    }
+    let ident = parse_identifier(p);
+
+    if !p.expect_peek(token::L_PAREN) {
+        return ast::empty_expression();
+    }
+
+    let args = {
+        let mut args = Vec::new();
+        if p.peek_token_is(token::R_PAREN) {
+            args
+        } else {
+            p.next_token();
+            args.push(parse_expression(p, LOWEST));
+            while p.peek_token_is(token::COMMA) {
+                p.next_token(); // ,
+                p.next_token(); // expr
+                args.push(parse_expression(p, LOWEST));
+            }
+            args
+        }
+    };
+
+    if !p.expect_peek(token::R_PAREN) {
+        return ast::empty_expression();
+    }
+
+    // let args = parse_args
+    ast::Expression::MacroExpression(token, Box::new(ident), Box::new(args))
+}
+
+fn parse_macro_decleration(p: &mut Parser) -> ast::Expression {
+    let token = p.c_token.to_owned(); // $
+
+    if !p.expect_peek(token::IDENT) {
+        return ast::empty_expression();
+    }
+
+    let name = parse_identifier(p);
+
+    if !p.expect_peek(token::L_PAREN) {
+        return ast::empty_expression();
+    }
+    let args = {
+        let mut args = Vec::new();
+        if p.peek_token_is(token::R_PAREN) {
+            args
+        } else {
+            p.next_token();
+            args.push(parse_expression(p, LOWEST));
+            while p.peek_token_is(token::COMMA) {
+                p.next_token(); // ,
+                p.next_token(); // expr
+                args.push(parse_expression(p, LOWEST));
+            }
+            args
+        }
+    };
+
+    if !p.expect_peek(token::R_PAREN) {
+        return ast::empty_expression();
+    }
+
+    if !p.expect_peek(token::L_BRACE) {
+        return ast::empty_expression();
+    }
+
+    let mut body_string = String::new();
+    let mut brace_count = 1;
+    p.next_token();
+    while !p.peek_token_is(token::EOF) {
+        if p.cur_token_is(token::L_BRACE) {
+            brace_count += 1;
+        } else if p.cur_token_is(token::R_BRACE) {
+            brace_count -= 1;
+            if brace_count == 0 {
+                break;
+            }
+        }
+        // body_string.push_str(&p.c_token.to_string());
+        p.next_token();
+    }
+
+    // let mut body_string = String::new();
+    // // read every token literal
+    // let mut brace_count = 1;
+    // // current character is a { 
+    // p.l.get_next_char();
+    // while p.l.get_char().to_string() != token::EOF {
+    //     let cchar = p.l.get_char().to_string();
+    //     if cchar == token::L_BRACE {
+    //         brace_count += 1;
+    //     } else if cchar == token::R_BRACE {
+    //         brace_count -= 1;
+    //         if brace_count == 0 {
+    //             break;
+    //         }
+    //     }
+    //     body_string.push_str(&cchar);
+    //     p.l.get_next_char();
+    // }
+
+    ast::Expression::MacroDecleration(token, Box::new(name), Box::new(args), body_string)
+    // ast::Expression::MacroLiteral(token)
 }

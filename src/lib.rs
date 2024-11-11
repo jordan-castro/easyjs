@@ -10,5 +10,5 @@ use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 pub fn compile_easy_js(input: String) -> String {
-    commands::compile::compile(input, false)
+    commands::compile::compile(input, false, true)
 }

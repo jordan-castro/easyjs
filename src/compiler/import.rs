@@ -1,23 +1,24 @@
 use crate::{commands::compile::compile, utils::reader::read_file};
 use crate::std::load_std;
+use super::transpile::Transpiler;
 
 /// Import EasyJS STD lib.
-pub fn import_std_lib(lib_path: &str) -> String {
+pub fn import_std_lib(ts: &mut Transpiler, lib_path: &str) -> String {
     // Make sure this is a file of ours.
     let contents = load_std(&lib_path);
     if contents.len() > 0 {
-        return compile(contents, false);
+        return ts.transpile_from_string(contents, false);
     }
 
     String::new()
 }
 
 /// Import EasyJS modules.
-pub fn import_easy_js(file_path: &str) -> String {
+pub fn import_easy_js(ts: &mut Transpiler, file_path: &str) -> String {
     // first read the file contnst
     let contents = read_file(file_path);
     if contents.len() > 0 {
-        return compile(contents, false);
+        return ts.transpile_from_string(contents, false);
     }
 
     String::new()

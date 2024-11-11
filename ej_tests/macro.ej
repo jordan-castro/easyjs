@@ -1,0 +1,4 @@
+// print macro test
+fn $print(arg) {
+    console.log(arg)
+}

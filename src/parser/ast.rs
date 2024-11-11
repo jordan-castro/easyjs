@@ -90,8 +90,6 @@ pub enum Expression {
     DotExpression(tk::Token, Box<Expression>, Box<Expression>),
     // left.if {}
     DotIfExpression(tk::Token, Box<Expression>, Box<Statement>),
-    // javascript{}
-    JavaScriptExpression(tk::Token, String),
     // []
     ArrayLiteral(tk::Token, Box<Vec<Expression>>),
     // [i]
@@ -106,8 +104,10 @@ pub enum Expression {
     AsExpression(tk::Token, Box<Expression>),
     /// def someting => default something
     DefExpression(tk::Token, Box<Expression>),
-    /// Macro
-    MacroExpression(tk::Token, Box<Expression>),
+    /// Macro ($, ident, arguments, body)
+    MacroExpression(tk::Token, Box<Expression>, Box<Vec<Expression>>),
+    /// Declaring the macro ($, ident, arguments, body as string)
+    MacroDecleration(tk::Token, Box<Expression>, Box<Vec<Expression>>, String),
 }
 
 impl Expression {
@@ -133,7 +133,6 @@ impl Expression {
             Expression::RangeExpression(_, _, _) => "RangeExpression",
             Expression::DotExpression(_, _, _) => "DotExpression",
             Expression::DotIfExpression(_, _, _) => "DotIfExpression",
-            Expression::JavaScriptExpression(_, _) => "JavaScriptExpression",
             Expression::ArrayLiteral(_, _) => "ArrayLiteral",
             Expression::IndexExpression(_, _, _) => "IndexExpression",
             Expression::ObjectLiteral(_, _) => "ObjectLiteral",
@@ -141,7 +140,8 @@ impl Expression {
             Expression::NotExpression(_, _) => "NotExpression",
             Expression::AsExpression(_, _) => "AsExpression",
             Expression::DefExpression(_, _) => "DefExpression",
-            Expression::MacroExpression(_, _) => "MacroExpression",
+            Expression::MacroExpression(_, _, _) => "MacroExpression",
+            Expression::MacroDecleration(_, _, _, _) => "MacroDecleration"
         }
     }
 

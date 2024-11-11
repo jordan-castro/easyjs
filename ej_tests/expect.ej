@@ -1,0 +1,6 @@
+import "expect"
+
+value := $expect(fn() {
+   return "Yeyo"
+}, "Did not work")
+

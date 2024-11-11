@@ -1,0 +1,20 @@
+javascript{
+    1 + 1;
+}
+
+javascript{
+    const obj = {
+        name: "Jordan Castro",
+        age: 22
+    };
+
+    obj.isAuthor = true;
+}
+
+javascript{
+    try{
+        1 + 1;
+    } catch (e) {
+        console.error(e);
+    }
+}

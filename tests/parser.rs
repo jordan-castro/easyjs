@@ -231,8 +231,13 @@ mod tests {
             javascript{ 
                 let x = 0;
             }
-            x = javascript{
-                let y = 0;
+
+            javascript{
+                try {
+                    1 + 1;
+                } catch (e) {
+                    console.log(e);
+                }
             }
         "
         .to_string();
@@ -371,18 +376,15 @@ mod tests {
     #[test]
     fn test_macro_expression() {
         let input = "
-            fn $trycatch(values) {
+            fn $except(values, err) {
                 javascript{
-                    for (let value of values) {
-                        console.log(value)
+                    try {
+                        return values;
+                    } catch (e) {
+                        console.log(e);
                     }
                 }
             }
-            
-            $trycatch([1,2,3]) // this would be converted into:
-            for (let value of [1,2,3]) {
-                console.log(value)
-            } 
         ".to_string();
 
         let l: lex::Lex = lex::Lex::new(input);
@@ -393,6 +395,6 @@ mod tests {
         println!("{:#?}", program.statements);
 
         assert_eq!(p.errors.len(), 0);
-        assert_eq!(program.statements.len(), 1);
+        assert_eq!(program.statements.len(), 2);
     }
 }

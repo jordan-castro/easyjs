@@ -1,10 +1,11 @@
-use std::fmt::format;
-use std::hash::{DefaultHasher, Hash, Hasher};
+use std::collections::HashMap;
 
+use super::macros::Macro;
+use crate::lexer::lex;
+use crate::parser::ast::Expression;
+use crate::parser::{ast, par};
 use crate::utils::js_helpers::is_javascript_keyword;
 use crate::{lexer::token, utils::h::hash_string};
-use crate::parser::ast;
-use crate::parser::ast::Expression;
 
 use super::import::{
     get_import_type, import_easy_js, import_std_lib, import_wasm_module, ImportType,
@@ -13,6 +14,7 @@ use super::import::{
 pub struct Transpiler {
     scripts: Vec<String>,
     variables: Vec<String>,
+    macros: HashMap<String, Macro>,
     functions: Vec<String>,
     imports: Vec<String>,
 }
@@ -23,6 +25,7 @@ impl Transpiler {
             scripts: vec![],
             variables: vec![],
             functions: vec![],
+            macros: HashMap::new(),
             imports: vec![],
         }
     }
@@ -45,6 +48,15 @@ impl Transpiler {
 
         res
     }
+
+    pub fn transpile_from_string(&mut self, p: String, pretty: bool) -> String {
+        let l = lex::Lex::new(p);
+        let mut p = par::Parser::new(l);
+        let program = p.parse_program();
+
+        self.transpile_from(program, pretty)
+    }
+
     pub fn transpile(&mut self, p: ast::Program, pretty: bool) -> String {
         let code = self.transpile_from(p, pretty);
         code
@@ -118,7 +130,7 @@ impl Transpiler {
                     self.variables.push(name.clone());
                     response.push_str("let ");
                 }
-                response.push_str(&hash_string(name.as_str()));
+                response.push_str(name.as_str());
                 response.push_str("=");
                 response.push_str(&self.transpile_expression(value));
                 response.push_str(";");
@@ -205,13 +217,13 @@ impl Transpiler {
             }
             ImportType::EasyJS => {
                 // compile the EasyJS file
-                res.push_str(&import_easy_js(&path));
+                res.push_str(&import_easy_js(self, &path));
             }
             ImportType::WASM => {
                 res.push_str(&import_wasm_module(&path));
             }
             ImportType::STD => {
-                res.push_str(&import_std_lib(&path));
+                res.push_str(&import_std_lib(self, &path));
             }
         }
 
@@ -232,14 +244,14 @@ impl Transpiler {
 
         match get_import_type(&path) {
             ImportType::EasyJS => {
-                res.push_str(&import_easy_js(&path));
-            },
+                res.push_str(&import_easy_js(self, &path));
+            }
             ImportType::STD => {
-                res.push_str(&import_std_lib(&path));
-            },
+                res.push_str(&import_std_lib(self, &path));
+            }
             ImportType::WASM => {
                 res.push_str(&import_wasm_module(&path));
-            },
+            }
             ImportType::JavaScript => {
                 res.push_str("import ");
 
@@ -379,7 +391,10 @@ impl Transpiler {
         token: token::Token,
         expression: ast::Expression,
     ) -> String {
-        format!("{};", self.transpile_expression(expression))
+        let res = self.transpile_expression(expression);
+        let semi = if res.len() > 0 { ";" } else { "" };
+        format!("{}{}", res, semi)
+        // format!("{};", self.transpile_expression(expression))
     }
 
     fn transpile_expression(&mut self, expression: ast::Expression) -> String {
@@ -490,17 +505,13 @@ impl Transpiler {
                 format!("{}", value)
             }
             Expression::Identifier(token, name) => {
+                // hash the string if it is a JS keyword
                 if is_javascript_keyword(&name) {
                     hash_string(&name)
                 } else {
                     name
                 }
-                // hash that jaunt!
-                // hash_string(&name)
-                // let mut s = DefaultHasher::new();
-                // let _ = &name.hash(&mut s);
-                // format!("{}{}", name[..1].to_string(), s.finish().to_string()[..6].to_string())
-            },
+            }
             Expression::DotExpression(token, left, right) => {
                 let mut res = String::new();
 
@@ -515,7 +526,6 @@ impl Transpiler {
 
                 res
             }
-            Expression::JavaScriptExpression(token, js) => js,
             Expression::LambdaLiteral(token, paramters, body) => {
                 let mut res = String::new();
 
@@ -541,12 +551,12 @@ impl Transpiler {
 
                 res.push_str("[");
                 let els = elements.as_ref().to_owned();
-                let joined_els = els
-                    .iter()
-                    .map(|p| self.transpile_expression(p.to_owned()))
-                    .collect::<Vec<_>>()
-                    .join(",");
-                res.push_str(&joined_els);
+                // let joined_els = els
+                //     .iter()
+                //     .map(|p| self.transpile_expression(p.to_owned()))
+                //     .collect::<Vec<_>>()
+                //     .join(",");
+                res.push_str(&self.join_expressions(elements.as_ref().to_owned()));
                 res.push_str("]");
 
                 res
@@ -655,9 +665,31 @@ impl Transpiler {
             }
             Expression::AsExpression(token, exp) => {
                 format!(" as {}", self.transpile_expression(exp.as_ref().to_owned()))
-            },
-            Expression::MacroDeclerationExpression(token, exp) => {
-                self.add_macro_function(exp.as_ref().to_owned());
+            }
+            Expression::MacroExpression(token, name, arguments) => {
+                let name = self.transpile_expression(name.as_ref().to_owned());
+                let args = self.join_expressions(arguments.as_ref().to_owned());
+                let mut parsed_args = vec![];
+
+                for a in args.split(",") {
+                    parsed_args.push(a.to_string());
+                }
+
+                let m = self.macros.get(&name);
+                if m.is_some() {
+                    let m: &Macro = m.unwrap();
+                    m.compile(parsed_args)
+                } else {
+                    "".to_string()
+                }
+            }
+            Expression::MacroDecleration(token, name, parameters, body) => {
+                let name_as_string = self.transpile_expression(name.as_ref().to_owned());
+                self.add_macro_function(
+                    name_as_string,
+                    parameters.as_ref().to_owned(),
+                    body,
+                );
                 "".to_string()
             }
             // Expression::Builtin(token, name, args) => {
@@ -675,17 +707,16 @@ impl Transpiler {
             .join(",")
     }
 
-    fn add_macro_function(&mut self, exp: Expression) -> String {
-        let mut res = String::new();
+    fn add_macro_function(&mut self, name: String, params: Vec<Expression>, body: String) {
+        let pms = self.join_expressions(params.to_owned());
+        let mut parsed_args = vec![];
 
-        match exp {
-            Expression::FunctionLiteral(token, name, params, body) => {
-                
-            }
-            _ => {}
+        for a in pms.split(",") {
+            parsed_args.push(a.to_string());
         }
 
-        res
+        self.macros
+            .insert(name.to_owned(), Macro::new(name, parsed_args, body));
     }
 
     // fn transpile_builtin(&mut self, name: String, args: Vec<Expression>) -> String {

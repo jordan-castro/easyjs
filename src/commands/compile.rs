@@ -3,7 +3,7 @@ use crate::parser::par;
 use crate::compiler::transpile::Transpiler;
 use crate::utils::version;
 
-pub fn compile(input: String, pretty: bool) -> String {
+pub fn compile(input: String, pretty: bool, place_watermark: bool) -> String {
     let lexer = lex::Lex::new(input);
     let mut parser = par::Parser::new(lexer);
     let program = parser.parse_program();
@@ -18,5 +18,10 @@ pub fn compile(input: String, pretty: bool) -> String {
     let mut transpiler = Transpiler::new();
 
     let js = transpiler.transpile(program, pretty);
-    format!("// Compiled by EasyJS version {}\n{}", version::VERSION_CODE, js)
+    let watermark = if place_watermark {
+        format!("// Compiled by EasyJS version {}\n", version::VERSION_CODE)
+    } else {
+        "".to_string()
+    };
+    format!("{}{}", watermark, js)
 }

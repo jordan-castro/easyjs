@@ -150,9 +150,9 @@ impl Lex {
             if self.current_char == '{' {
                 braces += 1;
             } else if self.current_char == '}' {
-                self.read_char(); // consume it as the literal.
                 braces -= 1;
                 if braces == 0 {
+                    self.read_char(); // consume it as the literal.
                     break;
                 }
             }
@@ -246,7 +246,7 @@ impl Lex {
             }
             '\"' => token::new_token(token::STRING, &self.read_string('\"')),
             '\'' => token::new_token(token::STRING, &self.read_string('\'')),
-            "\$" => token::new_token(token::MACRO, &self.read_identifier()),
+            '$' => token::new_token(token::MACRO, &self.current_char_str()),
             _ => {
                 // check for identifier
                 if self.current_char.is_alphabetic() {

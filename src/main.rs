@@ -62,7 +62,7 @@ fn main() {
         Commands::Compile { file, pretty, typescript } => {
             let ej_code_bytes: Vec<u8> = std::fs::read(&file).expect("Failed to read file.");
             let ej_code = str::from_utf8(&ej_code_bytes).expect("Unable to parse bytes.");
-            let js_code = compile(ej_code.to_string(), pretty);
+            let js_code = compile(ej_code.to_string(), pretty, true);
 
             let out_file = file.replace(".ej", ".js");
 
