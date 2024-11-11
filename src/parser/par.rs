@@ -35,7 +35,6 @@ const AWAIT: i64 = 16; // await
 const ASSIGN: i64 = 17;
 const DEF: i64 = 18;
 const AS: i64 = 19;
-const BUILTIN: i64 = 20;
 
 /// Find the precedence of a token.
 fn precedences(tk: &str) -> i64 {
@@ -62,7 +61,6 @@ fn precedences(tk: &str) -> i64 {
         token::ASSIGN => ASSIGN,
         token::DEF => DEF,
         token::AS => AS,
-        token::BUILTIN => BUILTIN,
         _ => LOWEST,
     }
 }
@@ -113,7 +111,6 @@ impl Parser {
             token::AWAIT => parse_await_expression(self),
             token::DEF => parse_def_expression(self),
             token::AS => parse_as_expression(self),
-            token::BUILTIN => parse_builtin_expression(self),
 
             _ => ast::Expression::EmptyExpression,
         }
@@ -141,7 +138,6 @@ impl Parser {
             token::AWAIT => true,
             token::DEF => true,
             token::AS => true,
-            token::BUILTIN => true,
             _ => false,
         }
     }
@@ -583,6 +579,7 @@ fn parse_if_expression(p: &mut Parser) -> ast::Expression {
 
 fn parse_function_literal(p: &mut Parser) -> ast::Expression {
     let token = p.c_token.clone();
+    let mut is_macro = false;
 
     if p.peek_token_is(token::L_PAREN) {
         // this is a lambda
@@ -595,6 +592,12 @@ fn parse_function_literal(p: &mut Parser) -> ast::Expression {
         return ast::Expression::EmptyExpression;
     }
     let name = parse_identifier(p);
+
+    // check if a macro function
+    if p.peek_token_is(token::BANG) {
+        p.next_token(); // consume !
+        is_macro = true;
+    }
 
     if !p.expect_peek(token::L_PAREN) {
         return ast::Expression::EmptyExpression;
@@ -612,12 +615,18 @@ fn parse_function_literal(p: &mut Parser) -> ast::Expression {
         return ast::Expression::EmptyExpression;
     }
 
-    ast::Expression::FunctionLiteral(
+    let fn_literal = ast::Expression::FunctionLiteral(
         token.to_owned(),
         Box::new(name),
         Box::new(parameters),
         Box::new(body),
-    )
+    );
+
+    if is_macro {
+        return ast::Expression::MacroExpression(token, Box::new(fn_literal))
+    }
+
+    fn_literal
 }
 
 fn parse_function_paramaters(p: &mut Parser) -> Vec<ast::Expression> {
@@ -976,22 +985,4 @@ fn parse_def_expression(p: &mut Parser) -> ast::Expression {
         return ast::empty_expression();
     }
     ast::Expression::DefExpression(token, Box::new(parse_identifier(p)))
-}
-
-fn parse_builtin_expression(p: &mut Parser) -> ast::Expression {
-    let token = p.c_token.to_owned(); // builtin
-    let name = p.c_token.literal.to_owned();
-
-    if !p.expect_peek(token::L_PAREN) {
-        return ast::empty_expression();
-    }
-
-    // get the arguments if any
-    let args = parse_call_arguments(p);
-
-    ast::Expression::Builtin(
-        token,
-        name,
-        Box::new(args),
-    )
 }

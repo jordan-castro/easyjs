@@ -106,8 +106,8 @@ pub enum Expression {
     AsExpression(tk::Token, Box<Expression>),
     /// def someting => default something
     DefExpression(tk::Token, Box<Expression>),
-    /// Builtin
-    Builtin(tk::Token, String, Box<Vec<Expression>>),
+    /// Macro
+    MacroExpression(tk::Token, Box<Expression>),
 }
 
 impl Expression {
@@ -141,7 +141,7 @@ impl Expression {
             Expression::NotExpression(_, _) => "NotExpression",
             Expression::AsExpression(_, _) => "AsExpression",
             Expression::DefExpression(_, _) => "DefExpression",
-            Expression::Builtin(_, _, _) => "Builtin",
+            Expression::MacroExpression(_, _) => "MacroExpression",
         }
     }
 

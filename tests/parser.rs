@@ -367,4 +367,32 @@ mod tests {
         assert_eq!(p.errors.len(), 0);
         assert_eq!(program.statements.len(), 2);
     }
+
+    #[test]
+    fn test_macro_expression() {
+        let input = "
+            fn $trycatch(values) {
+                javascript{
+                    for (let value of values) {
+                        console.log(value)
+                    }
+                }
+            }
+            
+            $trycatch([1,2,3]) // this would be converted into:
+            for (let value of [1,2,3]) {
+                console.log(value)
+            } 
+        ".to_string();
+
+        let l: lex::Lex = lex::Lex::new(input);
+        let mut p = par::Parser::new(l);
+        let program = p.parse_program();
+
+        println!("{:?}", p.errors);
+        println!("{:#?}", program.statements);
+
+        assert_eq!(p.errors.len(), 0);
+        assert_eq!(program.statements.len(), 1);
+    }
 }

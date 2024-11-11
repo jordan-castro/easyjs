@@ -246,18 +246,11 @@ impl Lex {
             }
             '\"' => token::new_token(token::STRING, &self.read_string('\"')),
             '\'' => token::new_token(token::STRING, &self.read_string('\'')),
+            "\$" => token::new_token(token::MACRO, &self.read_identifier()),
             _ => {
                 // check for identifier
                 if self.current_char.is_alphabetic() {
                     let literal = &self.read_identifier();
-
-                    // is builtin?
-                    if token::is_builtin(literal, self.peek_char()) {
-                        let t= token::new_token(token::BUILTIN, literal);
-                        self.read_char(); // consume the BANG
-                        self.read_char();
-                        return t;
-                    }
 
                     // probably a identifier
                     let ident = token::lookup_ident(literal);

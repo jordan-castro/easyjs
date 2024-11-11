@@ -26,7 +26,6 @@ pub const INT: &str = "INT"; // 123456 (INT64)
 pub const STRING: &str = "STRING";
 pub const ARRAY: &str = "ARRAY";
 pub const BOOLEAN: &str = "BOOLEAN";
-pub const BUILTIN: &str = "BUILTIN"; // our STD Library functions.
 
 // Operators
 pub const ASSIGN: &str = "=";
@@ -64,6 +63,8 @@ pub const R_BRACE: &str = "}";
 pub const L_BRACKET: &str = "[";
 pub const R_BRACKET: &str = "]";
 
+pub const MACRO: &str = "MACRO";
+
 // Keywords
 pub const FUNCTION: &str = "FUNCTION";
 pub const IMPORT: &str = "IMPORT";
@@ -84,23 +85,6 @@ pub const AWAIT: &str = "AWAIT";
 pub const NOT: &str = "NOT";
 pub const FROM: &str = "FROM";
 pub const DEF: &str = "DEF";
-
-/// Check if a ident is a builtin.
-/// All builtins require the next char to be a '!' <- this is the macro expanion.
-/// 
-/// `ident: &str`: the ident to check.
-/// 
-/// `next_char: char`: the next char after the ident  <- should be a BANG.
-pub fn is_builtin(ident: &str, next_char: char) -> bool {
-    let has_builtin_match = match ident {
-        "print" => true,
-        "last" => true,
-        "first" => true,
-        _ => false
-    };
-
-    return has_builtin_match && next_char.to_string().as_str() == BANG
-}
 
 /// Lookup the ident based on a string
 pub fn lookup_ident(ident: &str) -> &'static str {

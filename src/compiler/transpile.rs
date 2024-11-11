@@ -656,9 +656,13 @@ impl Transpiler {
             Expression::AsExpression(token, exp) => {
                 format!(" as {}", self.transpile_expression(exp.as_ref().to_owned()))
             },
-            Expression::Builtin(token, name, args) => {
-                self.transpile_builtin(name, args.as_ref().to_owned())
+            Expression::MacroDeclerationExpression(token, exp) => {
+                self.add_macro_function(exp.as_ref().to_owned());
+                "".to_string()
             }
+            // Expression::Builtin(token, name, args) => {
+            //     self.transpile_builtin(name, args.as_ref().to_owned())
+            // }
             _ => String::from(""),
         }
     }
@@ -671,28 +675,41 @@ impl Transpiler {
             .join(",")
     }
 
-    fn transpile_builtin(&mut self, name: String, args: Vec<Expression>) -> String {
+    fn add_macro_function(&mut self, exp: Expression) -> String {
         let mut res = String::new();
-        match name.as_str() {
-            "print" => {
-                res.push_str("console.log(");
-                res.push_str(&self.join_expressions(args));
-                res.push_str(")");
-            },
-            "last" => {
-                let exp = self.transpile_expression(args.get(0).unwrap().to_owned());
-                res.push_str(&exp);
-                res.push_str(format!("[{}.length - 1]", exp).as_str());
-            },
-            "first" => {
-                let exp = self.transpile_expression(args.get(0).unwrap().to_owned());
-                res.push_str(&exp);
-                res.push_str("[0]");
+
+        match exp {
+            Expression::FunctionLiteral(token, name, params, body) => {
+                
             }
             _ => {}
         }
 
         res
-        // "".to_string()
     }
+
+    // fn transpile_builtin(&mut self, name: String, args: Vec<Expression>) -> String {
+    //     let mut res = String::new();
+    //     match name.as_str() {
+    //         "print" => {
+    //             res.push_str("console.log(");
+    //             res.push_str(&self.join_expressions(args));
+    //             res.push_str(")");
+    //         },
+    //         "last" => {
+    //             let exp = self.transpile_expression(args.get(0).unwrap().to_owned());
+    //             res.push_str(&exp);
+    //             res.push_str(format!("[{}.length - 1]", exp).as_str());
+    //         },
+    //         "first" => {
+    //             let exp = self.transpile_expression(args.get(0).unwrap().to_owned());
+    //             res.push_str(&exp);
+    //             res.push_str("[0]");
+    //         }
+    //         _ => {}
+    //     }
+
+    //     res
+    //     // "".to_string()
+    // }
 }
