@@ -1027,6 +1027,7 @@ fn parse_macro_decleration(p: &mut Parser) -> ast::Expression {
     if !p.expect_peek(token::L_PAREN) {
         return ast::empty_expression();
     }
+
     let args = {
         let mut args = Vec::new();
         if p.peek_token_is(token::R_PAREN) {
@@ -1051,41 +1052,8 @@ fn parse_macro_decleration(p: &mut Parser) -> ast::Expression {
         return ast::empty_expression();
     }
 
-    let mut body_string = String::new();
-    let mut brace_count = 1;
-    p.next_token();
-    while !p.peek_token_is(token::EOF) {
-        if p.cur_token_is(token::L_BRACE) {
-            brace_count += 1;
-        } else if p.cur_token_is(token::R_BRACE) {
-            brace_count -= 1;
-            if brace_count == 0 {
-                break;
-            }
-        }
-        // body_string.push_str(&p.c_token.to_string());
-        p.next_token();
-    }
+    let body = parse_block_statement(p);
 
-    // let mut body_string = String::new();
-    // // read every token literal
-    // let mut brace_count = 1;
-    // // current character is a { 
-    // p.l.get_next_char();
-    // while p.l.get_char().to_string() != token::EOF {
-    //     let cchar = p.l.get_char().to_string();
-    //     if cchar == token::L_BRACE {
-    //         brace_count += 1;
-    //     } else if cchar == token::R_BRACE {
-    //         brace_count -= 1;
-    //         if brace_count == 0 {
-    //             break;
-    //         }
-    //     }
-    //     body_string.push_str(&cchar);
-    //     p.l.get_next_char();
-    // }
-
-    ast::Expression::MacroDecleration(token, Box::new(name), Box::new(args), body_string)
+    ast::Expression::MacroDecleration(token, Box::new(name), Box::new(args), Box::new(body))
     // ast::Expression::MacroLiteral(token)
 }

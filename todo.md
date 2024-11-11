@@ -15,7 +15,7 @@
 - add require keyword
 - ~~hash variable names so that you can use let, var, const, class as variable names~~
 - add kwargs support
-- add macro support
+- ~~add macro support~~
 - String interpolation using $ and ${}
 
 ## EasyJS

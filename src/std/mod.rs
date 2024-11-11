@@ -1,17 +1,16 @@
 // EasyJS STD version 0.1.5
-const EXPECT: &str = "fn $expect(method, error_msg) {
-    fn() {
+const EXPECT: &str = "fn $expect(method, error_msg, var_name) {
+    var_name = null
         // using javascript because EasyJS currently does not have
         // a native try-catch feature.
         javascript{
             try {
-                method;
+                result = method;
+                var_name = result()
             } catch (e) {
-                console.error(e);
                 console.error(error_msg);
             }
         }
-    }()
 }";
 const JSON: &str = "to_json := fn(str) { return JSON.parse(str); }";
 const DOM: &str = "// ! This can only be used in the browser.

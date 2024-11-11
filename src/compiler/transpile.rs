@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use super::macros::Macro;
 use crate::lexer::lex;
-use crate::parser::ast::Expression;
+use crate::parser::ast::{Expression, Statement};
 use crate::parser::{ast, par};
 use crate::utils::js_helpers::is_javascript_keyword;
 use crate::{lexer::token, utils::h::hash_string};
@@ -130,7 +130,12 @@ impl Transpiler {
                     self.variables.push(name.clone());
                     response.push_str("let ");
                 }
-                response.push_str(name.as_str());
+                if is_javascript_keyword(&name) {
+                    response.push_str(&hash_string(&name));
+                } else {
+                    response.push_str(&name);
+                }
+                // response.push_str(name.as_str());
                 response.push_str("=");
                 response.push_str(&self.transpile_expression(value));
                 response.push_str(";");
@@ -169,7 +174,11 @@ impl Transpiler {
         match name.clone() {
             ast::Expression::Identifier(_token, name) => {
                 if !self.variables.contains(&name) {
-                    self.variables.push(name);
+                    if is_javascript_keyword(&name) {
+                        self.variables.push(hash_string(&name));
+                    } else {
+                        self.variables.push(name);
+                    }
                 }
             }
             _ => {
@@ -688,7 +697,7 @@ impl Transpiler {
                 self.add_macro_function(
                     name_as_string,
                     parameters.as_ref().to_owned(),
-                    body,
+                    body.as_ref().to_owned(),
                 );
                 "".to_string()
             }
@@ -707,13 +716,15 @@ impl Transpiler {
             .join(",")
     }
 
-    fn add_macro_function(&mut self, name: String, params: Vec<Expression>, body: String) {
+    fn add_macro_function(&mut self, name: String, params: Vec<Expression>, body: Statement) {
         let pms = self.join_expressions(params.to_owned());
         let mut parsed_args = vec![];
 
         for a in pms.split(",") {
             parsed_args.push(a.to_string());
         }
+
+        let body = self.transpile_stmt(body).expect("No body error?");
 
         self.macros
             .insert(name.to_owned(), Macro::new(name, parsed_args, body));

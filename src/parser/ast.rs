@@ -106,8 +106,8 @@ pub enum Expression {
     DefExpression(tk::Token, Box<Expression>),
     /// Macro ($, ident, arguments, body)
     MacroExpression(tk::Token, Box<Expression>, Box<Vec<Expression>>),
-    /// Declaring the macro ($, ident, arguments, body as string)
-    MacroDecleration(tk::Token, Box<Expression>, Box<Vec<Expression>>, String),
+    /// Declaring the macro ($, ident, arguments, body as BlockStatment)
+    MacroDecleration(tk::Token, Box<Expression>, Box<Vec<Expression>>, Box<Statement>),
 }
 
 impl Expression {

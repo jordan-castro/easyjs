@@ -1,16 +1,13 @@
-fn $expect(method, error_msg) {
-    fn() {
+fn $expect(method, error_msg, var_name) {
+    var_name = null
         // using javascript because EasyJS currently does not have
         // a native try-catch feature.
         javascript{
             try {
-                method;
+                result = method;
+                var_name = result()
             } catch (e) {
-                console.error(e);
                 console.error(error_msg);
             }
         }
-    }()
 }
-
-val = () => {...}();

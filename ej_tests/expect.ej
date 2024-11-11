@@ -1,6 +1,8 @@
 import "expect"
+import "print"
 
-value := $expect(fn() {
-   return "Yeyo"
-}, "Did not work")
+$expect(async fn() {
+   return await fetch('')
+}, "Did not work", value)
 
+$print(value)
