@@ -1,21 +1,36 @@
 // Print a value to the console.
 fn $print(val) {
+    // This is a compiler macro because there is no return.
     console.log(val)
 }
 
 // Get the last element of an array
 fn $last(array) {
+    // this is a compiler macro because there is no return.
     array[array.length - 1]
 }
 
 // Get the first element of an array
 fn $first(array) {
+    // this is a compiler macro because there is no return.
     array[0]
 }
 
 // Instantiate a new struct in JS
 fn $new(object_name) {
+    // this is a compiler macro because there is no return
     javascript{
         new object_name()
+    }
+}
+
+fn $expect(method, error_msg) {
+    inner = method
+    javascript{
+        try {
+            inner();
+        } catch (e) {
+            error_msg;
+        }
     }
 }

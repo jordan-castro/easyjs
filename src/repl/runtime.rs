@@ -12,7 +12,7 @@ pub struct Runtime {
     /// Our JS runtime process
     process: Child,
     /// NodeJS, Deno, Bun, etc?
-    _runtime: String,
+    runtime: String,
     /// Should we crash on error?
     _crash_on_error: bool,
     stdout_reader: BufReader<ChildStdout>,
@@ -33,7 +33,6 @@ impl Runtime {
                 .stdout(Stdio::piped())
                 .spawn()
                 .expect("Failed to start Deno"),
-
             _ => {
                 panic!("Unknown runtime: {}", runtime);
             }
@@ -42,7 +41,7 @@ impl Runtime {
 
         let mut runtime = Runtime {
             process: p,
-            _runtime: runtime.to_string(),
+            runtime: runtime.to_string(),
             _crash_on_error: crash_on_error,
             stdout_reader: stdout_reader,
         };

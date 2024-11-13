@@ -2,7 +2,7 @@
 pub struct Macro {
     name: String,
     paramaters: Vec<String>,
-    body: String
+    pub body: String
 }
 
 impl Macro {

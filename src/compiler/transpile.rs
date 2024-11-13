@@ -1,6 +1,8 @@
+use boa_engine::{Context, Source};
 use std::collections::HashMap;
 
 use super::macros::Macro;
+use crate::interpreter;
 use crate::lexer::lex::{self, ALLOWED_IN_IDENT};
 use crate::parser::ast::{Expression, Statement};
 use crate::parser::{ast, par};
@@ -17,6 +19,8 @@ pub struct Transpiler {
     macros: HashMap<String, Macro>,
     functions: Vec<String>,
     imports: Vec<String>,
+    /// Boa engine context.
+    context: Context,
 }
 
 impl Transpiler {
@@ -27,6 +31,7 @@ impl Transpiler {
             functions: vec![],
             macros: HashMap::new(),
             imports: vec![],
+            context: Context::default(),
         }
     }
 
@@ -70,6 +75,8 @@ impl Transpiler {
 
             let script = self.transpile_stmt(stmt);
             if let Some(script) = script {
+                // add to context
+                self.context.eval(Source::from_bytes(script.as_str()));
                 self.scripts.push(script);
             }
         }
@@ -112,9 +119,9 @@ impl Transpiler {
             )),
             ast::Statement::JavaScriptStatement(token, js) => {
                 Some(self.transpile_javascript_stmt(token, js))
-            },
+            }
             ast::Statement::StructStatement(token, name, methods) => Some(
-                self.transpile_struct_stmt(name.as_ref().to_owned(), methods.as_ref().to_owned())
+                self.transpile_struct_stmt(name.as_ref().to_owned(), methods.as_ref().to_owned()),
             ),
             _ => None,
         }
@@ -416,12 +423,16 @@ impl Transpiler {
         // format!("{};", self.transpile_expression(expression))
     }
 
-    fn transpile_struct_stmt(&mut self, name : ast::Expression, methods : Vec<ast::Expression>) -> String {
+    fn transpile_struct_stmt(
+        &mut self,
+        name: ast::Expression,
+        methods: Vec<ast::Expression>,
+    ) -> String {
         let mut res = String::new();
         res.push_str("class ");
         res.push_str(&self.transpile_expression(name));
         res.push_str("{");
-        
+
         for method in methods {
             res.push_str(&self.transpile_struct_method(method));
         }
@@ -722,7 +733,15 @@ impl Transpiler {
                 let m = self.macros.get(&name);
                 if m.is_some() {
                     let m: &Macro = m.unwrap();
-                    m.compile(parsed_args)
+                    let code = m.compile(parsed_args);
+                    let result = interpreter::interpret_js(&code, &mut self.context);
+                    if result.is_err() {
+                        println!("Error: {}", result.err().unwrap());
+                        println!("Macro in question: \n{}", code);
+                        "".to_string()
+                    } else {
+                        result.unwrap().display().to_string()
+                    }
                 } else {
                     "".to_string()
                 }
@@ -736,9 +755,6 @@ impl Transpiler {
                 );
                 "".to_string()
             }
-            // Expression::Builtin(token, name, args) => {
-            //     self.transpile_builtin(name, args.as_ref().to_owned())
-            // }
             _ => String::from(""),
         }
     }
@@ -781,24 +797,33 @@ impl Transpiler {
         res
     }
 
-    fn get_struct_method_function_exp(&mut self, method: ast::Expression) -> (ast::Expression, bool) {
+    fn get_struct_method_function_exp(
+        &mut self,
+        method: ast::Expression,
+    ) -> (ast::Expression, bool) {
         match method.clone() {
             Expression::AsyncExpression(tk, fn_method) => {
                 let result = self.get_struct_method_function_exp(fn_method.as_ref().to_owned());
                 return (
                     Expression::AsyncExpression(tk, Box::new(result.0)),
-                    result.1
+                    result.1,
                 );
             }
             Expression::FunctionLiteral(fn_token, fn_name, params, body) => {
                 // check if is a predescribed method like new => constructor
                 if self.transpile_expression(fn_name.as_ref().to_owned()) == hash_string("new") {
-                    return (Expression::FunctionLiteral(
-                        fn_token, 
-                        Box::new(Expression::Identifier(token::new_token(token::IDENT, "constructor"), "constructor".to_string())), 
-                        params, 
-                        body
-                    ), false);
+                    return (
+                        Expression::FunctionLiteral(
+                            fn_token,
+                            Box::new(Expression::Identifier(
+                                token::new_token(token::IDENT, "constructor"),
+                                "constructor".to_string(),
+                            )),
+                            params,
+                            body,
+                        ),
+                        false,
+                    );
                 }
 
                 // check for a self param
@@ -815,8 +840,8 @@ impl Transpiler {
                             Box::new(params.as_ref().to_owned()[1..].to_vec()),
                             body,
                         ),
-                        false
-                    )
+                        false,
+                    );
                 }
             }
             _ => {}

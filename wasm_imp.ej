@@ -1,12 +1,14 @@
 import "dom"
+import "std"
 
 from "/easyjs.js" import def init, compile_easy_js
 
 fn load_ej_file(file_path) {
-    
+   $print(file_path) 
 }
 
 init().then(fn() {
+    $print(document.body)
     console.log(document.body)
     // Find all scripts with the custom "easyjs" type
     scripts := dom.select_all('script[type="easyjs"]')
@@ -16,10 +18,11 @@ init().then(fn() {
         // check if script has a src.
         if script.hasAttribute("src") {
             // load EJ file content.
+            load_ej_file(file_path)
+        } else {
+            code = compile_easy_js(script.textContent)
         }
-
-        code := compile_easy_js(script.textContent)
-    
+        
         easyjs_script := dom.create_element('script')
 
         if script.hasAttribute("module") {
