@@ -13,6 +13,10 @@ struct Person {
     fn a_static_method() {
         $print("Ayo sttaic dude")
     }
+
+    async fn grow_up(self) {
+        self.age = 1 + self.age
+    }
 }
 
 javascript{

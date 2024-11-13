@@ -201,7 +201,14 @@ impl Transpiler {
         path: String,
         optional_as: Expression,
     ) -> String {
+        // we should not import it if already imported.
+        if self.imports.contains(&path) {
+            return "".to_string();
+        }
+
         let mut res = String::new();
+
+        self.imports.push(path.clone());
 
         // TODO: check import file path type,
         // supported in EasyJS is ".ej", ".js", ".json", ".wasm"
@@ -229,13 +236,13 @@ impl Transpiler {
             }
             ImportType::EasyJS => {
                 // compile the EasyJS file
-                res.push_str(&import_easy_js(self, &path));
+                import_easy_js(self, &path);
             }
             ImportType::WASM => {
                 res.push_str(&import_wasm_module(&path));
             }
             ImportType::STD => {
-                res.push_str(&import_std_lib(self, &path));
+                import_std_lib(self, &path);
             }
         }
 
@@ -295,7 +302,7 @@ impl Transpiler {
                     res.push_str("}");
                 }
 
-                res.push_str("from ");
+                res.push_str(" from ");
                 res.push_str(&format!("\"{}\"", path).as_str());
                 res.push_str(";");
             }
@@ -762,19 +769,27 @@ impl Transpiler {
         let mut res = String::new();
         let struct_method = self.get_struct_method_function_exp(method);
 
-        let mut fn_string = self.transpile_expression(struct_method.0);
+        let fn_string = self.transpile_expression(struct_method.0);
 
         if struct_method.1 {
             res.push_str("static ");
         }
 
-        res.push_str(&fn_string[8..]);
+        let fn_string = fn_string.replace("function ", "");
+        res.push_str(&fn_string);
 
         res
     }
 
     fn get_struct_method_function_exp(&mut self, method: ast::Expression) -> (ast::Expression, bool) {
         match method.clone() {
+            Expression::AsyncExpression(tk, fn_method) => {
+                let result = self.get_struct_method_function_exp(fn_method.as_ref().to_owned());
+                return (
+                    Expression::AsyncExpression(tk, Box::new(result.0)),
+                    result.1
+                );
+            }
             Expression::FunctionLiteral(fn_token, fn_name, params, body) => {
                 // check if is a predescribed method like new => constructor
                 if self.transpile_expression(fn_name.as_ref().to_owned()) == hash_string("new") {

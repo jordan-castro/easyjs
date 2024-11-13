@@ -1090,7 +1090,7 @@ fn parse_struct_statement(p: &mut Parser) -> ast::Statement {
 
     // start parsing the functions
     loop {
-        let func = parse_function_literal(p);
+        let func = parse_expression(p, LOWEST);
         if !func.is_empty() {
             methods.push(func);
         }

@@ -1,8 +1,8 @@
 // This file tests the import statement in EasyJS
-import "lib/tests/variables.ej"
+import "std"
+import "ej_tests/struct.ej"
+import "fs.js" as file_system
 
-fn add(x,y) {
-    return x + y
-}
-
-z = add(x,y)
+from "some.js" import SomeClass
+from "other.js" import def init
+from "new.js" import star

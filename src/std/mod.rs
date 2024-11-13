@@ -1,14 +1,24 @@
-// EasyJS STD version 0.1.6
-const STD: &str = "fn $print(val) {
+// EasyJS STD version 0.1.7
+const STD: &str = "// Print a value to the console.
+fn $print(val) {
     console.log(val)
 }
 
+// Get the last element of an array
 fn $last(array) {
     array[array.length - 1]
 }
 
+// Get the first element of an array
 fn $first(array) {
     array[0]
+}
+
+// Instantiate a new struct in JS
+fn $new(object_name) {
+    javascript{
+        new object_name()
+    }
 }";
 const EXPECT: &str = "fn $expect(method, error_msg, var_name) {
     var_name = null
@@ -79,7 +89,7 @@ try {
 
 const some = asd12dsamc['result']";
 
-/// Load a STD library from EasyJS version 0.1.6, or an empty string if not found.
+/// Load a STD library from EasyJS version 0.1.7, or an empty string if not found.
 pub fn load_std(name: &str) -> String {
 match name {
 "std" => STD,

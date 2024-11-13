@@ -12,3 +12,10 @@ fn $last(array) {
 fn $first(array) {
     array[0]
 }
+
+// Instantiate a new struct in JS
+fn $new(object_name) {
+    javascript{
+        new object_name()
+    }
+}
