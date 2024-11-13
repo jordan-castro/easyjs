@@ -6,12 +6,10 @@
 - add from, import as support to easyjs imports.
 - add require keyword
 - add named arguments support
-- ~~macros can return values.~~
-- ~~Possibly allow fast-performance-interpreted EasyJS using the compiler.~~
 - add litteral array support for macros.
 - Write a better prettiffier.
 - Support instantiating classes and struct using the `Name()` constructor.
-- ~~Fix $ strings~~
+- Run BOA with console.log
 
 ## EasyJS
 - add std
