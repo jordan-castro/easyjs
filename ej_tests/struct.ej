@@ -1,0 +1,23 @@
+import "std"
+
+struct Person {
+    fn new(name, age) {
+        self.name = name
+        self.age = age
+    }
+
+    fn greet(self) {
+        $print(self)
+    }
+
+    fn a_static_method() {
+        $print("Ayo sttaic dude")
+    }
+}
+
+javascript{
+    const person = new Person("jordan", 22);
+    person.greet();
+
+    Person.a_static_method();
+}

@@ -1,3 +1,0 @@
-fn $print(val) {
-    console.log(val);
-}

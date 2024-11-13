@@ -1,7 +1,7 @@
 # TODO
 
 ## Compiler
-- add struct support
+- ~~add struct support~~
 - ~~add assignment for dot expressions~~ v0.1.2
 - ~~add import statement support~~
 - ~~add macro for stdlib injection~~
@@ -14,11 +14,11 @@
 - add from, import as support to easyjs imports.
 - add require keyword
 - ~~hash variable names so that you can use let, var, const, class as variable names~~
-- add kwargs support
+- add named arguments support
 - ~~add macro support~~
 - ~~String interpolation using $ and ${}~~
 - macros can return values.
-- Possibly allow fast-performance-interpreted EasyJS using 
+- Possibly allow fast-performance-interpreted EasyJS using the compiler.
 
 ## EasyJS
 - ~~write wasm implementator in easyjs~~
@@ -29,7 +29,6 @@
 ## Builtins
 - trycatch builtin error handling
 - use macros for all builtins (macros start with a $)
-- load builtins on compile.
 
 ## Scripts
 - ~~add a build script (for not wasm)~~

@@ -92,3 +92,36 @@ world = "World"
 
 $print("$hello, $world!") // <-- how to interpolate.
 ```
+
+### Structs
+In easyjs you use structs to create and define objects. Structs currently support
+
+- Methods
+- Constructor
+- Static Methods
+
+```rust
+struct Person {
+    fn new(name, age) {
+        self.name = name
+        self.age = age
+    }
+
+    fn greet(self) {
+        $print(self)
+    }
+
+    fn a_static_method() {
+        $print("Ayo sttaic dude")
+    }
+}
+```
+To instantiate a struct object you need to use the `javascript` keyword.
+```javascript
+javascript{
+    const person = new Person("jordan", 22);
+    person.greet();
+    Person.a_static_method();
+}
+```
+This is temporary and will be changed in future versions.

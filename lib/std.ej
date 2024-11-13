@@ -1,0 +1,14 @@
+// Print a value to the console.
+fn $print(val) {
+    console.log(val)
+}
+
+// Get the last element of an array
+fn $last(array) {
+    array[array.length - 1]
+}
+
+// Get the first element of an array
+fn $first(array) {
+    array[0]
+}

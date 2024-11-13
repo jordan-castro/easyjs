@@ -1,4 +1,15 @@
-// EasyJS STD version 0.1.5
+// EasyJS STD version 0.1.6
+const STD: &str = "fn $print(val) {
+    console.log(val)
+}
+
+fn $last(array) {
+    array[array.length - 1]
+}
+
+fn $first(array) {
+    array[0]
+}";
 const EXPECT: &str = "fn $expect(method, error_msg, var_name) {
     var_name = null
         // using javascript because EasyJS currently does not have
@@ -43,9 +54,6 @@ struct EasyWasm {
     }
 }";
 const WASM: &str = "";
-const PRINT: &str = "fn $print(val) {
-    console.log(val);
-}";
 const HTTP: &str = "// Make a get request using the Fetch api.
 async fn get(url, headers, body) {
     return fetch(url, headers, body)
@@ -71,15 +79,15 @@ try {
 
 const some = asd12dsamc['result']";
 
-/// Load a STD library from EasyJS version 0.1.5, or an empty string if not found.
+/// Load a STD library from EasyJS version 0.1.6, or an empty string if not found.
 pub fn load_std(name: &str) -> String {
 match name {
+"std" => STD,
 "expect" => EXPECT,
 "json" => JSON,
 "dom" => DOM,
 "easy_wasm" => EASY_WASM,
 "wasm" => WASM,
-"print" => PRINT,
 "http" => HTTP,
 _ => "",
 }.to_string()}

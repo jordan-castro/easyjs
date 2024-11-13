@@ -7,13 +7,13 @@ pub enum NodeType {
 
 #[derive(Clone, Debug)]
 pub enum Statement {
-    EmptyStatement,                                     // there was an issue
-    VariableStatement(tk::Token, Box<Expression>, Box<Expression>),      // variable = expression
-    ReturnStatement(tk::Token, Box<Expression>),        // return expression
-    ImportStatement(tk::Token, String, Box<Expression>), // import path as something_else
+    EmptyStatement,                                                 // there was an issue
+    VariableStatement(tk::Token, Box<Expression>, Box<Expression>), // variable = expression
+    ReturnStatement(tk::Token, Box<Expression>),                    // return expression
+    ImportStatement(tk::Token, String, Box<Expression>),            // import path as something_else
     FromImportStatement(tk::Token, String, Box<Vec<Expression>>),
-    ExpressionStatement(tk::Token, Box<Expression>),    // token expression
-    BlockStatement(tk::Token, Box<Vec<Statement>>),     // { statements }
+    ExpressionStatement(tk::Token, Box<Expression>), // token expression
+    BlockStatement(tk::Token, Box<Vec<Statement>>),  // { statements }
     // token identifier = value
     ConstVariableStatement(tk::Token, Box<Expression>, Box<Expression>),
     // for condition { body }
@@ -27,14 +27,14 @@ pub enum Statement {
     ///     }
     /// }
     /// ```
-    StructStatement(tk::Token, Box<Expression>, Box<Vec<Expression>>)
+    StructStatement(tk::Token, Box<Expression>, Box<Vec<Expression>>),
 }
 
 impl Statement {
     pub fn variant_type(&self) -> &'static str {
         match self {
             Statement::EmptyStatement => "EmptyStatement",
-            Statement::VariableStatement(_,_, _) => "VariableStatement",
+            Statement::VariableStatement(_, _, _) => "VariableStatement",
             Statement::ReturnStatement(_, _) => "ReturnStatement",
             Statement::ImportStatement(_, _, _) => "ImportStatement",
             Statement::FromImportStatement(_, _, _) => "FromImportStatement",
@@ -43,11 +43,11 @@ impl Statement {
             Statement::ConstVariableStatement(_, _, _) => "ConstVarStatement",
             Statement::ForStatement(_, _, _) => "ForStatement",
             Statement::JavaScriptStatement(_, _) => "JavaScriptStatement",
-            Statement::StructStatement(_, _, _) => "StructStatement"
+            Statement::StructStatement(_, _, _) => "StructStatement",
         }
     }
 
-    pub fn eq(&self, other:Statement) -> bool {
+    pub fn eq(&self, other: Statement) -> bool {
         self.variant_type() == other.variant_type()
     }
 
@@ -116,7 +116,12 @@ pub enum Expression {
     /// Macro ($, ident, arguments, body)
     MacroExpression(tk::Token, Box<Expression>, Box<Vec<Expression>>),
     /// Declaring the macro ($, ident, arguments, body as BlockStatment)
-    MacroDecleration(tk::Token, Box<Expression>, Box<Vec<Expression>>, Box<Statement>),
+    MacroDecleration(
+        tk::Token,
+        Box<Expression>,
+        Box<Vec<Expression>>,
+        Box<Statement>,
+    ),
 }
 
 impl Expression {
@@ -150,11 +155,11 @@ impl Expression {
             Expression::AsExpression(_, _) => "AsExpression",
             Expression::DefExpression(_, _) => "DefExpression",
             Expression::MacroExpression(_, _, _) => "MacroExpression",
-            Expression::MacroDecleration(_, _, _, _) => "MacroDecleration"
+            Expression::MacroDecleration(_, _, _, _) => "MacroDecleration",
         }
     }
 
-    pub fn eq(&self, other:Expression) -> bool {
+    pub fn eq(&self, other: Expression) -> bool {
         self.variant_type() == other.variant_type()
     }
 

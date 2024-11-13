@@ -405,6 +405,9 @@ mod tests {
                 fn new(self, name) {
                     self.name = name
                 }
+
+                fn greet(self) {
+                }
             }
 
             struct EmptyStruct {

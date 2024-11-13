@@ -85,6 +85,7 @@ pub const AWAIT: &str = "AWAIT";
 pub const NOT: &str = "NOT";
 pub const FROM: &str = "FROM";
 pub const DEF: &str = "DEF";
+pub const SELF: &str = "SELF";
 
 /// Lookup the ident based on a string
 pub fn lookup_ident(ident: &str) -> &'static str {
@@ -108,6 +109,7 @@ pub fn lookup_ident(ident: &str) -> &'static str {
         "not" => NOT,
         "from" => FROM,
         "def" => DEF,
+        "self" => SELF,
         _ => IDENT, // Default case for unknown identifiers
     }
 }

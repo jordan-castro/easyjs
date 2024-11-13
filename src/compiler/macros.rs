@@ -1,5 +1,3 @@
-use crate::commands::compile::compile;
-
 #[derive(Debug)]
 pub struct Macro {
     name: String,

@@ -93,6 +93,7 @@ impl Parser {
     fn prefix_fns(&mut self, token_type: &str) -> ast::Expression {
         match token_type {
             token::IDENT => parse_identifier(self),
+            token::SELF => parse_identifier(self),
             token::INT => parse_integer_literal(self),
             token::BANG => parse_prefix_expression(self),
             token::NOT => parse_not_expression(self),
@@ -120,6 +121,7 @@ impl Parser {
     fn has_prefix(&self, token_type: &str) -> bool {
         match token_type {
             token::IDENT => true,
+            token::SELF => true,
             token::INT => true,
             token::BANG => true,
             token::NOT => true,
@@ -487,7 +489,12 @@ fn parse_prefix_expression(p: &mut Parser) -> ast::Expression {
 
 /// Parse an identifier
 fn parse_identifier(parser: &mut Parser) -> ast::Expression {
-    ast::Expression::Identifier(parser.c_token.clone(), parser.c_token.literal.clone())
+    let token = parser.c_token.clone();
+    let mut lit = token.literal.to_owned();
+    if token.typ == token::SELF {
+        lit = "this".to_owned();
+    }
+    ast::Expression::Identifier(token, lit)
 }
 
 /// parse an integer literal, returns EmptyExpression if not valid.
@@ -1082,11 +1089,17 @@ fn parse_struct_statement(p: &mut Parser) -> ast::Statement {
     }
 
     // start parsing the functions
-    while !p.peek_token_is(token::R_BRACE) {
+    loop {
         let func = parse_function_literal(p);
         if !func.is_empty() {
             methods.push(func);
         }
+
+        if p.cur_token_is(token::R_BRACE) && p.peek_token_is(token::R_BRACE) {
+            break;
+        }
+
+        p.next_token();
     }
 
     // consume the }
