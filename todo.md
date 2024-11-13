@@ -11,6 +11,7 @@
 - add litteral array support for macros.
 - Write a better prettiffier.
 - Support instantiating classes and struct using the `Name()` constructor.
+- ~~Fix $ strings~~
 
 ## EasyJS
 - add std

@@ -854,37 +854,38 @@ impl Transpiler {
 fn string_interpolation(input: &str) -> String {
     let mut result = String::new();
 
-    let mut prev_char = ' ';
-    let mut next_char = ' ';
     let mut listen_for_ending = false;
     let mut found_at = 0;
 
-    for (i, c) in input.char_indices() {
-        if i == 0 && input.len() > 0 {
-            next_char = input.chars().nth(i + 1).unwrap();
-        }
-        if i > 0 {
-            prev_char = input.chars().nth(i - 1).unwrap();
-        }
+    let chars: Vec<_> = input.chars().collect(); // Collect chars to access by index
+
+    for i in 0..chars.len() {
+        let c = chars[i];
+        let next_char = chars.get(i + 1).copied().unwrap_or(' '); // Look ahead safely
+        let prev_char = if i > 0 { chars[i - 1] } else { ' ' }; // Look behind safely
+
         if c == '$' && prev_char != '\\' && next_char != '{' {
+            if listen_for_ending {
+                result.push('}');
+            }
             listen_for_ending = true;
             found_at = i;
-            result.push(c);
+            result.push('$');
             result.push('{');
             continue;
         }
 
         if listen_for_ending && i > found_at {
-            if !c.is_alphabetic() && !ALLOWED_IN_IDENT.contains(c) {
-                listen_for_ending = false; // reset
+            if !c.is_alphabetic() && c != '_' {
+                listen_for_ending = false; // Stop listening if a non-alphabetic char is found
                 result.push('}');
             }
         }
 
         result.push(c);
 
-        // Check if we're at the end of the string and need to close the interpolation block
-        if listen_for_ending && i == input.len() - 1 {
+        // Close the interpolation block if at the end of input and still listening
+        if listen_for_ending && i == chars.len() - 1 {
             result.push('}');
         }
     }
