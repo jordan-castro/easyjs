@@ -6,7 +6,7 @@ EasyJS works by compiling down into efficient and performant JavaScript.
 Similar to CofeeScript and TypeScript. The main difference being that it is an easy to use language, and can run natively on web.
 
 > [!WARNING]  
-> This language is still far from v1.0.0 we are currently on v0.1.4
+> This language is still far from v1.0.0 we are currently on v0.1.8
 
 ## Why EasyJS?
 At my last job, I worked with a product that would track user engagement on websites and apps. At this job I realized how common it was for people to not know
