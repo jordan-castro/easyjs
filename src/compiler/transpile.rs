@@ -418,9 +418,8 @@ impl Transpiler {
         expression: ast::Expression,
     ) -> String {
         let res = self.transpile_expression(expression);
-        let semi = if res.len() > 0 { ";" } else { "" };
+        let semi = if res.trim().len() > 0 { ";" } else { "" };
         format!("{}{}", res, semi)
-        // format!("{};", self.transpile_expression(expression))
     }
 
     fn transpile_struct_stmt(

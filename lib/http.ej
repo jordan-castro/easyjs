@@ -1,24 +1,14 @@
+import "std"
+
 // Make a get request using the Fetch api.
-async fn get(url, headers, body) {
-    return fetch(url, headers, body)
+async fn get(url) {
+    return fetch(url)
 }
 
 async fn post(url, headers, body) {
     return fetch(url, headers, body)
 }
 
-some := expect(get("url"), "Error getting URL")
+some := $expect(get("https://google.com"), "Error getting URL")
 
-let asd12dsamc = {
-    success: false,
-    result: null
-};
-try {
-    asd12dsamc['result'] = get(url);
-    asd12dsamc['success'] = true
-} catch (e) {
-    console.error(e)
-    console.error("Error getting url")
-}
-
-const some = asd12dsamc['result']
+console.log(some)

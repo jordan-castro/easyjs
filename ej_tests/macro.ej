@@ -1,4 +1,5 @@
 // print macro test
-fn $print(arg) {
-    console.log(arg)
-}
+import "std"
+x = 0..10
+
+$boa_last(x)
