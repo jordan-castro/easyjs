@@ -10,6 +10,7 @@
 - Write a better prettiffier.
 - Support instantiating classes and struct using the `Name()` constructor.
 - Run BOA with console.log
+- Add internal keyword for functions that are not macros but want to run in realtime.
 
 ## EasyJS
 - add std
@@ -17,7 +18,7 @@
     - json
 
 ## Macros
-- Use BoaJS for macros.
+- ~~Use BoaJS for macros.~~
 
 ## Builtins
 - trycatch builtin error handling
