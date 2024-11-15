@@ -19,9 +19,15 @@ struct Person {
     }
 }
 
+// javascript
 javascript{
     const person = new Person("jordan", 22);
     person.greet();
 
     Person.a_static_method();
 }
+
+// easyjs
+new_person = Person("Evelyn", 19)
+new_person.greet()
+Person.a_static_method()

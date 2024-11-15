@@ -1,8 +1,8 @@
-use boa_engine::{Context, Source};
+use boa_engine::Context;
 use std::collections::HashMap;
 
 use super::macros::Macro;
-use crate::interpreter;
+use crate::interpreter::{self, interpret_js, is_calling_class};
 use crate::lexer::lex::{self, ALLOWED_IN_IDENT};
 use crate::parser::ast::{Expression, Statement};
 use crate::parser::{ast, par};
@@ -25,14 +25,23 @@ pub struct Transpiler {
 
 impl Transpiler {
     pub fn new() -> Self {
-        Transpiler {
+        let mut t = Transpiler {
             scripts: vec![],
             variables: vec![],
             functions: vec![],
             macros: HashMap::new(),
             imports: vec![],
             context: Context::default(),
+        };
+
+        // any startup code goes here.
+        let _ = interpret_js("
+        function isClass(func) {
+            return typeof func === 'function' && /^class\\s/.test(Function.prototype.toString.call(func));
         }
+        ", &mut t.context);
+
+        t
     }
 
     pub fn reset(&mut self) {
@@ -76,7 +85,7 @@ impl Transpiler {
             let script = self.transpile_stmt(stmt);
             if let Some(script) = script {
                 // add to context
-                self.context.eval(Source::from_bytes(script.as_str()));
+                let _ = interpret_js(&script, &mut self.context);
                 self.scripts.push(script);
             }
         }
@@ -541,7 +550,20 @@ impl Transpiler {
             Expression::CallExpression(token, name, arguments) => {
                 let mut res = String::new();
 
-                res.push_str(&self.transpile_expression(name.as_ref().to_owned()));
+                let name_exp = self.transpile_expression(name.as_ref().to_owned());
+                if name_exp.chars().nth(0).unwrap().is_ascii_uppercase() {
+                    // check if is a struct/class constructor
+                    if is_calling_class(&mut self.context, &name_exp) {
+                        res.push_str(" new ");
+                        res.push_str(&name_exp);
+                    } else {
+                        res.push_str(&name_exp);
+                    }
+                } else {
+                    res.push_str(name_exp.as_str());
+                }
+
+                // res.push_str(&self.transpile_expression(name.as_ref().to_owned()));
                 res.push_str("(");
 
                 let args = arguments.as_ref().to_owned();
@@ -875,7 +897,7 @@ fn string_interpolation(input: &str) -> String {
         }
 
         if listen_for_ending && i > found_at {
-            if !c.is_alphabetic() && c != '_' {
+            if !c.is_alphabetic() && !ALLOWED_IN_IDENT.contains(c) {
                 listen_for_ending = false; // Stop listening if a non-alphabetic char is found
                 result.push('}');
             }

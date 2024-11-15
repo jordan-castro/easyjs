@@ -11,6 +11,7 @@
 - Support instantiating classes and struct using the `Name()` constructor.
 - Run BOA with console.log
 - Add internal keyword for functions that are not macros but want to run in realtime.
+- add ".wasm" support?
 
 ## EasyJS
 - add std
@@ -27,7 +28,7 @@
 ## Scripts
 - add a script to build binaries for all platforms (windows, macos, linux).
 
-## Misc
+## WASM
 - add wasm import support
 
 ## Repl

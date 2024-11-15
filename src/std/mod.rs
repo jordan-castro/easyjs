@@ -1,4 +1,49 @@
-// EasyJS STD version 0.1.7
+// EasyJS STD version 0.1.8
+const STD: &str = "// Get the last element of an array
+fn $last(array) {
+    array[array.length - 1]
+}
+
+// Get the first element of an array
+fn $first(array) {
+    array[0]
+}
+
+fn expect(method, error_msg) {
+    fn() {
+        javascript {
+            try {
+                return method();
+            } catch (e) {
+                return error_msg;
+            }
+        }
+    }
+}
+
+fn $expect(method, error_msg) {
+    javascript{
+        try {
+            method();
+        } catch (e) {
+            error_msg;
+        }
+    }
+}";
+const EXPECT: &str = "fn $expect(method, error_msg, var_name) {
+    var_name = null
+        // using javascript because EasyJS currently does not have
+        // a native try-catch feature.
+        javascript{
+            try {
+                result = method;
+                var_name = result()
+            } catch (e) {
+                console.error(error_msg);
+            }
+        }
+}";
+const JSON: &str = "to_json := fn(str) { return JSON.parse(str); }";
 const DOM: &str = "// ! This can only be used in the browser.
 
 // shorthand for document.
@@ -28,90 +73,31 @@ struct EasyWasm {
         return await EasyWasm.load_from_bytes()
     }
 }";
-const EXPECT: &str = "fn $expect(method, error_msg, var_name) {
-    var_name = null
-        // using javascript because EasyJS currently does not have
-        // a native try-catch feature.
-        javascript{
-            try {
-                result = method;
-                var_name = result()
-            } catch (e) {
-                console.error(error_msg);
-            }
-        }
-}";
-const HTTP: &str = "// Make a get request using the Fetch api.
-async fn get(url, headers, body) {
-    return fetch(url, headers, body)
+const WASM: &str = "";
+const HTTP: &str = "import \"std\"
+
+// Make a get request using the Fetch api.
+async fn get(url) {
+    return fetch(url)
 }
 
 async fn post(url, headers, body) {
     return fetch(url, headers, body)
 }
 
-some := expect(get(\"url\"), \"Error getting URL\")
+some := $expect(get(\"https://google.com\"), \"Error getting URL\")
 
-let asd12dsamc = {
-    success: false,
-    result: null
-};
-try {
-    asd12dsamc['result'] = get(url);
-    asd12dsamc['success'] = true
-} catch (e) {
-    console.error(e)
-    console.error(\"Error getting url\")
-}
+console.log(some)";
 
-const some = asd12dsamc['result']";
-const JSON: &str = "to_json := fn(str) { return JSON.parse(str); }";
-const STD: &str = "// Print a value to the console.
-fn $print(val) {
-    // This is a compiler macro because there is no return.
-    console.log(val)
-}
-
-// Get the last element of an array
-fn $last(array) {
-    // this is a compiler macro because there is no return.
-    array[array.length - 1]
-}
-
-// Get the first element of an array
-fn $first(array) {
-    // this is a compiler macro because there is no return.
-    array[0]
-}
-
-// Instantiate a new struct in JS
-fn $new(object_name) {
-    // this is a compiler macro because there is no return
-    javascript{
-        new object_name()
-    }
-}
-
-fn $expect(method, error_msg) {
-    javascript{
-        try {
-            method();
-        } catch (e) {
-            error_msg;
-        }
-    }
-}";
-const WASM: &str = "";
-
-/// Load a STD library from EasyJS version 0.1.7, or an empty string if not found.
+/// Load a STD library from EasyJS version 0.1.8, or an empty string if not found.
 pub fn load_std(name: &str) -> String {
 match name {
+"std" => STD,
+"expect" => EXPECT,
+"json" => JSON,
 "dom" => DOM,
 "easy_wasm" => EASY_WASM,
-"expect" => EXPECT,
-"http" => HTTP,
-"json" => JSON,
-"std" => STD,
 "wasm" => WASM,
+"http" => HTTP,
 _ => "",
 }.to_string()}
