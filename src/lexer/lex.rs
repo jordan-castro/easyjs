@@ -246,7 +246,8 @@ impl Lex {
             }
             '\"' => token::new_token(token::STRING, &self.read_string('\"')),
             '\'' => token::new_token(token::STRING, &self.read_string('\'')),
-            '$' => token::new_token(token::MACRO, &self.current_char_str()),
+            '$' => token::new_token(token::MACRO_SYMBOL, &self.current_char_str()),
+            '@' => token::new_token(token::DECORATOR, &self.current_char_str()),
             _ => {
                 // check for identifier
                 if self.current_char.is_alphabetic() {
@@ -261,6 +262,7 @@ impl Lex {
                         self.read_char();
                         return t;
                     }
+
                     // return the identifier
                     token::new_token(ident, literal)
                 } else if self.current_char.is_numeric() {

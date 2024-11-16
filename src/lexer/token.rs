@@ -63,7 +63,8 @@ pub const R_BRACE: &str = "}";
 pub const L_BRACKET: &str = "[";
 pub const R_BRACKET: &str = "]";
 
-pub const MACRO: &str = "MACRO";
+pub const MACRO_SYMBOL: &str = "MACRO_SYMBOL";
+pub const DECORATOR: &str = "DECORATOR";
 
 // Keywords
 pub const FUNCTION: &str = "FUNCTION";
@@ -86,6 +87,7 @@ pub const NOT: &str = "NOT";
 pub const FROM: &str = "FROM";
 pub const DEF: &str = "DEF";
 pub const SELF: &str = "SELF";
+pub const MACRO: &str = "MACRO";
 
 /// Lookup the ident based on a string
 pub fn lookup_ident(ident: &str) -> &'static str {
@@ -110,6 +112,7 @@ pub fn lookup_ident(ident: &str) -> &'static str {
         "from" => FROM,
         "def" => DEF,
         "self" => SELF,
+        "macro" => MACRO,
         _ => IDENT, // Default case for unknown identifiers
     }
 }

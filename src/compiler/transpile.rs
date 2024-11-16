@@ -44,7 +44,7 @@ impl Transpiler {
         //     if(obj.prototype === undefined) {
         //         return isCtorClass
         //     }
-        //     const isPrototypeCtorClass = obj.prototype.constructor 
+        //     const isPrototypeCtorClass = obj.prototype.constructor
         //         && obj.prototype.constructor.toString
         //         && obj.prototype.constructor.toString().substring(0, 5) === 'class'
         //     return isCtorClass || isPrototypeCtorClass
@@ -449,7 +449,7 @@ impl Transpiler {
         let mut res = String::new();
         res.push_str("class ");
         let name = self.transpile_expression(name);
-        
+
         self.structs.push(name.clone());
 
         res.push_str(&name);
@@ -738,12 +738,6 @@ impl Transpiler {
                 res.push_str("]");
                 res
             }
-            Expression::AwaitExpression(token, exp) => {
-                format!(
-                    "await {}",
-                    self.transpile_expression(exp.as_ref().to_owned())
-                )
-            }
             Expression::AssignExpression(token, left, right) => {
                 format!(
                     "{} = {}",
@@ -770,13 +764,17 @@ impl Transpiler {
                 if m.is_some() {
                     let m: &Macro = m.unwrap();
                     let code = m.compile(parsed_args);
-                    let result = interpreter::interpret_js(&code, &mut self.context);
-                    if result.is_err() {
-                        println!("Error: {}", result.err().unwrap());
-                        println!("Macro in question: \n{}", code);
-                        "".to_string()
+                    if token.typ == token::MACRO_SYMBOL {
+                        let result = interpreter::interpret_js(&code, &mut self.context);
+                        if result.is_err() {
+                            println!("Error: {}", result.err().unwrap());
+                            println!("Macro in question: \n{}", code);
+                            "".to_string()
+                        } else {
+                            result.unwrap().display().to_string()
+                        }
                     } else {
-                        result.unwrap().display().to_string()
+                        code
                     }
                 } else {
                     "".to_string()

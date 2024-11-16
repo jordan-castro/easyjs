@@ -1,10 +1,14 @@
 // Get the last element of an array
-fn $last(array) {
+macro fn last(array) {
     array[array.length - 1]
 }
 
+macro fn print(msg) {
+    console.log(msg)
+}
+
 // Get the first element of an array
-fn $first(array) {
+macro fn first(array) {
     array[0]
 }
 
@@ -20,7 +24,7 @@ fn expect(method, error_msg) {
     }
 }
 
-fn $expect(method, error_msg) {
+macro fn expect(method, error_msg) {
     javascript{
         try {
             method();

@@ -34,7 +34,9 @@ const AWAIT: i64 = 15; // await
 const ASSIGN: i64 = 16;
 const DEF: i64 = 17;
 const AS: i64 = 18;
-const MACRO: i64 = 19;
+const MACRO_SYMBOL: i64 = 19;
+const DECORATOR: i64 = 20;
+const MACRO: i64 = 21;
 
 /// Find the precedence of a token.
 fn precedences(tk: &str) -> i64 {
@@ -60,6 +62,8 @@ fn precedences(tk: &str) -> i64 {
         token::ASSIGN => ASSIGN,
         token::DEF => DEF,
         token::AS => AS,
+        token::MACRO_SYMBOL => MACRO_SYMBOL,
+        token::DECORATOR => DECORATOR,
         token::MACRO => MACRO,
         _ => LOWEST,
     }
@@ -111,7 +115,8 @@ impl Parser {
             token::AWAIT => parse_await_expression(self),
             token::DEF => parse_def_expression(self),
             token::AS => parse_as_expression(self),
-            token::MACRO => parse_macro_expression(self),
+            token::MACRO_SYMBOL => parse_macro_expression(self),
+            token::DECORATOR => parse_macro_expression(self),
 
             _ => ast::Expression::EmptyExpression,
         }
@@ -139,6 +144,8 @@ impl Parser {
             token::AWAIT => true,
             token::DEF => true,
             token::AS => true,
+            token::MACRO_SYMBOL => true,
+            token::DECORATOR => true,
             token::MACRO => true,
             _ => false,
         }
@@ -594,7 +601,7 @@ fn parse_function_literal(p: &mut Parser) -> ast::Expression {
     }
     
     // check if a macro function
-    if p.peek_token_is(token::MACRO) {
+    if p.peek_token_is(token::MACRO_SYMBOL) || p.peek_token_is(token::DECORATOR) {
         p.next_token();
         return parse_macro_decleration(p);
     }
@@ -988,7 +995,7 @@ fn parse_def_expression(p: &mut Parser) -> ast::Expression {
 }
 
 fn parse_macro_expression(p: &mut Parser) -> ast::Expression {
-    let token = p.c_token.to_owned(); // $
+    let token = p.c_token.to_owned(); // $ || @
 
     if !p.expect_peek(token::IDENT) {
         return ast::empty_expression();
