@@ -7,11 +7,11 @@ struct Person {
     }
 
     fn greet(self) {
-        $print(self)
+        console.log(self)
     }
 
     fn a_static_method() {
-        $print("Ayo sttaic dude")
+        console.log("ayo dude")
     }
 
     async fn grow_up(self) {

@@ -18,6 +18,7 @@ pub struct Transpiler {
     variables: Vec<String>,
     macros: HashMap<String, Macro>,
     functions: Vec<String>,
+    structs: Vec<String>,
     imports: Vec<String>,
     /// Boa engine context.
     context: Context,
@@ -32,14 +33,23 @@ impl Transpiler {
             macros: HashMap::new(),
             imports: vec![],
             context: Context::default(),
+            structs: vec![],
         };
 
-        // any startup code goes here.
-        let _ = interpret_js("
-        function isClass(func) {
-            return typeof func === 'function' && /^class\\s/.test(Function.prototype.toString.call(func));
-        }
-        ", &mut t.context);
+        // // any startup code goes here.
+        // let _ = interpret_js("
+        //     function isClass(obj) {
+        //     const isCtorClass = obj.constructor
+        //         && obj.constructor.toString().substring(0, 5) === 'class'
+        //     if(obj.prototype === undefined) {
+        //         return isCtorClass
+        //     }
+        //     const isPrototypeCtorClass = obj.prototype.constructor 
+        //         && obj.prototype.constructor.toString
+        //         && obj.prototype.constructor.toString().substring(0, 5) === 'class'
+        //     return isCtorClass || isPrototypeCtorClass
+        //     }
+        // ", &mut t.context);
 
         t
     }
@@ -438,7 +448,11 @@ impl Transpiler {
     ) -> String {
         let mut res = String::new();
         res.push_str("class ");
-        res.push_str(&self.transpile_expression(name));
+        let name = self.transpile_expression(name);
+        
+        self.structs.push(name.clone());
+
+        res.push_str(&name);
         res.push_str("{");
 
         for method in methods {
@@ -523,6 +537,7 @@ impl Transpiler {
                 res.push_str("function ");
                 match name.as_ref().to_owned() {
                     Expression::Identifier(token, value) => {
+                        self.functions.push(value.clone());
                         res.push_str(&value);
                         res.push_str(" (");
                     }
