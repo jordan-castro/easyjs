@@ -1,14 +1,14 @@
 // Get the last element of an array
-macro fn last(array) {
+macro last(array) {
     array[array.length - 1]
 }
 
-macro fn print(msg) {
+macro print(msg) {
     console.log(msg)
 }
 
 // Get the first element of an array
-macro fn first(array) {
+macro first(array) {
     array[0]
 }
 
@@ -24,7 +24,7 @@ fn expect(method, error_msg) {
     }
 }
 
-macro fn expect(method, error_msg) {
+macro expect(method, error_msg) {
     javascript{
         try {
             method();

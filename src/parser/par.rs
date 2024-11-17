@@ -117,6 +117,7 @@ impl Parser {
             token::AS => parse_as_expression(self),
             token::MACRO_SYMBOL => parse_macro_expression(self),
             token::DECORATOR => parse_macro_expression(self),
+            token::MACRO => parse_macro_decleration(self),
 
             _ => ast::Expression::EmptyExpression,
         }
@@ -600,11 +601,11 @@ fn parse_function_literal(p: &mut Parser) -> ast::Expression {
         return parse_lambda_literal(p);
     }
     
-    // check if a macro function
-    if p.peek_token_is(token::MACRO_SYMBOL) || p.peek_token_is(token::DECORATOR) {
-        p.next_token();
-        return parse_macro_decleration(p);
-    }
+    // // check if a macro function
+    // if p.peek_token_is(token::MACRO_SYMBOL) || p.peek_token_is(token::DECORATOR) {
+    //     p.next_token();
+    //     return parse_macro_decleration(p);
+    // }
 
     // ok lets make sure this is a function
     if !p.expect_peek(token::IDENT) {
@@ -1031,7 +1032,7 @@ fn parse_macro_expression(p: &mut Parser) -> ast::Expression {
 }
 
 fn parse_macro_decleration(p: &mut Parser) -> ast::Expression {
-    let token = p.c_token.to_owned(); // $
+    let token = p.c_token.to_owned(); // macro
 
     if !p.expect_peek(token::IDENT) {
         return ast::empty_expression();

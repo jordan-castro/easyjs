@@ -4,7 +4,7 @@ import "std"
 from "/easyjs.js" import def init, compile_easy_js
 
 fn load_ej_file(file_path) {
-   $print(file_path) 
+    
 }
 
 init().then(fn() {
