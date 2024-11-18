@@ -344,7 +344,7 @@ dependencies = [
 
 [[package]]
 name = "easyjs"
-version = "0.1.8"
+version = "0.1.9"
 dependencies = [
  "boa_engine",
  "clap",

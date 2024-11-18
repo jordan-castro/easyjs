@@ -39,6 +39,8 @@ const DECORATOR: i64 = 20;
 const MACRO: i64 = 21;
 const AND: i64 = 22;
 const OR: i64 = 23;
+const QUESTION_MARK: i64 = 24;
+const DOUBLE_QUESTION_MARK: i64 = 25;
 
 /// Find the precedence of a token.
 fn precedences(tk: &str) -> i64 {
@@ -69,6 +71,8 @@ fn precedences(tk: &str) -> i64 {
         token::MACRO => MACRO,
         token::AND_SYMBOL => AND,
         token::OR_SYMBOL => OR,
+        token::QUESTION_MARK => QUESTION_MARK,
+        token::DOUBLE_QUESTION_MARK => DOUBLE_QUESTION_MARK,
         _ => LOWEST,
     }
 }
@@ -180,6 +184,8 @@ impl Parser {
             token::AS => true,
             token::AND_SYMBOL => true,
             token::OR_SYMBOL => true,
+            token::QUESTION_MARK => true,
+            token::DOUBLE_QUESTION_MARK => true,
             _ => false,
         }
     }
@@ -207,6 +213,8 @@ impl Parser {
             token::ASSIGN => parse_assign_expression(self, left),
             token::AND_SYMBOL => parse_and_expression(self, left),
             token::OR_SYMBOL => parse_or_expression(self, left),
+            token::QUESTION_MARK => parse_question_mark_expression(self, left),
+            token::DOUBLE_QUESTION_MARK => parse_double_question_mark_expression(self, left),
             _ => ast::Expression::EmptyExpression,
         }
     }
@@ -1138,4 +1146,20 @@ fn parse_or_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression
     let right = parse_expression(p, LOWEST);
 
     ast::Expression::OrExpression(token, Box::new(left), Box::new(right))
+}
+
+fn parse_question_mark_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression {
+    let token = p.c_token.to_owned(); // ?
+    p.next_token();
+    let right = parse_expression(p, LOWEST);
+
+    ast::Expression::NullExpression(token, Box::new(left), Box::new(right))
+}
+
+fn parse_double_question_mark_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression {
+    let token = p.c_token.to_owned(); // ??
+    p.next_token();
+    let right = parse_expression(p, LOWEST);
+
+    ast::Expression::DefaultIfNullExpression(token, Box::new(left), Box::new(right))
 }

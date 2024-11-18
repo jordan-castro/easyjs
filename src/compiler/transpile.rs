@@ -788,17 +788,31 @@ impl Transpiler {
                     body.as_ref().to_owned(),
                 );
                 "".to_string()
-            },
+            }
             Expression::AndExpression(token, left, right) => {
                 format!(
                     "{} && {}",
                     self.transpile_expression(left.as_ref().to_owned()),
                     self.transpile_expression(right.as_ref().to_owned())
                 )
-            },
+            }
             Expression::OrExpression(token, left, right) => {
                 format!(
                     "{} || {}",
+                    self.transpile_expression(left.as_ref().to_owned()),
+                    self.transpile_expression(right.as_ref().to_owned())
+                )
+            }
+            Expression::NullExpression(token, left, right) => {
+                format!(
+                    "{}?{}",
+                    self.transpile_expression(left.as_ref().to_owned()),
+                    self.transpile_expression(right.as_ref().to_owned())
+                )
+            }
+            Expression::DefaultIfNullExpression(token, left, right) => {
+                format!(
+                    "{} ?? {}",
                     self.transpile_expression(left.as_ref().to_owned()),
                     self.transpile_expression(right.as_ref().to_owned())
                 )

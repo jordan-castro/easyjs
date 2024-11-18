@@ -1,4 +1,4 @@
-// EasyJS STD version 0.1.8
+// EasyJS STD version 0.1.9
 const STD: &str = "// Get the last element of an array
 macro last(array) {
     array[array.length - 1]
@@ -93,7 +93,7 @@ some := $expect(get(\"https://google.com\"), \"Error getting URL\")
 
 console.log(some)";
 
-/// Load a STD library from EasyJS version 0.1.8, or an empty string if not found.
+/// Load a STD library from EasyJS version 0.1.9, or an empty string if not found.
 pub fn load_std(name: &str) -> String {
 match name {
 "std" => STD,

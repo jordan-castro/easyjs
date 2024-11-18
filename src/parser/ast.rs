@@ -134,6 +134,10 @@ pub enum Expression {
         Box<Expression>,
         Box<Expression>,
     ),
+    /// Null Expression ?
+    NullExpression(tk::Token, Box<Expression>, Box<Expression>),
+    /// Default if null exp ??
+    DefaultIfNullExpression(tk::Token, Box<Expression>, Box<Expression>),
 }
 
 impl Expression {
@@ -170,6 +174,8 @@ impl Expression {
             Expression::MacroDecleration(_, _, _, _) => "MacroDecleration",
             Expression::AndExpression(_, _, _) => "AndExpression",
             Expression::OrExpression(_, _, _) => "OrExpression",
+            Expression::NullExpression(_, _, _) => "NullExpression",
+            Expression::DefaultIfNullExpression(_, _, _) => "DefaultIfNullExpression",
         }
     }
 

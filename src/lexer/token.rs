@@ -47,6 +47,8 @@ pub const BITWISE_AND: &str = "&";
 pub const BITWISE_OR: &str = "|";
 pub const AND_SYMBOL: &str = "&&";
 pub const OR_SYMBOL: &str = "||";
+pub const QUESTION_MARK: &str = "?";
+pub const DOUBLE_QUESTION_MARK: &str = "??";
 
 // Delimiters
 pub const COMMA: &str = ",";
