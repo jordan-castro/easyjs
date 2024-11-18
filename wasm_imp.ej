@@ -8,8 +8,7 @@ fn load_ej_file(file_path) {
 }
 
 init().then(fn() {
-    $print(document.body)
-    console.log(document.body)
+    @print(document.body)
     // Find all scripts with the custom "easyjs" type
     scripts := dom.select_all('script[type="easyjs"]')
 

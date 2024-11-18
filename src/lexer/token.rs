@@ -43,6 +43,10 @@ pub const GT_OR_EQ: &str = ">=";
 pub const LT_OR_EQ: &str = "<=";
 pub const DOT: &str = ".";
 pub const DOTDOT: &str = "..";
+pub const BITWISE_AND: &str = "&";
+pub const BITWISE_OR: &str = "|";
+pub const AND_SYMBOL: &str = "&&";
+pub const OR_SYMBOL: &str = "||";
 
 // Delimiters
 pub const COMMA: &str = ",";
@@ -113,6 +117,8 @@ pub fn lookup_ident(ident: &str) -> &'static str {
         "def" => DEF,
         "self" => SELF,
         "macro" => MACRO,
+        "and" => AND_SYMBOL,
+        "or" => OR_SYMBOL,
         _ => IDENT, // Default case for unknown identifiers
     }
 }

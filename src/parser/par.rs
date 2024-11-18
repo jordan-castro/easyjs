@@ -37,6 +37,8 @@ const AS: i64 = 18;
 const MACRO_SYMBOL: i64 = 19;
 const DECORATOR: i64 = 20;
 const MACRO: i64 = 21;
+const AND: i64 = 22;
+const OR: i64 = 23;
 
 /// Find the precedence of a token.
 fn precedences(tk: &str) -> i64 {
@@ -65,6 +67,8 @@ fn precedences(tk: &str) -> i64 {
         token::MACRO_SYMBOL => MACRO_SYMBOL,
         token::DECORATOR => DECORATOR,
         token::MACRO => MACRO,
+        token::AND_SYMBOL => AND,
+        token::OR_SYMBOL => OR,
         _ => LOWEST,
     }
 }
@@ -174,6 +178,8 @@ impl Parser {
             token::OF => true,
             token::ASSIGN => true,
             token::AS => true,
+            token::AND_SYMBOL => true,
+            token::OR_SYMBOL => true,
             _ => false,
         }
     }
@@ -199,6 +205,8 @@ impl Parser {
             token::IN => parse_in_expression(self, left),
             token::OF => parse_of_expression(self, left),
             token::ASSIGN => parse_assign_expression(self, left),
+            token::AND_SYMBOL => parse_infix_expression(self, left),
+            token::OR_SYMBOL => parse_infix_expression(self, left),
             _ => ast::Expression::EmptyExpression,
         }
     }

@@ -62,9 +62,9 @@ impl Transpiler {
         let mut res = String::new();
 
         for script in self.scripts.iter() {
-            if pretty {
-                let script = script.replace(";", ";\n");
-                res.push_str(&format!("{}\n", script));
+            if !pretty {
+                let script = script.replace("\n", " ");
+                res.push_str(&script);
             } else {
                 res.push_str(&script);
             }
@@ -167,7 +167,7 @@ impl Transpiler {
                 // response.push_str(name.as_str());
                 response.push_str("=");
                 response.push_str(&self.transpile_expression(value));
-                response.push_str(";");
+                response.push_str(";\n");
             }
             _ => {
                 panic!("Name must be of type Identifier");
@@ -215,7 +215,7 @@ impl Transpiler {
             }
         }
         format!(
-            "const {} = {};",
+            "const {} = {};\n",
             self.transpile_expression(name),
             self.transpile_expression(value)
         )
@@ -258,7 +258,7 @@ impl Transpiler {
                         res.push_str(format!("import \"{}\"", path).as_str());
                     }
                 }
-                res.push_str(";");
+                res.push_str(";\n");
             }
             ImportType::EasyJS => {
                 // compile the EasyJS file
@@ -330,7 +330,7 @@ impl Transpiler {
 
                 res.push_str(" from ");
                 res.push_str(&format!("\"{}\"", path).as_str());
-                res.push_str(";");
+                res.push_str(";\n");
             }
         }
 
@@ -356,7 +356,7 @@ impl Transpiler {
             ast::Expression::InfixExpression(token, left, operator, right) => {
                 res.push_str(
                     format!(
-                        "while({} {} {})",
+                        "while({} {} {}) ",
                         self.transpile_expression(left.as_ref().to_owned()),
                         operator,
                         self.transpile_expression(right.as_ref().to_owned())
@@ -367,7 +367,7 @@ impl Transpiler {
             ast::Expression::OfExpression(token, left, right) => {
                 res.push_str(
                     format!(
-                        "for (let {} of {})",
+                        "for (let {} of {}) ",
                         self.transpile_expression(left.as_ref().to_owned()),
                         self.transpile_expression(right.as_ref().to_owned())
                     )
@@ -403,11 +403,11 @@ impl Transpiler {
                         res.push_str(";");
                         res.push_str(&ident);
                         res.push_str("++");
-                        res.push_str(")");
+                        res.push_str(") ");
                     }
                     _ => res.push_str(
                         format!(
-                            "for (let {} of {})",
+                            "for (let {} of {}) ",
                             self.transpile_expression(left.as_ref().to_owned()),
                             self.transpile_expression(right.as_ref().to_owned())
                         )
@@ -418,7 +418,7 @@ impl Transpiler {
             _ => panic!("Condition must be boolean"),
         }
 
-        res.push_str("{");
+        res.push_str("{\n");
 
         let stmt = self.transpile_stmt(body);
 
@@ -437,7 +437,7 @@ impl Transpiler {
         expression: ast::Expression,
     ) -> String {
         let res = self.transpile_expression(expression);
-        let semi = if res.trim().len() > 0 { ";" } else { "" };
+        let semi = if res.trim().len() > 0 { ";\n" } else { "" };
         format!("{}{}", res, semi)
     }
 
@@ -453,13 +453,13 @@ impl Transpiler {
         self.structs.push(name.clone());
 
         res.push_str(&name);
-        res.push_str("{");
+        res.push_str(" {\n");
 
         for method in methods {
             res.push_str(&self.transpile_struct_method(method));
         }
 
-        res.push_str("}");
+        res.push_str("}\n");
         res
     }
 
@@ -506,7 +506,7 @@ impl Transpiler {
 
                 res.push_str("if (");
                 res.push_str(&self.transpile_expression(condition.as_ref().to_owned()));
-                res.push_str(") {");
+                res.push_str(") {\n");
                 res.push_str(
                     self.transpile_stmt(consequence.as_ref().to_owned())
                         .unwrap()
@@ -521,7 +521,7 @@ impl Transpiler {
                 }
 
                 if !else_.is_empty() {
-                    res.push_str("else { ");
+                    res.push_str("else { \n");
                     let stmt = self.transpile_stmt(else_.as_ref().to_owned());
                     if let Some(stmt) = stmt {
                         res.push_str(&stmt);
@@ -553,7 +553,7 @@ impl Transpiler {
                 res.push_str(&joined_params);
                 res.push_str(")");
 
-                res.push_str("{");
+                res.push_str("{\n");
                 let stmt = self.transpile_stmt(body.as_ref().to_owned());
                 if let Some(stmt) = stmt {
                     res.push_str(&stmt);
@@ -628,7 +628,7 @@ impl Transpiler {
                     .collect::<Vec<_>>()
                     .join(",");
                 res.push_str(&joined_params);
-                res.push_str(") => {");
+                res.push_str(") => {\n");
                 let stmt = self.transpile_stmt(body.as_ref().to_owned());
                 if let Some(stmt) = stmt {
                     res.push_str(&stmt);
@@ -675,7 +675,7 @@ impl Transpiler {
                     res.push_str(":");
                     res.push_str(&self.transpile_expression(value));
                     if i != properties.len() - 1 {
-                        res.push_str(",");
+                        res.push_str(",\n");
                     }
                 }
                 res.push_str("}");

@@ -61,13 +61,32 @@ for item in collection {
 ```
 
 ### Macros
-EasyJS supports macros. To define a macro or to call one use the `$` symbol.
+EasyJS supports macros. Macros in EasyJS are a form of metaprogramming allowing you to host your own code in a virtual enviroment.
+Macros work in 2 ways:
+
+- DunDun (Interpreter)
+    - Using the `$` symbol before a macro call means that this macro is interpreted and the last result is returned.
+- Decorator (Transpiles)
+    - Using the `@` symbol before a macro call means that this macro is transpiled into Javascript as other EasyJS functions. The benefit
+    of using the `@` is it allows you to hoist function names away from the end JS scope while still being regular easyJS methods.
+
+The benefir of both macro types is that they are hosted in a virtual enviroment are are only accessible via easyJS.
+
+
+Macros are defined using the `macro` keyword.
 ```rust
-fn $print(message) { // this is the $print macro.
+macro print(message) { // this is the $print macro.
     console.log(message)
 }
 
-$print("Hello World!") // <-- call the print macro, this is compiled to console.log("Hello World!")
+@print("Hello World!") // This will be transpiled into --> console.log("Hello World!")
+$print("Hello World!") // While being a valid macro call, this will not produce any result because nothing is being returned.
+
+macro on_compile_do_stuff() {
+    ...
+}
+
+$on_compile_do_stuff() // <-- This will run directly in the compiler enviroment.
 ```
 
 ### JS Objects
@@ -108,11 +127,11 @@ struct Person {
     }
 
     fn greet(self) {
-        $print(self)
+        @print(self)
     }
 
     fn a_static_method() {
-        $print("Ayo sttaic dude")
+        @print("Ayo sttaic dude")
     }
 }
 ```

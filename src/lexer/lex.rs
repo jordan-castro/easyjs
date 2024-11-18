@@ -246,6 +246,20 @@ impl Lex {
             }
             '\"' => token::new_token(token::STRING, &self.read_string('\"')),
             '\'' => token::new_token(token::STRING, &self.read_string('\'')),
+            '|' => {
+                if self.peek_char() == '|' {
+                    token::new_token(token::OR_SYMBOL, &self.cc_pp())
+                } else {
+                    token::new_token(token::BITWISE_OR, &self.current_char_str())
+                }
+            }
+            '&' => {
+                if self.peek_char() == '&' {
+                    token::new_token(token::AND_SYMBOL, &self.cc_pp())
+                } else {
+                    token::new_token(token::BITWISE_AND, &self.current_char_str())
+                }
+            }
             '$' => token::new_token(token::MACRO_SYMBOL, &self.current_char_str()),
             '@' => token::new_token(token::DECORATOR, &self.current_char_str()),
             _ => {
