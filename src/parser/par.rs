@@ -21,7 +21,7 @@ const EQUALS: i64 = 2; // ==
 const LESSGREATER: i64 = 3; // < or >
 const SUM: i64 = 4; // +
 const PRODUCT: i64 = 5; // *
-                        // const PREFIX: i64 = 6; // -X or !X
+// const PREFIX: i64 = 6; // -X or !X
 const CALL: i64 = 7; // my_function(X)
 const DOT: i64 = 8; // .field or .method
 const LESSGREATER_OR_EQUALS: i64 = 9; // <= or >=
@@ -205,8 +205,8 @@ impl Parser {
             token::IN => parse_in_expression(self, left),
             token::OF => parse_of_expression(self, left),
             token::ASSIGN => parse_assign_expression(self, left),
-            token::AND_SYMBOL => parse_infix_expression(self, left),
-            token::OR_SYMBOL => parse_infix_expression(self, left),
+            token::AND_SYMBOL => parse_and_expression(self, left),
+            token::OR_SYMBOL => parse_or_expression(self, left),
             _ => ast::Expression::EmptyExpression,
         }
     }
@@ -1122,4 +1122,20 @@ fn parse_struct_statement(p: &mut Parser) -> ast::Statement {
     p.next_token();
 
     ast::Statement::StructStatement(token, Box::new(ident), Box::new(methods))
+}
+
+fn parse_and_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression {
+    let token = p.c_token.to_owned(); // &&
+    p.next_token();
+    let right = parse_expression(p, LOWEST);
+
+    ast::Expression::AndExpression(token, Box::new(left), Box::new(right))
+}
+
+fn parse_or_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression {
+    let token = p.c_token.to_owned(); // ||
+    p.next_token();
+    let right = parse_expression(p, LOWEST);
+
+    ast::Expression::OrExpression(token, Box::new(left), Box::new(right))
 }

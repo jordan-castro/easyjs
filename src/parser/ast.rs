@@ -122,6 +122,18 @@ pub enum Expression {
         Box<Vec<Expression>>,
         Box<Statement>,
     ),
+    /// And expression
+    AndExpression(
+        tk::Token,
+        Box<Expression>,
+        Box<Expression>,
+    ),
+    /// Or expression
+    OrExpression(
+        tk::Token,
+        Box<Expression>,
+        Box<Expression>,
+    ),
 }
 
 impl Expression {
@@ -156,6 +168,8 @@ impl Expression {
             Expression::DefExpression(_, _) => "DefExpression",
             Expression::MacroExpression(_, _, _) => "MacroExpression",
             Expression::MacroDecleration(_, _, _, _) => "MacroDecleration",
+            Expression::AndExpression(_, _, _) => "AndExpression",
+            Expression::OrExpression(_, _, _) => "OrExpression",
         }
     }
 

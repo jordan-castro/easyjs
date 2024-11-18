@@ -10,7 +10,7 @@
 - Support instantiating classes and struct using the `Name()` constructor.
 - Run BOA with console.log
 - add ".wasm" support?
-- add &&, || support
+- ~~add &&, || support~~
 - add ?, ?? support
 
 ## EasyJS
