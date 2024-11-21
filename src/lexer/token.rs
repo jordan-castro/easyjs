@@ -49,6 +49,7 @@ pub const AND_SYMBOL: &str = "&&";
 pub const OR_SYMBOL: &str = "||";
 pub const QUESTION_MARK: &str = "?";
 pub const DOUBLE_QUESTION_MARK: &str = "??";
+pub const MODULUS: &str = "%";
 
 // Delimiters
 pub const COMMA: &str = ",";
@@ -94,6 +95,7 @@ pub const FROM: &str = "FROM";
 pub const DEF: &str = "DEF";
 pub const SELF: &str = "SELF";
 pub const MACRO: &str = "MACRO";
+pub const NEW: &str = "NEW";
 
 /// Lookup the ident based on a string
 pub fn lookup_ident(ident: &str) -> &'static str {
@@ -121,6 +123,7 @@ pub fn lookup_ident(ident: &str) -> &'static str {
         "macro" => MACRO,
         "and" => AND_SYMBOL,
         "or" => OR_SYMBOL,
+        "new" => NEW,
         _ => IDENT, // Default case for unknown identifiers
     }
 }

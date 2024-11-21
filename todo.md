@@ -5,13 +5,12 @@
 - **add from import * support**
 - add from, import as support to easyjs imports.
 - add args and kwargs
-- add litteral array support for macros.
-- ~~Write a better prettiffier.~~
-- Support instantiating classes and struct using the `Name()` constructor.
-- Run BOA with console.log
+- ~~add litteral array support for macros.~~
+- ~~Support instantiating structs using the `Name()` constructor.~~
+- ~~add new keyword for JS classes~~
 - add ".wasm" support?
-- ~~add &&, || support~~
-- ~~add~~ ?, ?? support~~
+- ~~add % support~~
+- add decimal support
 
 ## EasyJS
 - add std
@@ -35,4 +34,6 @@
 - Debugger should print the statements.
 
 ## Docs
-- Hello World example
+
+## Extension
+- add comments highlight

@@ -1,11 +1,10 @@
-const JAVASCRIPT_KEYWORDS: [&str; 12] = [
+const JAVASCRIPT_KEYWORDS: [&str; 11] = [
     "let",
     "var",
     "const",
     "class",
     "function",
     "volatile",
-    "new",
     "boolean",
     "package",
     "byte",

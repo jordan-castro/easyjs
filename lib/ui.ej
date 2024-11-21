@@ -1,0 +1,37 @@
+// Used for creating EasyJS webapps.
+struct Children {
+    fn constructor() {
+        self.elements = []
+        self.id_to_position = {}
+    }
+
+    fn add_one(el) {
+        el_pos = @len(self.elements)
+        if el.id ?? false {
+            self.id_to_position[el.id] = el_pos
+        }
+
+        self.elements.push(el)
+    }
+
+    fn add_many(elements) {
+        for el in elements {
+            self.add_one(el)
+        }
+    }
+}
+
+struct HTMLElement {
+    fn constructor(tag_name) {
+        self.tag_name = tag_name
+        self.children = Children()
+    }
+
+    fn add(element) {
+        if @is(element, "array") {
+            self.children.add_many(element)
+        } else {
+            self.children.add_one(element)
+        }
+    }
+}

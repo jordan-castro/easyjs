@@ -1,7 +1,7 @@
 import "std"
 
 struct Person {
-    fn new(name, age) {
+    fn constructor(name, age) {
         self.name = name
         self.age = age
     }
@@ -17,14 +17,6 @@ struct Person {
     async fn grow_up(self) {
         self.age = 1 + self.age
     }
-}
-
-// javascript
-javascript{
-    const person = new Person("jordan", 22);
-    person.greet();
-
-    Person.a_static_method();
 }
 
 // easyjs

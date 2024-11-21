@@ -205,6 +205,7 @@ impl Lex {
             '\n' => token::new_token(token::EOL, &self.current_char_str()),
             '[' => token::new_token(token::L_BRACKET, &self.current_char_str()),
             ']' => token::new_token(token::R_BRACKET, &self.current_char_str()),
+            '%' => token::new_token(token::MODULUS, &self.current_char_str()),
             '!' => {
                 if self.peek_char() == '=' {
                     token::new_token(token::NOT_EQ, &self.cc_pp())

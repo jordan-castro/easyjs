@@ -121,7 +121,7 @@ In easyjs you use structs to create and define objects. Structs currently suppor
 
 ```rust
 struct Person {
-    fn new(name, age) {
+    fn constructor(name, age) {
         self.name = name
         self.age = age
     }

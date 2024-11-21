@@ -2,7 +2,7 @@ use boa_engine::Context;
 use std::collections::HashMap;
 
 use super::macros::Macro;
-use crate::interpreter::{self, interpret_js, is_calling_class};
+use crate::interpreter::interpret_js;
 use crate::lexer::lex::{self, ALLOWED_IN_IDENT};
 use crate::parser::ast::{Expression, Statement};
 use crate::parser::{ast, par};
@@ -35,21 +35,6 @@ impl Transpiler {
             context: Context::default(),
             structs: vec![],
         };
-
-        // // any startup code goes here.
-        // let _ = interpret_js("
-        //     function isClass(obj) {
-        //     const isCtorClass = obj.constructor
-        //         && obj.constructor.toString().substring(0, 5) === 'class'
-        //     if(obj.prototype === undefined) {
-        //         return isCtorClass
-        //     }
-        //     const isPrototypeCtorClass = obj.prototype.constructor
-        //         && obj.prototype.constructor.toString
-        //         && obj.prototype.constructor.toString().substring(0, 5) === 'class'
-        //     return isCtorClass || isPrototypeCtorClass
-        //     }
-        // ", &mut t.context);
 
         t
     }
@@ -568,12 +553,10 @@ impl Transpiler {
                 let name_exp = self.transpile_expression(name.as_ref().to_owned());
                 if name_exp.chars().nth(0).unwrap().is_ascii_uppercase() {
                     // check if is a struct/class constructor
-                    if is_calling_class(&mut self.context, &name_exp) {
+                    if self.structs.contains(&name_exp) {
                         res.push_str(" new ");
-                        res.push_str(&name_exp);
-                    } else {
-                        res.push_str(&name_exp);
                     }
+                    res.push_str(&name_exp);
                 } else {
                     res.push_str(name_exp.as_str());
                 }
@@ -753,11 +736,10 @@ impl Transpiler {
             }
             Expression::MacroExpression(token, name, arguments) => {
                 let name = self.transpile_expression(name.as_ref().to_owned());
-                let args = self.join_expressions(arguments.as_ref().to_owned());
                 let mut parsed_args = vec![];
 
-                for a in args.split(",") {
-                    parsed_args.push(a.to_string());
+                for a in arguments.as_ref().to_owned() {
+                    parsed_args.push(self.transpile_expression(a));
                 }
 
                 let m = self.macros.get(&name);
@@ -765,7 +747,7 @@ impl Transpiler {
                     let m: &Macro = m.unwrap();
                     let code = m.compile(parsed_args);
                     if token.typ == token::MACRO_SYMBOL {
-                        let result = interpreter::interpret_js(&code, &mut self.context);
+                        let result = interpret_js(&code, &mut self.context);
                         if result.is_err() {
                             println!("Error: {}", result.err().unwrap());
                             println!("Macro in question: \n{}", code);
@@ -816,6 +798,9 @@ impl Transpiler {
                     self.transpile_expression(left.as_ref().to_owned()),
                     self.transpile_expression(right.as_ref().to_owned())
                 )
+            }
+            Expression::NewClassExpression(token, exp) => {
+                format!("new {}", self.transpile_expression(exp.as_ref().to_owned()))
             }
             _ => String::from(""),
         }

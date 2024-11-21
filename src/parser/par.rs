@@ -41,6 +41,8 @@ const AND: i64 = 22;
 const OR: i64 = 23;
 const QUESTION_MARK: i64 = 24;
 const DOUBLE_QUESTION_MARK: i64 = 25;
+const MODULUS: i64 = 26;
+const NEW: i64 = 27;
 
 /// Find the precedence of a token.
 fn precedences(tk: &str) -> i64 {
@@ -73,6 +75,8 @@ fn precedences(tk: &str) -> i64 {
         token::OR_SYMBOL => OR,
         token::QUESTION_MARK => QUESTION_MARK,
         token::DOUBLE_QUESTION_MARK => DOUBLE_QUESTION_MARK,
+        token::MODULUS => MODULUS,
+        token::NEW => NEW,
         _ => LOWEST,
     }
 }
@@ -126,7 +130,7 @@ impl Parser {
             token::MACRO_SYMBOL => parse_macro_expression(self),
             token::DECORATOR => parse_macro_expression(self),
             token::MACRO => parse_macro_decleration(self),
-
+            token::NEW => parse_new_expression(self),
             _ => ast::Expression::EmptyExpression,
         }
     }
@@ -156,6 +160,7 @@ impl Parser {
             token::MACRO_SYMBOL => true,
             token::DECORATOR => true,
             token::MACRO => true,
+            token::NEW => true,
             _ => false,
         }
     }
@@ -186,6 +191,7 @@ impl Parser {
             token::OR_SYMBOL => true,
             token::QUESTION_MARK => true,
             token::DOUBLE_QUESTION_MARK => true,
+            token::MODULUS => true,
             _ => false,
         }
     }
@@ -215,6 +221,7 @@ impl Parser {
             token::OR_SYMBOL => parse_or_expression(self, left),
             token::QUESTION_MARK => parse_question_mark_expression(self, left),
             token::DOUBLE_QUESTION_MARK => parse_double_question_mark_expression(self, left),
+            token::MODULUS => parse_infix_expression(self, left),
             _ => ast::Expression::EmptyExpression,
         }
     }
@@ -1162,4 +1169,19 @@ fn parse_double_question_mark_expression(p: &mut Parser, left: ast::Expression) 
     let right = parse_expression(p, LOWEST);
 
     ast::Expression::DefaultIfNullExpression(token, Box::new(left), Box::new(right))
+}
+
+fn parse_new_expression(p: &mut Parser) -> ast::Expression {
+    let token = p.c_token.to_owned(); // new
+
+    // expect a identifier
+    if !p.expect_peek(token::IDENT) {
+        p.next_token();
+        return ast::empty_expression();
+    }
+
+    let ident = parse_identifier(p);
+    p.next_token();
+
+    ast::Expression::NewClassExpression(token, Box::new(parse_call_expression(p, ident)))
 }
