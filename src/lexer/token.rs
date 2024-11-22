@@ -26,6 +26,7 @@ pub const INT: &str = "INT"; // 123456 (INT64)
 pub const STRING: &str = "STRING";
 pub const ARRAY: &str = "ARRAY";
 pub const BOOLEAN: &str = "BOOLEAN";
+pub const FLOAT: &str = "FLOAT";
 
 // Operators
 pub const ASSIGN: &str = "=";

@@ -128,6 +128,15 @@ impl Lex {
         let mut number = String::new();
 
         while self.current_char.is_numeric() && !self.is_eof() {
+            if self.current_char == '.' {
+                if self.peek_char().is_numeric() {
+                    number.push(self.current_char);
+                    self.read_char();
+                } else {
+                    break;
+                }
+            }
+
             number.push(self.current_char);
             self.read_char();
         }
@@ -260,7 +269,7 @@ impl Lex {
                 } else {
                     token::new_token(token::BITWISE_AND, &self.current_char_str())
                 }
-            },
+            }
             '?' => {
                 if self.peek_char() == '?' {
                     token::new_token(token::DOUBLE_QUESTION_MARK, &self.cc_pp())
@@ -290,7 +299,11 @@ impl Lex {
                 } else if self.current_char.is_numeric() {
                     // probably a integer
                     let int = self.read_number();
-                    token::new_token(token::INT, int.as_str())
+                    if int.contains('.') {
+                        token::new_token(token::FLOAT, int.as_str())
+                    } else {
+                        token::new_token(token::INT, int.as_str())
+                    }
                 } else {
                     token::new_token(token::ILLEGAL, &self.current_char_str())
                 }

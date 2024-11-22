@@ -111,6 +111,7 @@ impl Parser {
             token::IDENT => parse_identifier(self),
             token::SELF => parse_identifier(self),
             token::INT => parse_integer_literal(self),
+            token::FLOAT => parse_float_literal(self),
             token::BANG => parse_prefix_expression(self),
             token::NOT => parse_not_expression(self),
             token::MINUS => parse_prefix_expression(self),
@@ -142,6 +143,7 @@ impl Parser {
             token::SELF => true,
             token::INT => true,
             token::BANG => true,
+            token::FLOAT => true,
             token::NOT => true,
             token::MINUS => true,
             token::TRUE => true,
@@ -1184,4 +1186,18 @@ fn parse_new_expression(p: &mut Parser) -> ast::Expression {
     p.next_token();
 
     ast::Expression::NewClassExpression(token, Box::new(parse_call_expression(p, ident)))
+}
+
+fn parse_float_literal(p: &mut Parser) -> ast::Expression {
+    let token = p.c_token.to_owned(); // 1.0
+    // check is float
+    let is_float = p.c_token.literal.parse::<f64>().is_ok();
+    if !is_float {
+        p.errors.push(format!("Epected type FLOAT got {} instead", token.literal));
+        return ast::empty_expression();
+    }
+
+    let float = p.c_token.literal.parse::<f64>().unwrap();
+
+    ast::Expression::FloatLiteral(token, float)
 }

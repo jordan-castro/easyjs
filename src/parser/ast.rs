@@ -140,6 +140,8 @@ pub enum Expression {
     DefaultIfNullExpression(tk::Token, Box<Expression>, Box<Expression>),
     /// new Class
     NewClassExpression(tk::Token, Box<Expression>),
+    /// Float literal 0.0
+    FloatLiteral(tk::Token, f64),
 }
 
 impl Expression {
@@ -179,6 +181,7 @@ impl Expression {
             Expression::NullExpression(_, _, _) => "NullExpression",
             Expression::DefaultIfNullExpression(_, _, _) => "DefaultIfNullExpression",
             Expression::NewClassExpression(_, _) => "NewClassExpression",
+            Expression::FloatLiteral(_, _) => "FloatLiteral",
         }
     }
 
