@@ -10,7 +10,7 @@
 - ~~add new keyword for JS classes~~
 - add ".wasm" support?
 - ~~add % support~~
-- add decimal support
+- ~~add decimal support~~
 
 ## EasyJS
 - add std

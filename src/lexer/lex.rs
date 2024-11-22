@@ -127,7 +127,7 @@ impl Lex {
     fn read_number(&mut self) -> String {
         let mut number = String::new();
 
-        while self.current_char.is_numeric() && !self.is_eof() {
+        while (self.current_char.is_numeric() || self.current_char == '.') && !self.is_eof() {
             if self.current_char == '.' {
                 if self.peek_char().is_numeric() {
                     number.push(self.current_char);
