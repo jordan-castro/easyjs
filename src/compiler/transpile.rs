@@ -802,6 +802,7 @@ impl Transpiler {
             Expression::NewClassExpression(token, exp) => {
                 format!("new {}", self.transpile_expression(exp.as_ref().to_owned()))
             }
+            Expression::FloatLiteral(token, value) => format!("{}", value),
             _ => String::from(""),
         }
     }
