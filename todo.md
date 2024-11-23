@@ -11,6 +11,12 @@
 - add ".wasm" support?
 - ~~add % support~~
 - ~~add decimal support~~
+- Fix static methods.
+- support lambdas in structs.
+- implement operator overloading.
+- Implement inheritence (that's a maybe, a probably not tbh. We will see.)
+- add += -= /= *= %= 
+- add ** support or whatever that is.
 
 ## EasyJS
 - add std
@@ -37,3 +43,7 @@
 
 ## Extension
 - add comments highlight
+
+## Build Tool
+- Add a project generator (this should be easy...)
+- Add npm package support.

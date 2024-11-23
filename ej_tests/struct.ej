@@ -1,7 +1,7 @@
 import "std"
 
 struct Person {
-    fn constructor(name, age) {
+    fn constructor(self, name, age) {
         self.name = name
         self.age = age
     }
@@ -10,7 +10,7 @@ struct Person {
         console.log(self)
     }
 
-    fn a_static_method() {
+    fn a_static_method(rg1) {
         console.log("ayo dude")
     }
 
