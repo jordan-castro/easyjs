@@ -13,5 +13,5 @@ pub fn hash_string(input: &str) -> String {
     let _ = input.hash(&mut hasher);
     let hash = hasher.finish().to_string();
 
-    format!("{}{}", input[0..1].to_string(), hash[..4].to_string())
+    format!("hashsed_{}{}", input[0..1].to_string(), hash[..4].to_string())
 }

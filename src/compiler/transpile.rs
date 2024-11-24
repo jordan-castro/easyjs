@@ -2,6 +2,7 @@ use boa_engine::Context;
 use std::collections::HashMap;
 
 use super::macros::Macro;
+use crate::builtins;
 use crate::interpreter::interpret_js;
 use crate::lexer::lex::{self, ALLOWED_IN_IDENT};
 use crate::parser::ast::{Expression, Statement};
@@ -22,6 +23,8 @@ pub struct Transpiler {
     imports: Vec<String>,
     /// Boa engine context.
     context: Context,
+    /// Builtin scripts in JS.
+    pub builtins: Vec<String>,
 }
 
 impl Transpiler {
@@ -34,8 +37,25 @@ impl Transpiler {
             imports: vec![],
             context: Context::default(),
             structs: vec![],
+            builtins: vec![],
         };
 
+        let int_range_builtin = format!(
+            "
+                const {} = (start, end) => {{
+                    let res = [];
+                    for (let i = start; i < end; i++) {{
+                        res.push(i);
+                    }}
+
+                    return res;
+                }};
+            ",
+            hash_string(builtins::INT_RANGE)
+        );
+        t.builtins.push(int_range_builtin.clone());
+        let _ = interpret_js(&int_range_builtin, &mut t.context);
+        
         t
     }
 
@@ -124,9 +144,13 @@ impl Transpiler {
             ast::Statement::JavaScriptStatement(token, js) => {
                 Some(self.transpile_javascript_stmt(token, js))
             }
-            ast::Statement::StructStatement(token, name, vars, methods) => Some(
-                self.transpile_struct_stmt(name.as_ref().to_owned(), vars.as_ref().to_owned(), methods.as_ref().to_owned()),
-            ),
+            ast::Statement::StructStatement(token, name, vars, methods) => {
+                Some(self.transpile_struct_stmt(
+                    name.as_ref().to_owned(),
+                    vars.as_ref().to_owned(),
+                    methods.as_ref().to_owned(),
+                ))
+            }
             _ => None,
         }
     }
@@ -359,47 +383,32 @@ impl Transpiler {
                     .as_str(),
                 );
             }
-            Expression::InExpression(token, left, right) => {
-                match right.as_ref().to_owned() {
-                    Expression::RangeExpression(token, start, end) => {
-                        let ident = self.transpile_expression(left.as_ref().to_owned());
-                        res.push_str("for (let ");
-                        res.push_str(&ident);
-                        // get sn and en
-                        let mut sn = 0;
-                        let mut en = 0;
+            Expression::InExpression(token, left, right) => match right.as_ref().to_owned() {
+                Expression::RangeExpression(token, start, end) => {
+                    let ident: String = self.transpile_expression(left.as_ref().to_owned());
+                    res.push_str("for (let ");
+                    res.push_str(&ident);
 
-                        match start.as_ref().to_owned() {
-                            Expression::IntegerLiteral(token, value) => sn = value,
-                            _ => panic!("start must be of type number"),
-                        }
-
-                        match end.as_ref().to_owned() {
-                            Expression::IntegerLiteral(token, value) => en = value,
-                            _ => panic!("end must be of type number"),
-                        }
-
-                        res.push_str(" = ");
-                        res.push_str(&sn.to_string());
-                        res.push_str(";");
-                        res.push_str(&ident);
-                        res.push_str(" < ");
-                        res.push_str(&en.to_string());
-                        res.push_str(";");
-                        res.push_str(&ident);
-                        res.push_str("++");
-                        res.push_str(") ");
-                    }
-                    _ => res.push_str(
-                        format!(
-                            "for (let {} of {}) ",
-                            self.transpile_expression(left.as_ref().to_owned()),
-                            self.transpile_expression(right.as_ref().to_owned())
-                        )
-                        .as_str(),
-                    ),
+                    res.push_str(" = ");
+                    res.push_str(&self.transpile_expression(start.as_ref().to_owned()));
+                    res.push_str(";");
+                    res.push_str(&ident);
+                    res.push_str(" < ");
+                    res.push_str(&self.transpile_expression(end.as_ref().to_owned()));
+                    res.push_str(";");
+                    res.push_str(&ident);
+                    res.push_str("++");
+                    res.push_str(") ");
                 }
-            }
+                _ => res.push_str(
+                    format!(
+                        "for (let {} of {}) ",
+                        self.transpile_expression(left.as_ref().to_owned()),
+                        self.transpile_expression(right.as_ref().to_owned())
+                    )
+                    .as_str(),
+                ),
+            },
             _ => panic!("Condition must be boolean"),
         }
 
@@ -495,17 +504,25 @@ impl Transpiler {
             }
             Expression::PrefixExpression(token, op, value) => {
                 format!(
-                    "({}{})",
+                    // "({}{})",
+                    "{}{}",
                     op,
                     self.transpile_expression(value.as_ref().to_owned())
                 )
             }
             Expression::InfixExpression(token, left, operator, right) => {
                 format!(
-                    "({} {} {})",
+                    // "({} {} {})",
+                    "{} {} {}",
                     self.transpile_expression(left.as_ref().to_owned()),
                     operator,
                     self.transpile_expression(right.as_ref().to_owned())
+                )
+            }
+            Expression::GroupedExpression(token, expression) => {
+                format!(
+                    "({})",
+                    self.transpile_expression(expression.as_ref().to_owned())
                 )
             }
             Expression::IfExpression(token, condition, consequence, elseif, else_) => {
@@ -717,31 +734,12 @@ impl Transpiler {
                 )
             }
             Expression::RangeExpression(token, start, end) => {
-                let mut res = String::new();
-
-                res.push_str("[");
-                let mut sn = 0;
-                let mut en = 0;
-                match start.as_ref().to_owned() {
-                    Expression::IntegerLiteral(token, value) => sn = value,
-                    _ => panic!("start must be of type number"),
-                }
-
-                match end.as_ref().to_owned() {
-                    Expression::IntegerLiteral(token, value) => en = value,
-                    _ => panic!("end must be of type number"),
-                }
-
-                let mut numbers = vec![];
-                for i in sn..en {
-                    numbers.push(i.to_string());
-                }
-
-                let joined = numbers.join(",");
-
-                res.push_str(&joined);
-                res.push_str("]");
-                res
+                format!(
+                    "{}({},{})",
+                    hash_string(builtins::INT_RANGE),
+                    self.transpile_expression(start.as_ref().to_owned()),
+                    self.transpile_expression(end.as_ref().to_owned())
+                )
             }
             Expression::AssignExpression(token, left, right) => {
                 format!(
@@ -916,7 +914,10 @@ impl Transpiler {
                         false,
                     );
                 } else {
-                    return (Expression::FunctionLiteral(fn_token, fn_name, params, body), true);
+                    return (
+                        Expression::FunctionLiteral(fn_token, fn_name, params, body),
+                        true,
+                    );
                 }
             }
             _ => {}

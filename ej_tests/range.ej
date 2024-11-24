@@ -1,0 +1,9 @@
+import "std"
+
+x = 0
+y = 10
+
+for i in x..y {
+    x += 1
+    @print(x..y)
+}

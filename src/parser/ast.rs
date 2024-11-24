@@ -144,6 +144,8 @@ pub enum Expression {
     NewClassExpression(tk::Token, Box<Expression>),
     /// Float literal 0.0
     FloatLiteral(tk::Token, f64),
+    /// Grouped Expression ()
+    GroupedExpression(tk::Token, Box<Expression>),
 }
 
 impl Expression {
@@ -184,6 +186,7 @@ impl Expression {
             Expression::DefaultIfNullExpression(_, _, _) => "DefaultIfNullExpression",
             Expression::NewClassExpression(_, _) => "NewClassExpression",
             Expression::FloatLiteral(_, _) => "FloatLiteral",
+            Expression::GroupedExpression(_, _) => "GroupedExpression"
         }
     }
 

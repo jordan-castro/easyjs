@@ -6,6 +6,7 @@ pub mod repl;
 pub mod commands;
 pub mod std;
 pub mod interpreter;
+pub mod builtins;
 
 use wasm_bindgen::prelude::*;
 

@@ -567,13 +567,14 @@ fn parse_boolean(p: &mut Parser) -> ast::Expression {
 }
 
 fn parse_group_expression(p: &mut Parser) -> ast::Expression {
+    let token = p.c_token.clone();
     p.next_token();
     let exp = parse_expression(p, LOWEST);
     if !p.expect_peek(token::R_PAREN) {
         return ast::Expression::EmptyExpression;
     }
 
-    exp
+    ast::Expression::GroupedExpression(token, Box::new(exp))
 }
 
 fn parse_if_expression(p: &mut Parser) -> ast::Expression {
@@ -948,17 +949,18 @@ fn parse_index_expression(p: &mut Parser, left: ast::Expression) -> ast::Express
 
 fn parse_range_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression {
     let token = p.c_token.to_owned();
+    p.next_token();
 
-    if !left.eq(ast::Expression::IntegerLiteral(token::EMPTY_TOKEN, 0)) {
-        p.errors
-            .push("Range must start with an integer".to_string());
-        return ast::Expression::EmptyExpression;
-    }
+    // if !left.eq(ast::Expression::IntegerLiteral(token::EMPTY_TOKEN, 0)) {
+    //     p.errors
+    //         .push("Range must start with an integer".to_string());
+    //     return ast::Expression::EmptyExpression;
+    // }
 
-    if !p.expect_peek(token::INT) {
-        p.errors.push("Range must end with a integer".to_string());
-        return ast::Expression::EmptyExpression;
-    }
+    // if !p.expect_peek(token::INT) {
+    //     p.errors.push("Range must end with a integer".to_string());
+    //     return ast::Expression::EmptyExpression;
+    // }
 
     let right = parse_expression(p, LOWEST);
     if right.is_empty() {

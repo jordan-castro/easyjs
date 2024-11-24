@@ -18,12 +18,16 @@
 - ~~add += -= /= *= %=~~ 
 - add ** support or whatever that is.
 - add generator support (yeild, *func)
-- fix () infix and prefix math and whatnot
+- ~~fix () infix and prefix math and whatnot~~
+- move minifier to compile command not transpiler.
 
 ## EasyJS
 - add std
-    - http
-    - json
+- http
+- json
+- math
+- random
+- ui
 
 ## Macros
 - ~~Use BoaJS for macros.~~
@@ -31,6 +35,7 @@
 ## Builtins
 - ~~trycatch builtin error handling~~
 - use macros for most builtins (macros start with a $ or a @)
+- ~~builtins are also done using pure JS functions...~~
 
 ## Scripts
 - add a script to build binaries for all platforms (windows, macos, linux).

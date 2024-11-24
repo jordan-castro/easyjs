@@ -18,10 +18,14 @@ pub fn compile(input: String, pretty: bool, place_watermark: bool) -> String {
     let mut transpiler = Transpiler::new();
 
     let js = transpiler.transpile(program, pretty);
+    let sep = if pretty { "\n\n" } else { ";" };
+    let builtins = transpiler.builtins.to_owned().join(sep);
+
+    let code = format!("{}{}{}", builtins, "\n\n", js);
     let watermark = if place_watermark {
         format!("// Compiled by EasyJS version {}\n", version::VERSION_CODE)
     } else {
         "".to_string()
     };
-    format!("{}{}", watermark, js)
+    format!("{}{}", watermark, code)
 }

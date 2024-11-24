@@ -12,18 +12,6 @@ macro first(array) {
     array[0]
 }
 
-fn expect(method, error_msg) {
-    fn() {
-        javascript {
-            try {
-                return method();
-            } catch (e) {
-                return error_msg;
-            }
-        }
-    }
-}
-
 macro expect(method, error_msg) {
     javascript{
         try {
