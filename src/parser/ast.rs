@@ -21,17 +21,19 @@ pub enum Statement {
     // javascript{}
     JavaScriptStatement(tk::Token, String),
     /// ```easyjs
-    /// struct name {
-    ///     fn new(self, length) { // constructor
-    ///        self.length = length // <- set the length
+    /// struct Person {
+    ///     name = "" // variables
+    ///     age = null
+    ///     fn constructor(self, name) { // constructor
+    ///        self.name = name // <- set the length
     ///     }
     /// }
     /// ```
-    StructStatement(tk::Token, Box<Expression>, Box<Vec<Expression>>),
+    StructStatement(tk::Token, Box<Expression>, Box<Vec<Statement>>, Box<Vec<Expression>>),
 }
 
 impl Statement {
-    pub fn variant_type(&self) -> &'static str {
+    pub fn variant_type(&self) -> String {
         match self {
             Statement::EmptyStatement => "EmptyStatement",
             Statement::VariableStatement(_, _, _) => "VariableStatement",
@@ -43,8 +45,8 @@ impl Statement {
             Statement::ConstVariableStatement(_, _, _) => "ConstVarStatement",
             Statement::ForStatement(_, _, _) => "ForStatement",
             Statement::JavaScriptStatement(_, _) => "JavaScriptStatement",
-            Statement::StructStatement(_, _, _) => "StructStatement",
-        }
+            Statement::StructStatement(_, _, _, _) => "StructStatement",
+        }.to_string()
     }
 
     pub fn eq(&self, other: Statement) -> bool {
@@ -205,3 +207,9 @@ pub fn empty_expression() -> Expression {
 pub fn empty_statement() -> Statement {
     Statement::EmptyStatement
 }
+
+pub fn empty_box_exp() -> Box<Expression> {
+    Box::new(empty_expression())
+}
+
+// pub fn empty_box_stmt

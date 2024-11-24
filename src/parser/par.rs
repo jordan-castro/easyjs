@@ -1,6 +1,8 @@
 use crate::lexer::{lex, token};
 use crate::parser::ast;
 
+use super::ast::empty_expression;
+
 /// Our AST parser.
 pub struct Parser {
     /// Access to the lexer.
@@ -17,21 +19,26 @@ pub struct Parser {
 
 // Constant values
 const LOWEST: i64 = 1;
-const EQUALS: i64 = 2; // ==
-const LESSGREATER: i64 = 3; // < or >
-const SUM: i64 = 4; // +
-const PRODUCT: i64 = 5; // *
-// const PREFIX: i64 = 6; // -X or !X
+
+// math
+const EQUALS: i64 = 2; // == !=
+
+const LESSGREATER: i64 = 3; // < > >= <=
+const SUM: i64 = 4; // + -
+const PRODUCT: i64 = 5; // * /
+
+const DOT: i64 = 6; // .field or .method
+
 const CALL: i64 = 7; // my_function(X)
-const DOT: i64 = 8; // .field or .method
-const LESSGREATER_OR_EQUALS: i64 = 9; // <= or >=
 const BRACKET: i64 = 10; // [
 const BRACE: i64 = 11; // {
 const DOTDOT: i64 = 12; // ..
 const IN: i64 = 13; // in
 const OF: i64 = 14; // of
 const AWAIT: i64 = 15; // await
+
 const ASSIGN: i64 = 16;
+
 const DEF: i64 = 17;
 const AS: i64 = 18;
 const MACRO_SYMBOL: i64 = 19;
@@ -41,7 +48,6 @@ const AND: i64 = 22;
 const OR: i64 = 23;
 const QUESTION_MARK: i64 = 24;
 const DOUBLE_QUESTION_MARK: i64 = 25;
-const MODULUS: i64 = 26;
 const NEW: i64 = 27;
 
 /// Find the precedence of a token.
@@ -57,8 +63,8 @@ fn precedences(tk: &str) -> i64 {
         token::ASTERISK => PRODUCT,
         token::L_PAREN => CALL,
         token::DOT => DOT,
-        token::LT_OR_EQ => LESSGREATER_OR_EQUALS,
-        token::GT_OR_EQ => LESSGREATER_OR_EQUALS,
+        token::LT_OR_EQ => LESSGREATER,
+        token::GT_OR_EQ => LESSGREATER,
         token::L_BRACKET => BRACKET,
         token::L_BRACE => BRACE,
         token::DOTDOT => DOTDOT,
@@ -75,8 +81,11 @@ fn precedences(tk: &str) -> i64 {
         token::OR_SYMBOL => OR,
         token::QUESTION_MARK => QUESTION_MARK,
         token::DOUBLE_QUESTION_MARK => DOUBLE_QUESTION_MARK,
-        token::MODULUS => MODULUS,
+        token::MODULUS => PRODUCT,
         token::NEW => NEW,
+        token::PLUS_EQUALS => ASSIGN,
+        token::MINUS_EQUALS => ASSIGN,
+        token::SLASH_EQUALS => ASSIGN,
         _ => LOWEST,
     }
 }
@@ -194,6 +203,9 @@ impl Parser {
             token::QUESTION_MARK => true,
             token::DOUBLE_QUESTION_MARK => true,
             token::MODULUS => true,
+            token::PLUS_EQUALS => true,
+            token::MINUS_EQUALS => true,
+            token::SLASH_EQUALS => true,
             _ => false,
         }
     }
@@ -224,6 +236,9 @@ impl Parser {
             token::QUESTION_MARK => parse_question_mark_expression(self, left),
             token::DOUBLE_QUESTION_MARK => parse_double_question_mark_expression(self, left),
             token::MODULUS => parse_infix_expression(self, left),
+            token::PLUS_EQUALS => parse_infix_expression(self, left),
+            token::MINUS_EQUALS => parse_infix_expression(self, left),
+            token::SLASH_EQUALS => parse_infix_expression(self, left),
             _ => ast::Expression::EmptyExpression,
         }
     }
@@ -626,19 +641,14 @@ fn parse_function_literal(p: &mut Parser) -> ast::Expression {
         return parse_lambda_literal(p);
     }
     
-    // // check if a macro function
-    // if p.peek_token_is(token::MACRO_SYMBOL) || p.peek_token_is(token::DECORATOR) {
-    //     p.next_token();
-    //     return parse_macro_decleration(p);
-    // }
-
     // ok lets make sure this is a function
-    if !p.expect_peek(token::IDENT) {
+    if !(p.peek_token_is(token::IDENT) || p.peek_token_is(token::NEW)) {
+        p.errors.push(format!("Expected a IDENT or NEW, got {} instead", p.peek_token.typ));
         // not a function
         return ast::Expression::EmptyExpression;
     }
+    p.next_token();
     let name = parse_identifier(p);
-
 
     if !p.expect_peek(token::L_PAREN) {
         return ast::Expression::EmptyExpression;
@@ -1112,11 +1122,37 @@ fn parse_struct_statement(p: &mut Parser) -> ast::Statement {
     }
 
     let mut methods = vec![];
+    let mut variables = vec![];
     if p.peek_token_is(token::R_BRACE) {
         p.next_token(); // consume the }
-        return ast::Statement::StructStatement(token, Box::new(ident), Box::new(methods));
+        return ast::Statement::StructStatement(token, Box::new(ident), Box::new(variables), Box::new(methods));
     }
 
+    // Check if we have a list of variables
+    if p.peek_token_is(token::IDENT) {
+        p.next_token();
+        loop {
+            let stmt = parse_statement(p);
+            // only allow variable stmts for the moment.
+            if !stmt.eq(ast::Statement::VariableStatement(token::EMPTY_TOKEN, ast::empty_box_exp(), ast::empty_box_exp())) && !stmt.eq(
+                ast::Statement::ConstVariableStatement(token::EMPTY_TOKEN, ast::empty_box_exp(), ast::empty_box_exp())
+            ) {
+                return ast::empty_statement();
+            }
+            variables.push(stmt);
+            if !p.peek_token_is(token::IDENT) {
+                break;
+            }
+            p.next_token();
+        }
+        // the struct is closed...
+        if p.peek_token_is(token::R_BRACE) {
+            p.next_token();
+            return ast::Statement::StructStatement(token, Box::new(ident), Box::new(variables), Box::new(methods));
+        }
+    }
+
+    // what else could this be???
     if !p.expect_peek(token::FUNCTION) {
         return ast::empty_statement();
     }
@@ -1138,7 +1174,7 @@ fn parse_struct_statement(p: &mut Parser) -> ast::Statement {
     // consume the }
     p.next_token();
 
-    ast::Statement::StructStatement(token, Box::new(ident), Box::new(methods))
+    ast::Statement::StructStatement(token, Box::new(ident), Box::new(variables), Box::new(methods))
 }
 
 fn parse_and_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression {

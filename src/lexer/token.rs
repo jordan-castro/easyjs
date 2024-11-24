@@ -51,6 +51,10 @@ pub const OR_SYMBOL: &str = "||";
 pub const QUESTION_MARK: &str = "?";
 pub const DOUBLE_QUESTION_MARK: &str = "??";
 pub const MODULUS: &str = "%";
+pub const PLUS_EQUALS: &str = "+=";
+pub const MINUS_EQUALS: &str = "-=";
+pub const SLASH_EQUALS: &str = "/=";
+pub const ASTERISK_EQUALS: &str = "*=";
 
 // Delimiters
 pub const COMMA: &str = ",";

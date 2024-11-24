@@ -1,0 +1,12 @@
+fn function_with_kwarsgs(father, mother, kwargs) {
+    console.log(kwargs.name)
+}
+
+function_with_kwarsgs(father, mother, name="Jordan", age=[22,33,44]) 
+// function_with_kwarsgs(father, mother, {name: "Jordan", age: [22,33,44]})
+
+fn function_with_args(args) {
+    console.log(args[0])
+}
+
+function_with_args(arg1, arg2, arg3, arg4) // function_with_args([arg1,arg2,arg3,arg4])

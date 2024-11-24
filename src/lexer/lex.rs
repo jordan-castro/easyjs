@@ -202,9 +202,27 @@ impl Lex {
                     token::new_token(token::DOT, &self.current_char_str())
                 }
             }
-            '+' => token::new_token(token::PLUS, &self.current_char_str()),
-            '-' => token::new_token(token::MINUS, &self.current_char_str()),
-            '*' => token::new_token(token::ASTERISK, &self.current_char_str()),
+            '+' => {
+                if self.peek_char() == '=' {
+                    token::new_token(token::PLUS_EQUALS, &self.cc_pp())
+                } else {
+                    token::new_token(token::PLUS, &self.current_char_str())
+                }
+            }
+            '-' => {
+                if self.peek_char() == '=' {
+                    token::new_token(token::MINUS_EQUALS, &self.cc_pp())
+                } else {
+                    token::new_token(token::MINUS, &self.current_char_str())
+                }
+            }
+            '*' => {
+                if self.peek_char() == '=' {
+                    token::new_token(token::ASTERISK_EQUALS, &self.cc_pp())
+                } else {
+                    token::new_token(token::ASTERISK, &self.current_char_str())
+                }
+            }
             '{' => token::new_token(token::L_BRACE, &self.current_char_str()),
             '}' => token::new_token(token::R_BRACE, &self.current_char_str()),
             '(' => token::new_token(token::L_PAREN, &self.current_char_str()),
@@ -250,6 +268,8 @@ impl Lex {
             '/' => {
                 if self.peek_char() == '/' {
                     token::new_token(token::COMMENT, &self.read_comment())
+                } else if self.peek_char() == '=' {
+                    token::new_token(token::SLASH_EQUALS, &self.cc_pp())
                 } else {
                     token::new_token(token::SLASH, &self.current_char_str())
                 }

@@ -1,6 +1,9 @@
 import "std"
 
 struct Person {
+    name=null
+    age=null
+    
     fn constructor(self, name, age) {
         self.name = name
         self.age = age
@@ -18,8 +21,3 @@ struct Person {
         self.age = 1 + self.age
     }
 }
-
-// easyjs
-new_person = Person("Evelyn", 19)
-new_person.greet()
-Person.a_static_method()

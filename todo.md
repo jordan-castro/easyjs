@@ -11,12 +11,14 @@
 - add ".wasm" support?
 - ~~add % support~~
 - ~~add decimal support~~
-- Fix static methods.
-- support lambdas in structs.
+- ~~Fix static methods.~~
+- ~~add back the new() instead of constructor~~
 - implement operator overloading.
 - Implement inheritence (that's a maybe, a probably not tbh. We will see.)
-- add += -= /= *= %= 
+- ~~add += -= /= *= %=~~ 
 - add ** support or whatever that is.
+- add generator support (yeild, *func)
+- fix () infix and prefix math and whatnot
 
 ## EasyJS
 - add std
@@ -38,6 +40,7 @@
 
 ## Repl
 - Debugger should print the statements.
+- Multiline repl stmts.
 
 ## Docs
 

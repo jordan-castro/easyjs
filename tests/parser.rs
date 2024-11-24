@@ -376,7 +376,7 @@ mod tests {
     #[test]
     fn test_macro_expression() {
         let input = "
-            fn $except(values, err) {
+            macro except(values, err) {
                 javascript{
                     try {
                         return values;
@@ -402,17 +402,29 @@ mod tests {
     fn test_struct_stmts() {
         let input = "
             struct Person {
-                fn new(self, name) {
+                fn constructor(self, name) {
                     self.name = name
                 }
 
                 fn greet(self) {
                 }
             }
+            
+            struct StructWithVarsAndMethods {
+                name = ''
+                age = null
+
+                fn constructor(self,name,age) {
+                    self.name = name
+                    self.age = age
+                }
+            }
 
             struct EmptyStruct {
-
+                one=1
+                two=null
             }
+
         ".to_string();
 
         let l: lex::Lex = lex::Lex::new(input);
@@ -423,6 +435,7 @@ mod tests {
         println!("{:#?}", program.statements);
 
         assert_eq!(p.errors.len(), 0);
-        assert_eq!(program.statements.len(), 2);
+        assert_eq!(program.statements.len(), 3);
+
     }
 }

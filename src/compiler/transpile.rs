@@ -124,8 +124,8 @@ impl Transpiler {
             ast::Statement::JavaScriptStatement(token, js) => {
                 Some(self.transpile_javascript_stmt(token, js))
             }
-            ast::Statement::StructStatement(token, name, methods) => Some(
-                self.transpile_struct_stmt(name.as_ref().to_owned(), methods.as_ref().to_owned()),
+            ast::Statement::StructStatement(token, name, vars, methods) => Some(
+                self.transpile_struct_stmt(name.as_ref().to_owned(), vars.as_ref().to_owned(), methods.as_ref().to_owned()),
             ),
             _ => None,
         }
@@ -429,6 +429,7 @@ impl Transpiler {
     fn transpile_struct_stmt(
         &mut self,
         name: ast::Expression,
+        variables: Vec<ast::Statement>,
         methods: Vec<ast::Expression>,
     ) -> String {
         let mut res = String::new();
@@ -439,6 +440,27 @@ impl Transpiler {
 
         res.push_str(&name);
         res.push_str(" {\n");
+
+        for var in variables {
+            match var {
+                Statement::VariableStatement(token, name, value) => {
+                    res.push_str(&self.transpile_expression(name.as_ref().to_owned()));
+                    res.push_str(" = ");
+                    res.push_str(&self.transpile_expression(value.as_ref().to_owned()));
+                    res.push_str(";\n");
+                }
+                Statement::ConstVariableStatement(token, name, value) => {
+                    res.push_str("static ");
+                    res.push_str(&self.transpile_expression(name.as_ref().to_owned()));
+                    res.push_str(" = ");
+                    res.push_str(&self.transpile_expression(value.as_ref().to_owned()));
+                    res.push_str(";\n");
+                }
+                _ => {
+                    res.push_str("");
+                }
+            }
+        }
 
         for method in methods {
             res.push_str(&self.transpile_struct_method(method));
@@ -845,6 +867,8 @@ impl Transpiler {
         res
     }
 
+    /// This gets the actual data for the struct method expression.
+    /// Takes in `method` and returns the inner workings, and whether or not it is static..
     fn get_struct_method_function_exp(
         &mut self,
         method: ast::Expression,
@@ -859,7 +883,7 @@ impl Transpiler {
             }
             Expression::FunctionLiteral(fn_token, fn_name, params, body) => {
                 // check if is a predescribed method like new => constructor
-                if self.transpile_expression(fn_name.as_ref().to_owned()) == hash_string("new") {
+                if self.transpile_expression(fn_name.as_ref().to_owned()) == "new" {
                     return (
                         Expression::FunctionLiteral(
                             fn_token,
@@ -878,6 +902,7 @@ impl Transpiler {
                 if params.len() == 0 {
                     return (method.to_owned(), true);
                 }
+
                 let first_param = params.get(0).unwrap().to_owned();
                 if self.transpile_expression(first_param) == "this" {
                     // this is a non static method.
@@ -890,6 +915,8 @@ impl Transpiler {
                         ),
                         false,
                     );
+                } else {
+                    return (Expression::FunctionLiteral(fn_token, fn_name, params, body), true);
                 }
             }
             _ => {}
