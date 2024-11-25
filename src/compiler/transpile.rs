@@ -63,35 +63,30 @@ impl Transpiler {
         self.scripts = vec![];
     }
 
-    fn to_string(&self, pretty: bool) -> String {
+    fn to_string(&self) -> String {
         let mut res = String::new();
 
         for script in self.scripts.iter() {
-            if !pretty {
-                let script = script.replace("\n", " ");
-                res.push_str(&script);
-            } else {
-                res.push_str(&script);
-            }
+            res.push_str(&script);
         }
 
         res
     }
 
-    pub fn transpile_from_string(&mut self, p: String, pretty: bool) -> String {
+    pub fn transpile_from_string(&mut self, p: String) -> String {
         let l = lex::Lex::new(p);
         let mut p = par::Parser::new(l);
         let program = p.parse_program();
 
-        self.transpile_from(program, pretty)
+        self.transpile_from(program)
     }
 
-    pub fn transpile(&mut self, p: ast::Program, pretty: bool) -> String {
-        let code = self.transpile_from(p, pretty);
+    pub fn transpile(&mut self, p: ast::Program) -> String {
+        let code = self.transpile_from(p);
         code
     }
 
-    fn transpile_from(&mut self, p: ast::Program, pretty: bool) -> String {
+    fn transpile_from(&mut self, p: ast::Program) -> String {
         for stmt in p.statements {
             if stmt.is_empty() {
                 continue;
@@ -104,7 +99,7 @@ impl Transpiler {
                 self.scripts.push(script);
             }
         }
-        self.to_string(pretty)
+        self.to_string()
     }
 
     fn transpile_stmt(&mut self, stmt: ast::Statement) -> Option<String> {

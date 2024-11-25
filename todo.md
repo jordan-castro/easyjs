@@ -20,6 +20,7 @@
 - add generator support (yeild, *func)
 - ~~fix () infix and prefix math and whatnot~~
 - move minifier to compile command not transpiler.
+- add module support.
 
 ## EasyJS
 - add std
@@ -44,13 +45,12 @@
 - add wasm import support
 
 ## Repl
-- Debugger should print the statements.
-- Multiline repl stmts.
+- ~~Multiline repl stmts.~~
 
 ## Docs
 
 ## Extension
-- add comments highlight
+- ~~add comments highlight~~
 
 ## Build Tool
 - Add a project generator (this should be easy...)

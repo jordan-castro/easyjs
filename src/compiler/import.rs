@@ -7,7 +7,7 @@ pub fn import_std_lib(ts: &mut Transpiler, lib_path: &str) -> String {
     // Make sure this is a file of ours.
     let contents = load_std(&lib_path);
     if contents.len() > 0 {
-        return ts.transpile_from_string(contents, false);
+        return ts.transpile_from_string(contents);
     }
 
     String::new()
@@ -18,7 +18,7 @@ pub fn import_easy_js(ts: &mut Transpiler, file_path: &str) -> String {
     // first read the file contnst
     let contents = read_file(file_path);
     if contents.len() > 0 {
-        return ts.transpile_from_string(contents, false);
+        return ts.transpile_from_string(contents);
     }
 
     String::new()

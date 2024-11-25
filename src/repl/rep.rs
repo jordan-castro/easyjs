@@ -32,17 +32,21 @@ pub fn start(runtime_option: &str, crash_on_error: bool, debug:bool) {
 
     loop {
         transpiler.reset();
+        
         print!("{}", PROMPT);
         std::io::stdout().flush().unwrap();
-        let mut input = String::new();
-        std::io::stdin().read_line(&mut input).unwrap();
-        let input = input.trim();
+        
+        // let mut inputs = vec![];
+        let input = get_input();
+        let oinput = input.trim();
 
-        if input == "quit" {
+        if oinput == "quit" {
             break;
+        } else if oinput.len() == 0 {
+            continue;
         }
 
-        let lexer = lex::Lex::new(input.to_string());
+        let lexer = lex::Lex::new(input);
         let mut parser = par::Parser::new(lexer);
         let program = parser.parse_program();
 
@@ -53,7 +57,7 @@ pub fn start(runtime_option: &str, crash_on_error: bool, debug:bool) {
             continue;
         }
 
-        let js = transpiler.transpile(program, false);
+        let js = transpiler.transpile(program);
 
         if debug {
             println!("{}", js);
@@ -72,3 +76,32 @@ pub fn start(runtime_option: &str, crash_on_error: bool, debug:bool) {
 
     runtime.close();
 }
+
+/// Get the users input, allow for multine.
+fn get_input() -> String {
+    let mut result = String::new();
+
+    let mut brace_count = 0;
+    loop {
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input).unwrap();
+
+        input = input.trim().to_string();
+        result += &input;
+
+        if input.ends_with("{") {
+            brace_count += 1;
+        }
+
+        if input.ends_with("}") {
+            brace_count -= 1;
+        }
+
+        if brace_count == 0 {
+            break;
+        }
+    }
+
+    result
+}
+
