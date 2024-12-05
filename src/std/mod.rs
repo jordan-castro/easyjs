@@ -1,4 +1,13 @@
 // EasyJS STD version 0.2.0
+const BUILTINS: &str = "export fn int_range(start, end) {
+    res = []
+    // the .. works because this is a for loop...
+    for i in start..end {
+        res.push(i)
+    }
+
+    return res
+}";
 const DOM: &str = "// ! This can only be used in the browser.
 
 // shorthand for document.
@@ -120,16 +129,15 @@ const WASM: &str = "";
 
 /// Load a STD library from EasyJS version 0.2.0, or an empty string if not found.
 pub fn load_std(name: &str) -> String {
-    match name {
-        "dom" => DOM,
-        "easy_wasm" => EASY_WASM,
-        "expect" => EXPECT,
-        "http" => HTTP,
-        "json" => JSON,
-        "std" => STD,
-        "ui" => UI,
-        "wasm" => WASM,
-        _ => "",
-    }
-    .to_string()
-}
+match name {
+"builtins" => BUILTINS,
+"dom" => DOM,
+"easy_wasm" => EASY_WASM,
+"expect" => EXPECT,
+"http" => HTTP,
+"json" => JSON,
+"std" => STD,
+"ui" => UI,
+"wasm" => WASM,
+_ => "",
+}.to_string()}

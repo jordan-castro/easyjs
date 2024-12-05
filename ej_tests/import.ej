@@ -1,8 +1,5 @@
-// This file tests the import statement in EasyJS
-import "std"
-import "ej_tests/struct.ej"
-import "fs.js" as file_system
+use core:std // import * from "./std.js"
+use base:file // import "./file.js"
+use js:file // import "./file.js"
 
-from "some.js" import SomeClass
-from "other.js" import def init
-from "new.js" import star
+use string:"any thing goes here..."

@@ -81,7 +81,7 @@ impl Runtime {
 /// run a ej file.
 pub fn run_file(runtime: &str, path: &str) {
     let input = std::fs::read_to_string(path).expect("FAILED TO READ FILE");
-    let js_content = compile::compile(input, false, false);
+    let js_content = compile::compile_main(input);
 
     let js_file_path = format!("{}.js", utils::h::generate_hash(path));
 

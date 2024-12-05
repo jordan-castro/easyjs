@@ -1,0 +1,16 @@
+use std.pyscript as py
+
+py.run(is_file=true, source="file.py", wasm=false)
+
+
+for x in 0..10 {
+ console.log(x)   
+}
+
+for x in array {
+    console.log(x)
+}
+
+for x < 10 {
+    x += 10
+}

@@ -24,12 +24,6 @@ pub fn start(runtime_option: &str, crash_on_error: bool, debug:bool) {
     println!("{}", EASY_JS_ASCII);
     println!("EasyJS {}", version::VERSION_CODE);
 
-    let builtins = transpiler.builtins.to_owned();
-    // run the builtin scripts
-    for builtin in builtins {
-        runtime.send_command(&builtin);
-    }
-
     loop {
         transpiler.reset();
         

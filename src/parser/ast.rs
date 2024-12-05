@@ -10,8 +10,10 @@ pub enum Statement {
     EmptyStatement,                                                 // there was an issue
     VariableStatement(tk::Token, Box<Expression>, Box<Expression>), // variable = expression
     ReturnStatement(tk::Token, Box<Expression>),                    // return expression
-    ImportStatement(tk::Token, String, Box<Expression>),            // import path as something_else
-    FromImportStatement(tk::Token, String, Box<Vec<Expression>>),
+    /// use prefix:path
+    UseStatement(tk::Token, Box<Expression>, Box<Expression>),
+    /// use {container optional(as something)} from prefix:path
+    UseFromStatement(tk::Token, Box<Vec<Expression>>, Box<Expression>, Box<Expression>),
     ExpressionStatement(tk::Token, Box<Expression>), // token expression
     BlockStatement(tk::Token, Box<Vec<Statement>>),  // { statements }
     // token identifier = value
@@ -30,6 +32,12 @@ pub enum Statement {
     /// }
     /// ```
     StructStatement(tk::Token, Box<Expression>, Box<Vec<Statement>>, Box<Vec<Expression>>),
+
+    /// export fn
+    /// export struct
+    /// export var
+    /// export const
+    ExportStatement(tk::Token, Box<Statement>),
 }
 
 impl Statement {
@@ -38,14 +46,15 @@ impl Statement {
             Statement::EmptyStatement => "EmptyStatement",
             Statement::VariableStatement(_, _, _) => "VariableStatement",
             Statement::ReturnStatement(_, _) => "ReturnStatement",
-            Statement::ImportStatement(_, _, _) => "ImportStatement",
-            Statement::FromImportStatement(_, _, _) => "FromImportStatement",
+            Statement::UseStatement(_, _, _) => "UseStatement",
+            Statement::UseFromStatement(_, _, _, _) => "UseFromStatement",
             Statement::ExpressionStatement(_, _) => "ExpressionStatement",
             Statement::BlockStatement(_, _) => "BlockStatement",
             Statement::ConstVariableStatement(_, _, _) => "ConstVarStatement",
             Statement::ForStatement(_, _, _) => "ForStatement",
             Statement::JavaScriptStatement(_, _) => "JavaScriptStatement",
             Statement::StructStatement(_, _, _, _) => "StructStatement",
+            Statement::ExportStatement(_, _) => "ExportStatement",
         }.to_string()
     }
 
@@ -111,10 +120,8 @@ pub enum Expression {
     AssignExpression(tk::Token, Box<Expression>, Box<Expression>),
     /// not expression
     NotExpression(tk::Token, Box<Expression>),
-    /// as exp
-    AsExpression(tk::Token, Box<Expression>),
-    /// def someting => default something
-    DefExpression(tk::Token, Box<Expression>),
+    /// left as right
+    AsExpression(tk::Token, Box<Expression>, Box<Expression>),
     /// Macro ($, ident, arguments, body)
     MacroExpression(tk::Token, Box<Expression>, Box<Vec<Expression>>),
     /// Declaring the macro ($, ident, arguments, body as BlockStatment)
@@ -176,8 +183,7 @@ impl Expression {
             Expression::ObjectLiteral(_, _) => "ObjectLiteral",
             Expression::AssignExpression(_, _, _) => "AssignExpression",
             Expression::NotExpression(_, _) => "NotExpression",
-            Expression::AsExpression(_, _) => "AsExpression",
-            Expression::DefExpression(_, _) => "DefExpression",
+            Expression::AsExpression(_, _, _) => "AsExpression",
             Expression::MacroExpression(_, _, _) => "MacroExpression",
             Expression::MacroDecleration(_, _, _, _) => "MacroDecleration",
             Expression::AndExpression(_, _, _) => "AndExpression",

@@ -1,0 +1,9 @@
+export fn int_range(start, end) {
+    res = []
+    // the .. works because this is a for loop...
+    for i in start..end {
+        res.push(i)
+    }
+
+    return res
+}

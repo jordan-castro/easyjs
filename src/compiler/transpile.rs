@@ -1,5 +1,6 @@
 use boa_engine::Context;
 use std::collections::HashMap;
+use std::path;
 
 use super::macros::Macro;
 use crate::builtins;
@@ -10,21 +11,21 @@ use crate::parser::{ast, par};
 use crate::utils::js_helpers::is_javascript_keyword;
 use crate::{lexer::token, utils::h::hash_string};
 
-use super::import::{
-    get_import_type, import_easy_js, import_std_lib, import_wasm_module, ImportType,
-};
+use super::import::{get_js_module_name, import, ImportType};
 
 pub struct Transpiler {
+    /// Stmt by Stmt
     scripts: Vec<String>,
-    variables: Vec<String>,
-    macros: HashMap<String, Macro>,
-    functions: Vec<String>,
-    structs: Vec<String>,
-    imports: Vec<String>,
+    /// All EasyJS variables.
+    pub variables: Vec<String>,
+    /// All EasyJS macros
+    pub macros: HashMap<String, Macro>,
+    /// All declared EasyJS functions
+    pub functions: Vec<String>,
+    /// All declared EasyJS structs.
+    pub structs: Vec<String>,
     /// Boa engine context.
     context: Context,
-    /// Builtin scripts in JS.
-    pub builtins: Vec<String>,
 }
 
 impl Transpiler {
@@ -34,33 +35,24 @@ impl Transpiler {
             variables: vec![],
             functions: vec![],
             macros: HashMap::new(),
-            imports: vec![],
             context: Context::default(),
             structs: vec![],
-            builtins: vec![],
         };
-
-        let int_range_builtin = format!(
-            "
-                const {} = (start, end) => {{
-                    let res = [];
-                    for (let i = start; i < end; i++) {{
-                        res.push(i);
-                    }}
-
-                    return res;
-                }};
-            ",
-            hash_string(builtins::INT_RANGE)
-        );
-        t.builtins.push(int_range_builtin.clone());
-        let _ = interpret_js(&int_range_builtin, &mut t.context);
         
         t
     }
 
     pub fn reset(&mut self) {
         self.scripts = vec![];
+    }
+
+    /// Add a module to the current scope.
+    /// 
+    /// `module: Transpiler` the modules transpiler.
+    pub fn add_module(&mut self, module: &mut Transpiler) {
+        self.functions.append(&mut module.functions);
+        self.variables.append(&mut module.variables);
+        self.structs.append(&mut module.structs);
     }
 
     fn to_string(&self) -> String {
@@ -112,11 +104,11 @@ impl Transpiler {
             ast::Statement::ReturnStatement(token, expression) => {
                 Some(self.transpile_return_stmt(token, expression.as_ref().to_owned()))
             }
-            ast::Statement::ImportStatement(token, path, optinal_as) => {
-                Some(self.transpile_import_stmt(token, path, optinal_as.as_ref().to_owned()))
+            ast::Statement::UseStatement(token, prefix, path) => {
+                Some(self.transpile_use_stmt(token, prefix.as_ref().to_owned(), path.as_ref().to_owned()))
             }
-            ast::Statement::FromImportStatement(token, path, imports) => {
-                Some(self.transpile_from_import_stmt(token, path, imports.as_ref().to_owned()))
+            ast::Statement::UseFromStatement(token, specs, prefix, path) => {
+                Some(self.transpile_use_from_stmt(token, specs.as_ref().to_owned(), prefix.as_ref().to_owned(), path.as_ref().to_owned()))
             }
             ast::Statement::ExpressionStatement(token, expression) => {
                 Some(self.transpile_expression_stmt(token, expression.as_ref().to_owned()))
@@ -146,8 +138,15 @@ impl Transpiler {
                     methods.as_ref().to_owned(),
                 ))
             }
+            Statement::ExportStatement(token, stmt) => {
+                Some(self.transpile_export_stmt(token, stmt.as_ref().to_owned()))
+            }
             _ => None,
         }
+    }
+
+    fn transpile_export_stmt(&mut self, token: token::Token, stmt: ast::Statement) -> String {
+        format!("export {};\n", self.transpile_stmt(stmt).unwrap())
     }
 
     fn transpile_var_stmt(
@@ -225,121 +224,116 @@ impl Transpiler {
         )
     }
 
-    fn transpile_import_stmt(
-        &mut self,
-        token: token::Token,
-        path: String,
-        optional_as: Expression,
-    ) -> String {
-        // we should not import it if already imported.
-        if self.imports.contains(&path) {
-            return "".to_string();
+    fn get_module_n_path(&mut self, exp: Expression) -> (String, String) {
+        match exp.to_owned() {
+            ast::Expression::Identifier(_token, path) => {
+                let module_name = get_js_module_name(path.split(".").last().unwrap());
+                let path_to_use = path;
+                (module_name, path_to_use)
+            }
+            ast::Expression::AsExpression(_tk, left, right) => {
+                let module_name = self.transpile_expression(right.as_ref().to_owned());
+                let path_to_use = self.transpile_expression(left.as_ref().to_owned());
+                (module_name, path_to_use)
+            }
+            ast::Expression::StringLiteral(_tk, lit) => {
+                let module_name = get_js_module_name(&lit);
+                let path_to_use = lit;
+                (module_name, path_to_use)
+            }
+            ast::Expression::DotExpression(_tk, left, right) => {
+                let full_path = self.transpile_expression(exp.to_owned());
+                let module_name = get_js_module_name(&full_path);
+                let path_to_use = full_path;
+                (module_name, path_to_use)
+            }
+            _ => {
+                panic!("Path must be of type (Identifier, AsExpression, StringLiteral, DotExpression)");
+            }
         }
+    }
 
+    fn transpile_use_stmt(&mut self, token: token::Token, prefix: Expression, path: Expression) -> String {
         let mut res = String::new();
+        let mut import_type = ImportType::Base;
 
-        self.imports.push(path.clone());
-
-        // TODO: check import file path type,
-        // supported in EasyJS is ".ej", ".js", ".json", ".wasm"
-        // no ".ts" <-- they're the competition
-        let import_type = get_import_type(&path);
-
-        match import_type {
-            ImportType::JavaScript => {
-                match optional_as {
-                    Expression::AsExpression(token, exp) => {
-                        res.push_str("import ");
-                        res.push_str("{");
-                        res.push_str("default as ");
-                        res.push_str(&self.transpile_expression(exp.as_ref().to_owned()));
-                        res.push_str("} ");
-                        res.push_str("from \"");
-                        res.push_str(&path);
-                        res.push_str("\"");
-                    }
-                    _ => {
-                        res.push_str(format!("import \"{}\"", path).as_str());
-                    }
+        // check prefix value.
+        match prefix {
+            ast::Expression::Identifier(_token, prefix) => {
+                if prefix == "core" {
+                    import_type = ImportType::Core;
+                } else if prefix == "base" {
+                    import_type = ImportType::Base;
+                } else if prefix == "js" {
+                    import_type = ImportType::JS;
+                } else if prefix == "string" {
+                    import_type = ImportType::String;
                 }
-                res.push_str(";\n");
             }
-            ImportType::EasyJS => {
-                // compile the EasyJS file
-                import_easy_js(self, &path);
-            }
-            ImportType::WASM => {
-                res.push_str(&import_wasm_module(&path));
-            }
-            ImportType::STD => {
-                import_std_lib(self, &path);
+            _ => {
+                panic!("Prefix must be of type Identifier");
             }
         }
+
+        res.push_str("import ");
+        let (module_name, path_to_use) = self.get_module_n_path(path);
+
+        // match import type
+        let path_to_use = import(path_to_use.as_str(), import_type, self);
+
+        res.push_str(" * as ");
+        res.push_str(&module_name);
+        res.push_str(" from '");
+        res.push_str(&path_to_use);
+        res.push_str("';\n");
 
         res
     }
 
-    fn transpile_from_import_stmt(
-        &mut self,
-        token: token::Token,
-        path: String,
-        imports: Vec<Expression>,
-    ) -> String {
+    fn transpile_use_from_stmt(&mut self, token: token::Token, specs: Vec<Expression>, prefix: Expression, path: Expression) -> String {
         let mut res = String::new();
+        let mut import_type = ImportType::Base;
 
-        // TODO: check import file path type,
-        // supported in EasyJS is ".ej", ".js", ".json", ".wasm"
-        // no ".ts" <-- they're the competition
-
-        match get_import_type(&path) {
-            ImportType::EasyJS => {
-                res.push_str(&import_easy_js(self, &path));
-            }
-            ImportType::STD => {
-                res.push_str(&import_std_lib(self, &path));
-            }
-            ImportType::WASM => {
-                res.push_str(&import_wasm_module(&path));
-            }
-            ImportType::JavaScript => {
-                res.push_str("import ");
-
-                let mut has_brace = false;
-                for i in 0..imports.len() {
-                    let imp = &imports[i];
-                    match imp {
-                        Expression::DefExpression(token, exp) => {
-                            if has_brace {
-                                // can not have a brace here...
-                                return "".to_string();
-                            }
-                            res.push_str(&self.transpile_expression(exp.as_ref().to_owned()));
-                        }
-                        _ => {
-                            if !has_brace {
-                                res.push_str("{");
-                                has_brace = true;
-                            }
-                            res.push_str(&self.transpile_expression(imp.to_owned()));
-                        }
-                    }
-
-                    if i < imports.len() - 1 {
-                        res.push_str(", ");
-                    }
+        match prefix {
+            ast::Expression::Identifier(_token, prefix) => {
+                if prefix == "core" {
+                    import_type = ImportType::Core;
+                } else if prefix == "base" {
+                    import_type = ImportType::Base;
+                } else if prefix == "js" {
+                    import_type = ImportType::JS;
+                } else if prefix == "string" {
+                    import_type = ImportType::String;
                 }
-                if has_brace {
-                    res.push_str("}");
-                }
-
-                res.push_str(" from ");
-                res.push_str(&format!("\"{}\"", path).as_str());
-                res.push_str(";\n");
+            }
+            _ => {
+                panic!("Prefix must be of type Identifier");
             }
         }
 
+        res.push_str("import {");
+        for spec in specs {
+            match spec {
+                ast::Expression::Identifier(_token, name) => {
+                    res.push_str(&name);
+                    res.push_str(", ");
+                }
+                _ => {
+                    panic!("Spec must be of type Identifier");
+                }
+            }
+        }
+        res.push_str("}");
+
+        let (_, path_to_use) = self.get_module_n_path(path);
+
+        let path_to_use = import(path_to_use.as_str(), import_type, self);
+
+        res.push_str(" from '");
+        res.push_str(&path_to_use);
+        res.push_str("';\n");
+
         res
-        // "".to_string()
     }
 
     fn transpile_javascript_stmt(&mut self, token: token::Token, js: String) -> String {
@@ -730,8 +724,8 @@ impl Transpiler {
             }
             Expression::RangeExpression(token, start, end) => {
                 format!(
-                    "{}({},{})",
-                    hash_string(builtins::INT_RANGE),
+                    "builtins.{}({},{})",
+                    builtins::INT_RANGE,
                     self.transpile_expression(start.as_ref().to_owned()),
                     self.transpile_expression(end.as_ref().to_owned())
                 )
@@ -746,8 +740,12 @@ impl Transpiler {
             Expression::NotExpression(token, exp) => {
                 format!("!{}", self.transpile_expression(exp.as_ref().to_owned()))
             }
-            Expression::AsExpression(token, exp) => {
-                format!(" as {}", self.transpile_expression(exp.as_ref().to_owned()))
+            Expression::AsExpression(token, left, right) => {
+                format!(
+                    "{} as {}",
+                    self.transpile_expression(left.as_ref().to_owned()),
+                    self.transpile_expression(right.as_ref().to_owned())
+                )
             }
             Expression::MacroExpression(token, name, arguments) => {
                 let name = self.transpile_expression(name.as_ref().to_owned());

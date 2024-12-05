@@ -207,10 +207,10 @@ mod tests {
     #[test]
     fn test_import_statement() {
         let input = "
-            import \"io\" 
-            import \"json\" as json
-            from 'json' import to_json
-            from 'json' import def to_json, from_json, is_json
+            use core:io
+            use core:json as json
+            use {json} from base:to_json
+            use {json, to_json, is_json} from core:json
         "
         .to_string();
 
@@ -402,6 +402,7 @@ mod tests {
     fn test_struct_stmts() {
         let input = "
             struct Person {
+            // sad
                 fn constructor(self, name) {
                     self.name = name
                 }

@@ -333,6 +333,10 @@ impl Lex {
         // read next char!
         self.read_char();
 
+        if token.typ == token::COMMENT {
+            return self.next_token();
+        }
+
         // return the token
         token
     }

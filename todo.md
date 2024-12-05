@@ -1,45 +1,32 @@
 # TODO
 
 ## Compiler
-- add dot.if expression support
-- **add from import * support**
-- add from, import as support to easyjs imports.
-- add args and kwargs
-- ~~add litteral array support for macros.~~
-- ~~Support instantiating structs using the `Name()` constructor.~~
-- ~~add new keyword for JS classes~~
+- add kwargs as fn_call(var=value)
 - add ".wasm" support?
-- ~~add % support~~
-- ~~add decimal support~~
-- ~~Fix static methods.~~
-- ~~add back the new() instead of constructor~~
 - implement operator overloading.
-- Implement inheritence (that's a maybe, a probably not tbh. We will see.)
-- ~~add += -= /= *= %=~~ 
+- Implement inheritence
 - add ** support or whatever that is.
-- add generator support (yeild, *func)
-- ~~fix () infix and prefix math and whatnot~~
 - move minifier to compile command not transpiler.
-- add module support.
+- add easyjs module support.
+- add test cases.
 
 ## EasyJS
-- add std
-- http
-- json
-- math
-- random
-- ui
+- core
+    - http
+    - json
+    - math
+    - random
+    - ui
+    - wasm
+    - pyscript
 
 ## Macros
-- ~~Use BoaJS for macros.~~
 
 ## Builtins
-- ~~trycatch builtin error handling~~
-- use macros for most builtins (macros start with a $ or a @)
-- ~~builtins are also done using pure JS functions...~~
 
 ## Scripts
-- add a script to build binaries for all platforms (windows, macos, linux).
+- ~~add a script to build binaries for all platforms (windows, macos, linux).~~
+- ~~Allow for building for different platforms. i.e. building a macos from windows, etc.~~
 
 ## WASM
 - add wasm import support

@@ -80,7 +80,7 @@ pub const DECORATOR: &str = "DECORATOR";
 
 // Keywords
 pub const FUNCTION: &str = "FUNCTION";
-pub const IMPORT: &str = "IMPORT";
+pub const USE: &str = "USE";
 pub const STRUCT: &str = "STRUCT";
 pub const TRUE: &str = "TRUE";
 pub const FALSE: &str = "FALSE";
@@ -97,17 +97,23 @@ pub const ASYNC: &str = "ASYNC";
 pub const AWAIT: &str = "AWAIT";
 pub const NOT: &str = "NOT";
 pub const FROM: &str = "FROM";
-pub const DEF: &str = "DEF";
 pub const SELF: &str = "SELF";
 pub const MACRO: &str = "MACRO";
 pub const NEW: &str = "NEW";
+pub const EXPORT: &str = "EXPORT";
+
+// Import prefixes
+pub const CORE: &str = "CORE";
+pub const BASE: &str = "BASE";
+pub const JS: &str = "JS";
+pub const STRING_IMPORT: &str = "STRING_IMPORT";
 
 /// Lookup the ident based on a string
 pub fn lookup_ident(ident: &str) -> &'static str {
     match ident {
         "fn" => FUNCTION,
         "struct" => STRUCT,
-        "import" => IMPORT,
+        "use" => USE,
         "true" => TRUE,
         "false" => FALSE,
         "if" => IF,
@@ -123,12 +129,16 @@ pub fn lookup_ident(ident: &str) -> &'static str {
         "await" => AWAIT,
         "not" => NOT,
         "from" => FROM,
-        "def" => DEF,
         "self" => SELF,
         "macro" => MACRO,
         "and" => AND_SYMBOL,
         "or" => OR_SYMBOL,
         "new" => NEW,
+        "core" => CORE,
+        "base" => BASE,
+        "js" => JS,
+        "string" => STRING_IMPORT,
+        "export" => EXPORT,
         _ => IDENT, // Default case for unknown identifiers
     }
 }

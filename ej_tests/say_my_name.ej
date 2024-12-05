@@ -1,0 +1,5 @@
+use {Person} from base:ej_tests.structs
+
+heizenburg =  Person('h', 55)
+
+console.log(heizenburg.name)

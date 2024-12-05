@@ -5,3 +5,4 @@ target/
 /docs/site/
 
 *.DS_STORE
+/.ejc/
