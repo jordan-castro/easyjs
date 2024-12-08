@@ -59,7 +59,7 @@ pub const ASTERISK_EQUALS: &str = "*=";
 // Delimiters
 pub const COMMA: &str = ",";
 pub const SEMICOLON: &str = ";";
-pub const EOL: &str = "\n";
+pub const EOL: &str = "EOL";
 
 // Specials
 pub const TYPE: &str = "TYPE";
@@ -101,6 +101,7 @@ pub const SELF: &str = "SELF";
 pub const MACRO: &str = "MACRO";
 pub const NEW: &str = "NEW";
 pub const EXPORT: &str = "EXPORT";
+pub const IS: &str = "IS";
 
 // Import prefixes
 pub const CORE: &str = "CORE";
@@ -139,6 +140,7 @@ pub fn lookup_ident(ident: &str) -> &'static str {
         "js" => JS,
         "string" => STRING_IMPORT,
         "export" => EXPORT,
+        "is" => IS,
         _ => IDENT, // Default case for unknown identifiers
     }
 }

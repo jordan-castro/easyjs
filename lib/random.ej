@@ -1,0 +1,15 @@
+// EasyJS implementation of random.uniform from Python.
+export fn uniform(a,b) {
+    return Math.random() * (b - a + 1) + a
+}
+
+export fn choice(array) {
+    array[Math.floor(Math.random() * array.length)]
+}
+
+export fn normal(mean, std_dev) {
+    u1 = Math.random()
+    u2 = Math.random()
+    z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2) // Box-Muller transform
+    return z0 * std_dev + mean
+}

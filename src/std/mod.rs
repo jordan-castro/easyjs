@@ -1,4 +1,4 @@
-// EasyJS STD version 0.2.0
+// EasyJS STD version 0.2.1
 const BUILTINS: &str = "export fn int_range(start, end) {
     res = []
     // the .. works because this is a for loop...
@@ -7,6 +7,23 @@ const BUILTINS: &str = "export fn int_range(start, end) {
     }
 
     return res
+}
+
+export fn sleep(ms) {
+    javascript{
+        return new Promise(resolve => setTimeout(resolve, ms))
+    }
+}
+
+/// Creates a range
+export fn range(kwargs) {
+    start = kwargs.start
+    end = kwargs.end
+    step = kwargs.step ?? 1
+
+    javascript{
+        return Array(Math.ceil((end - start) / step)).fill(start).map((x,y) => x + y * step)
+    }
 }";
 const DOM: &str = "// ! This can only be used in the browser.
 
@@ -28,43 +45,29 @@ dom := {
         document.body.removeChild(node)
     }
 }";
-const EASY_WASM: &str = "// Used for working with EasyJS's WASM worker.
-
-import \"wasm\"
-
-struct EasyWasm {
-    static async fn load_from_file(file_path) {
-        return await EasyWasm.load_from_bytes()
+const HTTP: &str = "";
+const JSON: &str = "export to_json := fn(str) { return JSON.parse(str) }
+export to_string := fn(json) { return JSON.stringify(json) }";
+const MATH: &str = "export fn radians(degrees) {
+    javascript{
+        return degrees * (Math.PI / 180);
     }
 }";
-const EXPECT: &str = "fn $expect(method, error_msg, var_name) {
-    var_name = null
-        // using javascript because EasyJS currently does not have
-        // a native try-catch feature.
-        javascript{
-            try {
-                result = method;
-                var_name = result()
-            } catch (e) {
-                console.error(error_msg);
-            }
-        }
+const RANDOM: &str = "// EasyJS implementation of random.uniform from Python.
+export fn uniform(a,b) {
+    return Math.random() * (b - a + 1) + a
+}
+
+export fn choice(array) {
+    array[Math.floor(Math.random() * array.length)]
+}
+
+export fn normal(mean, std_dev) {
+    u1 = Math.random()
+    u2 = Math.random()
+    z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2) // Box-Muller transform
+    return z0 * std_dev + mean
 }";
-const HTTP: &str = "import \"std\"
-
-// Make a get request using the Fetch api.
-async fn get(url) {
-    return fetch(url)
-}
-
-async fn post(url, headers, body) {
-    return fetch(url, headers, body)
-}
-
-some := $expect(get(\"https://google.com\"), \"Error getting URL\")
-
-console.log(some)";
-const JSON: &str = "to_json := fn(str) { return JSON.parse(str); }";
 const STD: &str = "// Get the last element of an array
 macro last(array) {
     array[array.length - 1]
@@ -125,17 +128,18 @@ struct HTMLElement {
         }
     }
 }";
-const WASM: &str = "";
+const WASM: &str = "// the EasyWasm library
+";
 
-/// Load a STD library from EasyJS version 0.2.0, or an empty string if not found.
+/// Load a STD library from EasyJS version 0.2.1, or an empty string if not found.
 pub fn load_std(name: &str) -> String {
 match name {
 "builtins" => BUILTINS,
 "dom" => DOM,
-"easy_wasm" => EASY_WASM,
-"expect" => EXPECT,
 "http" => HTTP,
 "json" => JSON,
+"math" => MATH,
+"random" => RANDOM,
 "std" => STD,
 "ui" => UI,
 "wasm" => WASM,

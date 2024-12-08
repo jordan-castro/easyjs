@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use easyjs::lexer::{lex, token};
+    use easyjsc::lexer::{lex, token};
 
     #[test]
     fn test_lexer() {
@@ -42,7 +42,6 @@ mod tests {
             token::new_token(token::MINUS, "-"),
             token::new_token(token::ASTERISK, "*"),
             token::new_token(token::SLASH, "/"),
-            token::new_token(token::COMMENT, "this is a comment"),
             token::new_token(token::FUNCTION, "fn"),
             token::new_token(token::COLON, ":"),
             token::new_token(token::TYPE, "::"),

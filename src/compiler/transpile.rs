@@ -4,7 +4,7 @@ use std::path;
 
 use super::macros::Macro;
 use crate::builtins;
-use crate::interpreter::interpret_js;
+use crate::interpreter::{interpret_js, is_javascript_var_defined};
 use crate::lexer::lex::{self, ALLOWED_IN_IDENT};
 use crate::parser::ast::{Expression, Statement};
 use crate::parser::{ast, par};
@@ -17,7 +17,6 @@ pub struct Transpiler {
     /// Stmt by Stmt
     scripts: Vec<String>,
     /// All EasyJS variables.
-    pub variables: Vec<String>,
     /// All EasyJS macros
     pub macros: HashMap<String, Macro>,
     /// All declared EasyJS functions
@@ -32,7 +31,6 @@ impl Transpiler {
     pub fn new() -> Self {
         let mut t = Transpiler {
             scripts: vec![],
-            variables: vec![],
             functions: vec![],
             macros: HashMap::new(),
             context: Context::default(),
@@ -50,8 +48,8 @@ impl Transpiler {
     /// 
     /// `module: Transpiler` the modules transpiler.
     pub fn add_module(&mut self, module: &mut Transpiler) {
-        self.functions.append(&mut module.functions);
-        self.variables.append(&mut module.variables);
+        // self.functions.append(&mut module.functions);
+        // self.variables.append(&mut module.variables);
         self.structs.append(&mut module.structs);
     }
 
@@ -131,9 +129,10 @@ impl Transpiler {
             ast::Statement::JavaScriptStatement(token, js) => {
                 Some(self.transpile_javascript_stmt(token, js))
             }
-            ast::Statement::StructStatement(token, name, vars, methods) => {
+            ast::Statement::StructStatement(token, name, inherited_structs, vars, methods) => {
                 Some(self.transpile_struct_stmt(
                     name.as_ref().to_owned(),
+                    inherited_structs,
                     vars.as_ref().to_owned(),
                     methods.as_ref().to_owned(),
                 ))
@@ -158,8 +157,7 @@ impl Transpiler {
         let mut response = String::new();
         match name {
             ast::Expression::Identifier(token, name) => {
-                if !self.variables.contains(&name) {
-                    self.variables.push(name.clone());
+                if !is_javascript_var_defined(name.as_str(), &mut self.context) {
                     response.push_str("let ");
                 }
                 if is_javascript_keyword(&name) {
@@ -205,12 +203,8 @@ impl Transpiler {
     ) -> String {
         match name.clone() {
             ast::Expression::Identifier(_token, name) => {
-                if !self.variables.contains(&name) {
-                    if is_javascript_keyword(&name) {
-                        self.variables.push(hash_string(&name));
-                    } else {
-                        self.variables.push(name);
-                    }
+                if is_javascript_var_defined(name.as_str(), &mut self.context) {
+                    panic!("Variable can not be defined as CONST because it is already defined.");
                 }
             }
             _ => {
@@ -427,16 +421,28 @@ impl Transpiler {
     fn transpile_struct_stmt(
         &mut self,
         name: ast::Expression,
+        parent: Option<Box<Expression>>,
         variables: Vec<ast::Statement>,
         methods: Vec<ast::Expression>,
     ) -> String {
         let mut res = String::new();
+
         res.push_str("class ");
         let name = self.transpile_expression(name);
 
         self.structs.push(name.clone());
 
         res.push_str(&name);
+
+        // check if we have inheritance.
+        match parent {
+            Some(v) => {
+                res.push_str(" extends ");
+                res.push_str(&self.transpile_expression(v.as_ref().to_owned()));
+            }
+            None => {}
+        }
+
         res.push_str(" {\n");
 
         for var in variables {
@@ -472,7 +478,8 @@ impl Transpiler {
         match expression {
             ast::Expression::IntegerLiteral(token, value) => value.to_string(),
             Expression::StringLiteral(token, value) => {
-                let quote_type = if (&value.contains("$")).to_owned() {
+                println!("{}", value);
+                let quote_type = if (&value.contains("$")).to_owned() || (&value.contains("\n")).to_owned() {
                     "`"
                 } else if (&value.contains("'")).to_owned() {
                     "\""
@@ -571,7 +578,7 @@ impl Transpiler {
                 if let Some(stmt) = stmt {
                     res.push_str(&stmt);
                 }
-                res.push_str("}");
+                res.push_str("}\n");
 
                 res
             }
@@ -589,16 +596,59 @@ impl Transpiler {
                     res.push_str(name_exp.as_str());
                 }
 
-                // res.push_str(&self.transpile_expression(name.as_ref().to_owned()));
                 res.push_str("(");
 
+                // parse the args
+                let mut parsed_args = vec![];
+                // the named args if any
+                let mut named_args: Vec<Vec<ast::Expression>> = vec![];
+
+                // keep track if there are named parameters.
+                let mut has_named = false;
+                // ok, double check the arguments
+                for arg in arguments.as_ref().to_owned() {
+                    match arg {
+                        ast::Expression::AssignExpression(_t, left, right) => {
+                            has_named = true;
+                            named_args.push(vec![left.as_ref().to_owned(), right.as_ref().to_owned()]);
+                        }
+                        _ => {
+                            if has_named {
+                                // this is bad because you can't have non named after named
+                                panic!("Non named parameter after named parameter");
+                            } else {
+                                parsed_args.push(arg);
+                            }
+                        }
+                    }
+                }
+
                 let args = arguments.as_ref().to_owned();
-                let joined_args = args
+                let joined_args = parsed_args
                     .iter()
                     .map(|p| self.transpile_expression(p.to_owned()))
                     .collect::<Vec<_>>()
                     .join(",");
                 res.push_str(&joined_args);
+
+                if (has_named) {
+                    if parsed_args.len() > 0 {
+                        res.push_str(",");
+                    }
+                    res.push_str("{");
+                    for i in 0..named_args.len() {
+                        let arg = &named_args[i];
+                        res.push_str(&self.transpile_expression(arg.first().unwrap().to_owned()));
+                        res.push_str(":");
+                        res.push_str(&self.transpile_expression(arg.last().unwrap().to_owned()));
+
+                        if i < named_args.len() - 1 {
+                            res.push_str(",");
+                        }
+                    }
+                    res.push_str("}");
+                }
+
                 res.push_str(")");
 
                 res

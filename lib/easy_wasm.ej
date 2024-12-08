@@ -1,9 +1,0 @@
-// Used for working with EasyJS's WASM worker.
-
-import "wasm"
-
-struct EasyWasm {
-    static async fn load_from_file(file_path) {
-        return await EasyWasm.load_from_bytes()
-    }
-}

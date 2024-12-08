@@ -31,7 +31,7 @@ pub enum Statement {
     ///     }
     /// }
     /// ```
-    StructStatement(tk::Token, Box<Expression>, Box<Vec<Statement>>, Box<Vec<Expression>>),
+    StructStatement(tk::Token, Box<Expression>, Option<Box<Expression>>, Box<Vec<Statement>>, Box<Vec<Expression>>),
 
     /// export fn
     /// export struct
@@ -53,7 +53,7 @@ impl Statement {
             Statement::ConstVariableStatement(_, _, _) => "ConstVarStatement",
             Statement::ForStatement(_, _, _) => "ForStatement",
             Statement::JavaScriptStatement(_, _) => "JavaScriptStatement",
-            Statement::StructStatement(_, _, _, _) => "StructStatement",
+            Statement::StructStatement(_, _, _, _, _) => "StructStatement",
             Statement::ExportStatement(_, _) => "ExportStatement",
         }.to_string()
     }

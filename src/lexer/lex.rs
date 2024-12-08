@@ -6,6 +6,12 @@ pub struct Lex {
     position: usize,      // Current position of the Lexer in input
     read_position: usize, // Current ReadPosition, i.e., one after where the position is at
     current_char: char,   // Current char being read
+    /// The current line our lexer is on.
+    pub current_line: i64,
+    /// The exact column number.
+    pub current_col: i64,
+    /// The file being parsed.
+    pub current_file: String
 }
 
 /// Allowed chars in ident (other than letters of course)
@@ -19,7 +25,18 @@ impl Lex {
             position: 0,
             read_position: 0,
             current_char: ' ', // Initialize with null character
+            current_line: 1,
+            current_col: 1,
+            current_file: String::new()
         }
+    }
+
+    /// Create a new lex instance and send in file name.
+    pub fn new_with_file(input:String, file:String) -> Self {
+        let mut l = Lex::new(input);
+        l.current_file = file;
+
+        l
     }
 
     /// Create a String object with the current and peek char.
@@ -37,10 +54,19 @@ impl Lex {
     /// Read the current Input[ReadPosition] character.
     /// Will update `position` and `read_position`.
     fn read_char(&mut self) {
+        if (self.current_char == '\n') {
+            self.current_line += 1;
+            self.current_col = 1;
+        } else {
+            self.current_col += 1;
+        }
+        
         if self.read_position >= self.input.len() {
             self.current_char = '\0'; // Set to null character when end of input is reached
         } else {
-            self.current_char = self.input.chars().nth(self.read_position).unwrap();
+            self.current_char = self.input.chars().nth(self.read_position).expect(
+                format!("Could not parse char at line: {}.{} last read char: '{}'", self.current_line, self.current_col, self.current_char).as_str()
+            );
             // Get the current character
         }
         self.position = self.read_position; // Update position
@@ -52,7 +78,8 @@ impl Lex {
         while (self.current_char == ' '
             || self.current_char == '\r'
             || self.current_char == '\t'
-            || self.current_char == '\n')
+            || self.current_char == '\n'
+        )
             && self.current_char != '\0'
         {
             self.read_char();
@@ -82,6 +109,10 @@ impl Lex {
                 result.push(self.current_char);
                 // move pass the backslash
                 self.read_char();
+
+                if self.current_char == cs {
+                    break;
+                }
             }
 
             // add the current character to the result string

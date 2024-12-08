@@ -7,12 +7,12 @@ use crate::utils::version;
 
 /// Compile a string of EasyJS into JS code.
 /// 
-/// `pretty:bool` do we make it look pretty?
 /// `place_watermark:bool` Does the watermark 'compiled by easjs...' go on?
+/// `file_name: &str` The name of the file.
 /// 
 /// return `String`
-fn compile(input: String, pretty: bool, place_watermark: bool) -> Result<(String, Transpiler), Box<dyn Error>> {
-    let lexer = lex::Lex::new(input);
+fn compile(input: String, place_watermark: bool, file_name: &str) -> Result<(String, Transpiler), Box<dyn Error>> {
+    let lexer = lex::Lex::new_with_file(input, file_name.to_owned());
     let mut parser = par::Parser::new(lexer);
     let program = parser.parse_program();
 
@@ -35,11 +35,16 @@ fn compile(input: String, pretty: bool, place_watermark: bool) -> Result<(String
 }
 
 /// Compile the main source of the program or the original file.
-pub fn compile_main(input: String) -> String {
-    compile(input, false, true).expect("Could not compile").0
+pub fn compile_main(input: String, file_name: &str) -> String {
+    compile(input, true, file_name).expect("Could not compile").0
 }
 
 /// Compile a imported easyjs module.
-pub fn compile_module(input: String) -> (String, Transpiler) {
-    compile(input,false, false).expect("Could not compile")
+pub fn compile_module(input: String, module_name:&str) -> (String, Transpiler) {
+    compile(input, false, module_name).expect("Could not compile")
+}
+
+/// Compile for repl
+pub fn compile_for_repl(input: String) -> String {
+    compile(input, false, "").expect("Could not compile0").0
 }

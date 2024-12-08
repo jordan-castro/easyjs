@@ -1,6 +1,6 @@
 use core::str;
 
-use easyjs::{commands::{compile::compile_main, repl::start_repl}, repl::runtime::run_file, utils};
+use easyjsc::{commands::{compile::compile_main, repl::start_repl}, repl::runtime::run_file, utils};
 
 use clap::{Parser, Subcommand};
 
@@ -62,7 +62,7 @@ fn main() {
         Commands::Compile { file, pretty, typescript } => {
             let ej_code_bytes: Vec<u8> = std::fs::read(&file).expect("Failed to read file.");
             let ej_code = str::from_utf8(&ej_code_bytes).expect("Unable to parse bytes.");
-            let js_code = compile_main(ej_code.to_string());
+            let js_code = compile_main(ej_code.to_string(), &file);
 
             let out_file = file.replace(".ej", ".js");
             let out_file = out_file.replace("\\", "/").split("/").collect::<Vec<_>>().last().unwrap().to_string();

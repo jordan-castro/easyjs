@@ -71,31 +71,41 @@ pub fn start(runtime_option: &str, crash_on_error: bool, debug:bool) {
     runtime.close();
 }
 
-/// Get the users input, allow for multine.
+/// Get the user's input, allowing for multi-line input with balanced braces `{}`.
 fn get_input() -> String {
     let mut result = String::new();
-
     let mut brace_count = 0;
+
     loop {
         let mut input = String::new();
-        std::io::stdin().read_line(&mut input).unwrap();
+        // Read user input
+        match std::io::stdin().read_line(&mut input) {
+            Ok(_) => {
+                // Trim input and add to result with a newline for formatting
+                input = input.trim().to_string();
+                result.push_str(&input);
+                result.push('\n'); // Preserve line breaks
 
-        input = input.trim().to_string();
-        result += &input;
+                // Adjust brace count
+                for char in input.chars() {
+                    match char {
+                        '{' => brace_count += 1,
+                        '}' => brace_count -= 1,
+                        _ => {}
+                    }
+                }
 
-        if input.ends_with("{") {
-            brace_count += 1;
-        }
-
-        if input.ends_with("}") {
-            brace_count -= 1;
-        }
-
-        if brace_count == 0 {
-            break;
+                // If all braces are balanced, exit loop
+                if brace_count == 0 {
+                    break;
+                }
+            }
+            Err(err) => {
+                eprintln!("Error reading input: {}", err);
+                break;
+            }
         }
     }
 
     result
 }
-

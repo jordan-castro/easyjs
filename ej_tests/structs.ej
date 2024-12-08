@@ -23,3 +23,23 @@ export struct Person {
         self.age = 1 + self.age
     }
 }
+
+// Composition (preferred method)
+struct Jordan {
+    fn new() {
+        self.person = Person('Composed Jordan', '22')
+    }
+}
+
+jordan = Jordan()
+console.log(jordan.person.name)
+
+// inheritance
+struct JordanC(Person) {
+    fn new() {
+        self.name = 'Inherited Jordan'
+        self.age = 22
+    }
+}
+
+console.log(JordanC())

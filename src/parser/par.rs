@@ -13,8 +13,9 @@ pub struct Parser {
     peek_token: token::Token,
     /// parsing errors
     pub errors: Vec<String>,
-    // prefix_fns: HashMap<String, PrefixParseFn>,
-    // infix_fns: HashMap<String, InfixParseFn>,
+
+    /// is debug mode
+    is_debug_mode: bool,
 }
 
 // Constant values
@@ -84,17 +85,26 @@ fn precedences(tk: &str) -> i64 {
         token::PLUS_EQUALS => ASSIGN,
         token::MINUS_EQUALS => ASSIGN,
         token::SLASH_EQUALS => ASSIGN,
+        token::ASTERISK_EQUALS => ASSIGN,
         _ => LOWEST,
     }
 }
 
 impl Parser {
     pub fn new(l: lex::Lex) -> Self {
+        let is_debug_mode_var = std::env::var("EASYJS_DEBUG");
+        let is_debug_mode = if is_debug_mode_var.is_err() {
+            false
+        } else {
+            is_debug_mode_var.unwrap() == "1"
+        };
+
         let mut p = Parser {
             l,
             c_token: token::new_token("", ""),
             peek_token: token::new_token("", ""),
             errors: vec![],
+            is_debug_mode,
         };
         p.next_token();
         p.next_token();
@@ -200,6 +210,7 @@ impl Parser {
             token::PLUS_EQUALS => true,
             token::MINUS_EQUALS => true,
             token::SLASH_EQUALS => true,
+            token::ASTERISK_EQUALS => true,
             _ => false,
         }
     }
@@ -233,9 +244,25 @@ impl Parser {
             token::PLUS_EQUALS => parse_infix_expression(self, left),
             token::MINUS_EQUALS => parse_infix_expression(self, left),
             token::SLASH_EQUALS => parse_infix_expression(self, left),
+            token::ASTERISK_EQUALS => parse_infix_expression(self, left),
             token::AS => parse_as_expression(self, left),
             _ => ast::Expression::EmptyExpression,
         }
+    }
+
+    /// Print if is debug mode
+    fn debug_print(&self, msg:&str) {
+        if self.is_debug_mode {
+            println!("{}", msg);
+        }
+    }
+
+    /// Add an error
+    fn add_error(&mut self, error: &str) {
+        self.errors.push(format!(
+            "File: {} Line {}.{}: {}",
+            self.l.current_file, self.l.current_line, self.l.current_col, error
+        ))
     }
 
     /// Is the current token this type?
@@ -255,10 +282,13 @@ impl Parser {
             return true;
         }
 
-        self.errors.push(format!(
-            "Expected next token to be {} but got {} instead.",
-            token_type, self.peek_token.typ
-        ));
+        self.add_error(
+            format!(
+                "Expected next token to be {} but got {} instead.",
+                token_type, self.peek_token.typ
+            )
+            .as_str(),
+        );
 
         false
     }
@@ -267,10 +297,29 @@ impl Parser {
     fn next_token(&mut self) {
         self.c_token = self.peek_token.clone();
         self.peek_token = self.l.next_token();
+
+        if self.is_debug_mode {
+            print!("C Token: ");
+            self.c_token.pretty_print();
+        }
     }
-    
+
+    /// Expect peek token to be eos
+    fn expect_peek_eos(&mut self) -> bool{
+        if !self.peek_token_is_eos() {
+            self.add_error(
+                format!("Expected EOS but got: {} instead", self.peek_token.typ).as_str()
+            );
+
+            return false;
+        }
+
+        self.next_token();
+        true
+    }
+
     /// is our current token and eos.
-    fn _cur_token_is_eos(&self) -> bool {
+    fn cur_token_is_eos(&self) -> bool {
         self.cur_token_is(token::SEMICOLON) || self.cur_token_is(token::EOL)
     }
 
@@ -301,7 +350,7 @@ impl Parser {
 
 /// Parse a statement, returns EmptyStatement on error.
 fn parse_statement(parser: &mut Parser) -> ast::Statement {
-    match parser.c_token.typ.as_str() {
+    let stmt = match parser.c_token.typ.as_str() {
         token::IDENT => {
             if parser.peek_token_is(token::ASSIGN) {
                 parse_var_statement(parser)
@@ -310,7 +359,7 @@ fn parse_statement(parser: &mut Parser) -> ast::Statement {
             } else {
                 parse_expression_statement(parser)
             }
-        },
+        }
         token::RETURN => parse_return_statement(parser),
         token::USE => parse_use_statement(parser),
         token::JAVASCRIPT => ast::Statement::JavaScriptStatement(
@@ -321,18 +370,26 @@ fn parse_statement(parser: &mut Parser) -> ast::Statement {
         token::STRUCT => parse_struct_statement(parser),
         token::EXPORT => parse_export_statement(parser),
         _ => parse_expression_statement(parser),
+    };
+
+    // if next token is a ';'
+    if parser.peek_token_is(token::SEMICOLON) {
+        parser.next_token();
     }
+
+    stmt
 }
 
 fn parse_export_statement(p: &mut Parser) -> ast::Statement {
+    p.debug_print("parse_export_statement");
     let token = p.c_token.to_owned(); // export
-    // get expression
-    p.next_token();
+    p.next_token(); // get stmt
 
     ast::Statement::ExportStatement(token, Box::new(parse_statement(p)))
 }
 
 fn parse_var_statement(p: &mut Parser) -> ast::Statement {
+    p.debug_print("parse_var_statement");
     let token = p.c_token.clone();
 
     if !p.expect_peek(token::ASSIGN) {
@@ -343,14 +400,11 @@ fn parse_var_statement(p: &mut Parser) -> ast::Statement {
 
     let value = parse_expression(p, LOWEST);
 
-    if p.peek_token_is_eos() {
-        p.next_token();
-    }
-
     ast::Statement::VariableStatement(token, Box::new(name), Box::new(value))
 }
 
 fn parse_const_var_statement(p: &mut Parser) -> ast::Statement {
+    p.debug_print("parse_const_var_statement");
     let token = p.c_token.clone();
 
     if !p.expect_peek(token::CONST_ASSIGNMENT) {
@@ -367,29 +421,22 @@ fn parse_const_var_statement(p: &mut Parser) -> ast::Statement {
         return ast::Statement::EmptyStatement;
     }
 
-    if p.peek_token_is_eos() {
-        p.next_token();
-    }
-
     ast::Statement::ConstVariableStatement(token, Box::new(name), Box::new(value))
 }
 
 fn parse_return_statement(p: &mut Parser) -> ast::Statement {
+    p.debug_print("parse_return_statement");
     let token = p.c_token.clone();
 
     p.next_token();
 
     let value = parse_expression(p, LOWEST);
 
-    // consume the ;
-    if p.peek_token_is_eos() {
-        p.next_token();
-    }
-
     ast::Statement::ReturnStatement(token, Box::new(value))
 }
 
 fn parse_expression_statement(p: &mut Parser) -> ast::Statement {
+    p.debug_print("parse_expression_statement");
     let token = p.c_token.clone();
     let expression = parse_expression(p, LOWEST);
 
@@ -397,15 +444,11 @@ fn parse_expression_statement(p: &mut Parser) -> ast::Statement {
         return ast::Statement::EmptyStatement;
     }
 
-    // we hit the end of the line
-    if p.peek_token_is_eos() {
-        p.next_token();
-    }
-
     ast::Statement::ExpressionStatement(token, Box::new(expression))
 }
 
 fn parse_use_statement(p: &mut Parser) -> ast::Statement {
+    p.debug_print("parse_use_statement");
     let token = p.c_token.clone(); // use
 
     let mut is_use_from = false;
@@ -415,7 +458,7 @@ fn parse_use_statement(p: &mut Parser) -> ast::Statement {
     if p.peek_token_is(token::L_BRACE) {
         p.next_token(); // consume {
         p.next_token(); // get to the args...
-        // get the expressions here...
+                        // get the expressions here...
         is_use_from = true;
         import_args.push(parse_expression(p, LOWEST));
         while p.peek_token_is(token::COMMA) {
@@ -445,13 +488,19 @@ fn parse_use_statement(p: &mut Parser) -> ast::Statement {
     let path = parse_expression(p, LOWEST);
 
     if is_use_from {
-        return ast::Statement::UseFromStatement(token, Box::new(import_args), Box::new(prefix), Box::new(path));
-    } 
+        return ast::Statement::UseFromStatement(
+            token,
+            Box::new(import_args),
+            Box::new(prefix),
+            Box::new(path),
+        );
+    }
 
     ast::Statement::UseStatement(token, Box::new(prefix), Box::new(path))
 }
 
 fn parse_block_statement(p: &mut Parser) -> ast::Statement {
+    p.debug_print("parse_block_statement");
     let token = p.c_token.clone();
     let mut staments: Vec<ast::Statement> = vec![];
 
@@ -469,6 +518,7 @@ fn parse_block_statement(p: &mut Parser) -> ast::Statement {
 }
 
 fn parse_for_statement(p: &mut Parser) -> ast::Statement {
+    p.debug_print("parse_for_statement");
     let token = p.c_token.to_owned(); // for
     let mut has_paren: bool = false;
 
@@ -481,6 +531,7 @@ fn parse_for_statement(p: &mut Parser) -> ast::Statement {
 
     // go to expression
     p.next_token();
+
     let condition = parse_expression(p, LOWEST);
     if condition.is_empty() {
         return ast::empty_statement();
@@ -500,11 +551,11 @@ fn parse_for_statement(p: &mut Parser) -> ast::Statement {
 }
 
 fn parse_expression(p: &mut Parser, precedence: i64) -> ast::Expression {
+    p.debug_print("parse_expression");
     let token_type = p.c_token.typ.clone();
     let prefix = p.has_prefix(&token_type);
     if !prefix {
-        p.errors
-            .push(format!("No prefix function for {} found.", token_type));
+        p.add_error(format!("No prefix function for {} found.", token_type).as_str());
         return ast::Expression::EmptyExpression;
     }
     let mut left_exp = p.prefix_fns(&token_type);
@@ -525,6 +576,7 @@ fn parse_expression(p: &mut Parser, precedence: i64) -> ast::Expression {
 }
 
 fn parse_prefix_expression(p: &mut Parser) -> ast::Expression {
+    p.debug_print("parse_prefix_expression");
     let token = p.c_token.clone();
     let operator = p.c_token.literal.to_owned();
 
@@ -537,6 +589,7 @@ fn parse_prefix_expression(p: &mut Parser) -> ast::Expression {
 
 /// Parse an identifier
 fn parse_identifier(parser: &mut Parser) -> ast::Expression {
+    parser.debug_print("parse_identifier");
     let token = parser.c_token.clone();
     let mut lit = token.literal.to_owned();
     if token.typ == token::SELF {
@@ -547,13 +600,12 @@ fn parse_identifier(parser: &mut Parser) -> ast::Expression {
 
 /// parse an integer literal, returns EmptyExpression if not valid.
 fn parse_integer_literal(parser: &mut Parser) -> ast::Expression {
+    parser.debug_print("parse_integer_literal");
     let tk = parser.c_token.clone();
     // check is number
     let is_number = parser.c_token.literal.parse::<i64>().is_ok();
     if !is_number {
-        parser
-            .errors
-            .push(format!("Epected type INT got {} instead", tk.literal));
+        parser.add_error(format!("Epected type INT got {} instead", tk.literal).as_str());
         return ast::Expression::EmptyExpression;
     }
     let integer = parser.c_token.literal.parse::<i64>().unwrap();
@@ -563,10 +615,12 @@ fn parse_integer_literal(parser: &mut Parser) -> ast::Expression {
 
 /// parse a boolean
 fn parse_boolean(p: &mut Parser) -> ast::Expression {
+    p.debug_print("parse_boolean");
     ast::Expression::Boolean(p.c_token.clone(), p.cur_token_is(token::TRUE))
 }
 
 fn parse_group_expression(p: &mut Parser) -> ast::Expression {
+    p.debug_print("parse_group_expression");
     let token = p.c_token.clone();
     p.next_token();
     let exp = parse_expression(p, LOWEST);
@@ -578,6 +632,7 @@ fn parse_group_expression(p: &mut Parser) -> ast::Expression {
 }
 
 fn parse_if_expression(p: &mut Parser) -> ast::Expression {
+    p.debug_print("parse_if_expression");
     let token = p.c_token.clone();
     let mut elseif = ast::Expression::EmptyExpression;
     let mut else_ = ast::Statement::EmptyStatement;
@@ -635,16 +690,17 @@ fn parse_if_expression(p: &mut Parser) -> ast::Expression {
 }
 
 fn parse_function_literal(p: &mut Parser) -> ast::Expression {
+    p.debug_print("parse_function_literal");
     let token = p.c_token.clone();
 
     if p.peek_token_is(token::L_PAREN) {
         // this is a lambda
         return parse_lambda_literal(p);
     }
-    
+
     // ok lets make sure this is a function
     if !(p.peek_token_is(token::IDENT) || p.peek_token_is(token::NEW)) {
-        p.errors.push(format!("Expected a IDENT or NEW, got {} instead", p.peek_token.typ));
+        p.add_error(format!("Expected a IDENT or NEW, got {} instead", p.peek_token.typ).as_str());
         // not a function
         return ast::Expression::EmptyExpression;
     }
@@ -667,17 +723,16 @@ fn parse_function_literal(p: &mut Parser) -> ast::Expression {
         return ast::Expression::EmptyExpression;
     }
 
-    let fn_literal = ast::Expression::FunctionLiteral(
+    ast::Expression::FunctionLiteral(
         token.to_owned(),
         Box::new(name),
         Box::new(parameters),
         Box::new(body),
-    );
-
-    fn_literal
+    )
 }
 
 fn parse_function_paramaters(p: &mut Parser) -> Vec<ast::Expression> {
+    p.debug_print("parse_function_paramaters");
     // starts at (
     let mut idents = vec![];
 
@@ -705,6 +760,7 @@ fn parse_function_paramaters(p: &mut Parser) -> Vec<ast::Expression> {
 }
 
 fn parse_lambda_literal(p: &mut Parser) -> ast::Expression {
+    p.debug_print("parse_lambda_literal");
     let token = p.c_token.clone();
 
     if !p.expect_peek(token::L_PAREN) {
@@ -729,20 +785,24 @@ fn parse_lambda_literal(p: &mut Parser) -> ast::Expression {
 }
 
 fn parse_string_literal(p: &mut Parser) -> ast::Expression {
+    p.debug_print("parse_string_literal");
     ast::Expression::StringLiteral(p.c_token.clone().to_owned(), p.c_token.to_owned().literal)
 }
 
 fn parse_comment(p: &mut Parser) -> ast::Expression {
+    p.debug_print("parse_comment");
     ast::Expression::CommentExpression(p.c_token.to_owned(), p.c_token.to_owned().literal)
 }
 
 fn parse_array_literal(p: &mut Parser) -> ast::Expression {
+    p.debug_print("parse_array_literal");
     let token = p.c_token.to_owned();
     let elements = parse_array_arguments(p);
     ast::Expression::ArrayLiteral(token, Box::new(elements))
 }
 
 fn parse_array_arguments(p: &mut Parser) -> Vec<ast::Expression> {
+    p.debug_print("parse_array_arguments");
     let mut args = vec![];
 
     if p.peek_token_is(token::R_BRACKET) {
@@ -774,6 +834,7 @@ fn parse_array_arguments(p: &mut Parser) -> Vec<ast::Expression> {
 }
 
 fn parse_object_literal(p: &mut Parser) -> ast::Expression {
+    p.debug_print("parse_object_literal");
     let token = p.c_token.to_owned();
     let mut elements = vec![];
 
@@ -824,6 +885,7 @@ fn parse_object_literal(p: &mut Parser) -> ast::Expression {
 }
 
 fn parse_async_expressoin(p: &mut Parser) -> ast::Expression {
+    p.debug_print("parse_async_expressoin");
     let token = p.c_token.to_owned();
     if !p.expect_peek(token::FUNCTION) {
         return ast::Expression::EmptyExpression;
@@ -833,6 +895,7 @@ fn parse_async_expressoin(p: &mut Parser) -> ast::Expression {
 }
 
 fn parse_await_expression(p: &mut Parser) -> ast::Expression {
+    p.debug_print("parse_await_expression");
     let token = p.c_token.to_owned();
     p.next_token(); // consome keyword
     let value = parse_expression(p, LOWEST);
@@ -845,6 +908,7 @@ fn parse_await_expression(p: &mut Parser) -> ast::Expression {
 }
 
 fn parse_infix_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression {
+    p.debug_print("parse_infix_expression");
     let token = p.c_token.to_owned();
     let operator = p.c_token.to_owned().literal;
 
@@ -856,6 +920,7 @@ fn parse_infix_expression(p: &mut Parser, left: ast::Expression) -> ast::Express
 }
 
 fn parse_call_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression {
+    p.debug_print("parse_call_expression");
     let token = p.c_token.to_owned();
     let arguments = parse_call_arguments(p);
 
@@ -863,6 +928,7 @@ fn parse_call_expression(p: &mut Parser, left: ast::Expression) -> ast::Expressi
 }
 
 fn parse_call_arguments(p: &mut Parser) -> Vec<ast::Expression> {
+    p.debug_print("parse_call_arguments");
     let mut args = vec![];
 
     if p.peek_token_is(token::R_PAREN) {
@@ -888,6 +954,7 @@ fn parse_call_arguments(p: &mut Parser) -> Vec<ast::Expression> {
 }
 
 fn parse_dot_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression {
+    p.debug_print("parse_dot_expression");
     let token = p.c_token.to_owned();
 
     if p.peek_token_is(token::IF) {
@@ -912,6 +979,7 @@ fn parse_dot_if_expression(_p: &mut Parser, _left: ast::Expression) -> ast::Expr
 }
 
 fn parse_index_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression {
+    p.debug_print("parse_index_expression");
     let token = p.c_token.to_owned();
 
     if p.peek_token_is(token::R_BRACKET) {
@@ -929,38 +997,13 @@ fn parse_index_expression(p: &mut Parser, left: ast::Expression) -> ast::Express
         return ast::Expression::EmptyExpression;
     }
 
-    // if p.peek_token_is(token::ASSIGN) {
-    //     p.next_token();
-    //     p.next_token();
-
-    //     let right = parse_expression(p, LOWEST);
-
-    //     if !right.eq(ast::Expression::EmptyExpression) {
-    //         return ast::Expression::IndexExpression(
-    //             token.to_owned(),
-    //             Box::new(left),
-    //             Box::new(index)
-    //         );
-    //     }
-    // }
-
     ast::Expression::IndexExpression(token, Box::new(left), Box::new(index))
 }
 
 fn parse_range_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression {
+    p.debug_print("parse_range_expression");
     let token = p.c_token.to_owned();
     p.next_token();
-
-    // if !left.eq(ast::Expression::IntegerLiteral(token::EMPTY_TOKEN, 0)) {
-    //     p.errors
-    //         .push("Range must start with an integer".to_string());
-    //     return ast::Expression::EmptyExpression;
-    // }
-
-    // if !p.expect_peek(token::INT) {
-    //     p.errors.push("Range must end with a integer".to_string());
-    //     return ast::Expression::EmptyExpression;
-    // }
 
     let right = parse_expression(p, LOWEST);
     if right.is_empty() {
@@ -971,6 +1014,7 @@ fn parse_range_expression(p: &mut Parser, left: ast::Expression) -> ast::Express
 }
 
 fn parse_in_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression {
+    p.debug_print("parse_in_expression");
     let token = p.c_token.to_owned();
     p.next_token();
     let right = parse_expression(p, LOWEST);
@@ -982,6 +1026,7 @@ fn parse_in_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression
 }
 
 fn parse_of_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression {
+    p.debug_print("parse_of_expression");
     let token = p.c_token.to_owned();
     p.next_token();
     let right = parse_expression(p, LOWEST);
@@ -993,6 +1038,7 @@ fn parse_of_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression
 }
 
 fn parse_assign_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression {
+    p.debug_print("parse_assign_expression");
     let token = p.c_token.clone(); // =
     p.next_token();
     let right = parse_expression(p, LOWEST);
@@ -1001,6 +1047,7 @@ fn parse_assign_expression(p: &mut Parser, left: ast::Expression) -> ast::Expres
 }
 
 fn parse_not_expression(p: &mut Parser) -> ast::Expression {
+    p.debug_print("parse_not_expression");
     let token = p.c_token.to_owned(); // not
     p.next_token();
 
@@ -1013,6 +1060,7 @@ fn parse_not_expression(p: &mut Parser) -> ast::Expression {
 }
 
 fn parse_as_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression {
+    p.debug_print("parse_as_expression");
     let token = p.c_token.to_owned(); // as
 
     if !p.expect_peek(token::IDENT) {
@@ -1025,6 +1073,7 @@ fn parse_as_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression
 }
 
 fn parse_macro_expression(p: &mut Parser) -> ast::Expression {
+    p.debug_print("parse_macro_expression");
     let token = p.c_token.to_owned(); // $ || @
 
     if !p.expect_peek(token::IDENT) {
@@ -1061,6 +1110,7 @@ fn parse_macro_expression(p: &mut Parser) -> ast::Expression {
 }
 
 fn parse_macro_decleration(p: &mut Parser) -> ast::Expression {
+    p.debug_print("parse_macro_decleration");
     let token = p.c_token.to_owned(); // macro
 
     if !p.expect_peek(token::IDENT) {
@@ -1104,11 +1154,26 @@ fn parse_macro_decleration(p: &mut Parser) -> ast::Expression {
 }
 
 fn parse_struct_statement(p: &mut Parser) -> ast::Statement {
+    p.debug_print("parse_struct_statement");
     let token = p.c_token.to_owned(); // struct
     if !p.expect_peek(token::IDENT) {
         return ast::empty_statement();
     }
     let ident = parse_identifier(p);
+
+    // get optional inheritence.
+    let mut inherits: Option<Box<ast::Expression>> = None;
+    if p.peek_token_is(token::L_PAREN) {
+        p.next_token();
+        if !p.expect_peek(token::IDENT) {
+            return ast::empty_statement();
+        }
+        inherits = Some(Box::new(parse_identifier(p)));
+        if !p.expect_peek(token::R_PAREN) {
+            return ast::empty_statement();
+        }
+    }
+
     if !p.expect_peek(token::L_BRACE) {
         return ast::empty_statement();
     }
@@ -1118,7 +1183,13 @@ fn parse_struct_statement(p: &mut Parser) -> ast::Statement {
 
     if p.peek_token_is(token::R_BRACE) {
         p.next_token(); // consume the }
-        return ast::Statement::StructStatement(token, Box::new(ident), Box::new(variables), Box::new(methods));
+        return ast::Statement::StructStatement(
+            token,
+            Box::new(ident),
+            inherits,
+            Box::new(variables),
+            Box::new(methods),
+        );
     }
 
     // Check if we have a list of variables
@@ -1127,9 +1198,15 @@ fn parse_struct_statement(p: &mut Parser) -> ast::Statement {
         loop {
             let stmt = parse_statement(p);
             // only allow variable stmts for the moment.
-            if !stmt.eq(ast::Statement::VariableStatement(token::EMPTY_TOKEN, ast::empty_box_exp(), ast::empty_box_exp())) && !stmt.eq(
-                ast::Statement::ConstVariableStatement(token::EMPTY_TOKEN, ast::empty_box_exp(), ast::empty_box_exp())
-            ) {
+            if !stmt.eq(ast::Statement::VariableStatement(
+                token::EMPTY_TOKEN,
+                ast::empty_box_exp(),
+                ast::empty_box_exp(),
+            )) && !stmt.eq(ast::Statement::ConstVariableStatement(
+                token::EMPTY_TOKEN,
+                ast::empty_box_exp(),
+                ast::empty_box_exp(),
+            )) {
                 return ast::empty_statement();
             }
             variables.push(stmt);
@@ -1141,7 +1218,13 @@ fn parse_struct_statement(p: &mut Parser) -> ast::Statement {
         // the vars is closed...
         if p.peek_token_is(token::R_BRACE) {
             p.next_token();
-            return ast::Statement::StructStatement(token, Box::new(ident), Box::new(variables), Box::new(methods));
+            return ast::Statement::StructStatement(
+                token,
+                Box::new(ident),
+                inherits,
+                Box::new(variables),
+                Box::new(methods),
+            );
         }
     }
 
@@ -1165,10 +1248,17 @@ fn parse_struct_statement(p: &mut Parser) -> ast::Statement {
     }
     p.next_token();
 
-    ast::Statement::StructStatement(token, Box::new(ident), Box::new(variables), Box::new(methods))
+    ast::Statement::StructStatement(
+        token,
+        Box::new(ident),
+        inherits,
+        Box::new(variables),
+        Box::new(methods),
+    )
 }
 
 fn parse_and_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression {
+    p.debug_print("parse_and_expression");
     let token = p.c_token.to_owned(); // &&
     p.next_token();
     let right = parse_expression(p, LOWEST);
@@ -1177,6 +1267,7 @@ fn parse_and_expression(p: &mut Parser, left: ast::Expression) -> ast::Expressio
 }
 
 fn parse_or_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression {
+    p.debug_print("parse_or_expression");
     let token = p.c_token.to_owned(); // ||
     p.next_token();
     let right = parse_expression(p, LOWEST);
@@ -1185,6 +1276,7 @@ fn parse_or_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression
 }
 
 fn parse_question_mark_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression {
+    p.debug_print("parse_question_mark_expression");
     let token = p.c_token.to_owned(); // ?
     p.next_token();
     let right = parse_expression(p, LOWEST);
@@ -1193,6 +1285,7 @@ fn parse_question_mark_expression(p: &mut Parser, left: ast::Expression) -> ast:
 }
 
 fn parse_double_question_mark_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression {
+    p.debug_print("parse_double_question_mark_expression");
     let token = p.c_token.to_owned(); // ??
     p.next_token();
     let right = parse_expression(p, LOWEST);
@@ -1201,6 +1294,7 @@ fn parse_double_question_mark_expression(p: &mut Parser, left: ast::Expression) 
 }
 
 fn parse_new_expression(p: &mut Parser) -> ast::Expression {
+    p.debug_print("parse_new_expression");
     let token = p.c_token.to_owned(); // new
 
     // expect a identifier
@@ -1215,11 +1309,12 @@ fn parse_new_expression(p: &mut Parser) -> ast::Expression {
 }
 
 fn parse_float_literal(p: &mut Parser) -> ast::Expression {
+    p.debug_print("parse_float_literal");
     let token = p.c_token.to_owned(); // 1.0
-    // check is float
+                                      // check is float
     let is_float = p.c_token.literal.parse::<f64>().is_ok();
     if !is_float {
-        p.errors.push(format!("Epected type FLOAT got {} instead", token.literal));
+        p.add_error(format!("Epected type FLOAT got {} instead", token.literal).as_str());
         return ast::empty_expression();
     }
 

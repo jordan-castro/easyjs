@@ -15,3 +15,4 @@ const JAVASCRIPT_KEYWORDS: [&str; 11] = [
 pub fn is_javascript_keyword(word: &str) -> bool {
     JAVASCRIPT_KEYWORDS.contains(&word)
 }
+

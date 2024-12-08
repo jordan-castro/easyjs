@@ -25,7 +25,7 @@ fn import_core(file_path: &str, t: &mut Transpiler) -> String {
         panic!("File does not exist: {}", file_path);
     }
     let new_file_path = format!("{}/{}.js", CACHE_DIR, file_path);
-    let mut src = compile_module(contents);
+    let mut src = compile_module(contents, file_path);
     write_file(&new_file_path, &src.0);
     t.add_module(&mut src.1);
     new_file_path
@@ -38,7 +38,7 @@ fn import_base(file_path: &str, t: &mut Transpiler) -> String {
     let contents = read_file(&format!("{}.ej", actual_fp));
     let new_fp = format!("{}/{}.js", CACHE_DIR, actual_fp);
     // compile and write
-    let mut src = compile_module(contents);
+    let mut src = compile_module(contents, file_path);
     write_file(&new_fp, &src.0);
     t.add_module(&mut src.1);
 

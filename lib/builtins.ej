@@ -7,3 +7,20 @@ export fn int_range(start, end) {
 
     return res
 }
+
+export fn sleep(ms) {
+    javascript{
+        return new Promise(resolve => setTimeout(resolve, ms))
+    }
+}
+
+/// Creates a range
+export fn range(kwargs) {
+    start = kwargs.start
+    end = kwargs.end
+    step = kwargs.step ?? 1
+
+    javascript{
+        return Array(Math.ceil((end - start) / step)).fill(start).map((x,y) => x + y * step)
+    }
+}
