@@ -70,6 +70,7 @@ fn precedences(tk: &str) -> i64 {
         token::DOTDOT => DOTDOT,
         token::IN => IN,
         token::OF => OF,
+        token::IS => IN,
         token::AWAIT => AWAIT,
         token::ASSIGN => ASSIGN,
         token::AS => AS,
@@ -211,6 +212,7 @@ impl Parser {
             token::MINUS_EQUALS => true,
             token::SLASH_EQUALS => true,
             token::ASTERISK_EQUALS => true,
+            token::IS => true,
             _ => false,
         }
     }
@@ -246,6 +248,7 @@ impl Parser {
             token::SLASH_EQUALS => parse_infix_expression(self, left),
             token::ASTERISK_EQUALS => parse_infix_expression(self, left),
             token::AS => parse_as_expression(self, left),
+            token::IS => parse_is_expression(self, left),
             _ => ast::Expression::EmptyExpression,
         }
     }
@@ -1070,6 +1073,17 @@ fn parse_as_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression
     let right = parse_expression(p, LOWEST);
 
     ast::Expression::AsExpression(token, Box::new(left), Box::new(right))
+}
+
+fn parse_is_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression {
+    p.debug_print("parse_is_expression");
+    let token = p.c_token.to_owned(); // is
+
+    p.next_token();
+
+    let right = parse_expression(p, LOWEST);
+
+    ast::Expression::IsExpression(token, Box::new(left), Box::new(right))
 }
 
 fn parse_macro_expression(p: &mut Parser) -> ast::Expression {

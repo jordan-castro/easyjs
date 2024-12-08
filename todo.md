@@ -4,7 +4,6 @@
 - ~~add kwargs as fn_call(var=value)~~
 - add ".wasm" support?
 - ~~Implement inheritence~~ Choose composition instead.
-- add ** support or whatever that is.
 - ~~add easyjs module support.~~
 - add test cases.
 - add a minifier option.
@@ -14,7 +13,7 @@
 - add ... token
 - var {x,y} = coords
 - {x,y}
-- var a,b = [0,1]
+- a,b = [0,1]
 - add switch case
 - add a way to determine if running in browser or nodejs/deno/bun
 - ~~add line count to lexer to track errors.~~
@@ -22,7 +21,7 @@
 - Better debugger.
 - Support UNICODE 
 - Javascript token can use strings.
-- add typeof() i.e. is
+- ~~add typeof() i.e. is~~
 
 ## EasyJS
 - core
@@ -35,8 +34,6 @@
     - pyscript
 
 ## Macros
-
-## Builtins
 
 ## Scripts
 - add to path (also update path...)

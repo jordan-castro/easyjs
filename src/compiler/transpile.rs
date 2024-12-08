@@ -36,7 +36,7 @@ impl Transpiler {
             context: Context::default(),
             structs: vec![],
         };
-        
+
         t
     }
 
@@ -45,7 +45,7 @@ impl Transpiler {
     }
 
     /// Add a module to the current scope.
-    /// 
+    ///
     /// `module: Transpiler` the modules transpiler.
     pub fn add_module(&mut self, module: &mut Transpiler) {
         // self.functions.append(&mut module.functions);
@@ -102,11 +102,18 @@ impl Transpiler {
             ast::Statement::ReturnStatement(token, expression) => {
                 Some(self.transpile_return_stmt(token, expression.as_ref().to_owned()))
             }
-            ast::Statement::UseStatement(token, prefix, path) => {
-                Some(self.transpile_use_stmt(token, prefix.as_ref().to_owned(), path.as_ref().to_owned()))
-            }
+            ast::Statement::UseStatement(token, prefix, path) => Some(self.transpile_use_stmt(
+                token,
+                prefix.as_ref().to_owned(),
+                path.as_ref().to_owned(),
+            )),
             ast::Statement::UseFromStatement(token, specs, prefix, path) => {
-                Some(self.transpile_use_from_stmt(token, specs.as_ref().to_owned(), prefix.as_ref().to_owned(), path.as_ref().to_owned()))
+                Some(self.transpile_use_from_stmt(
+                    token,
+                    specs.as_ref().to_owned(),
+                    prefix.as_ref().to_owned(),
+                    path.as_ref().to_owned(),
+                ))
             }
             ast::Statement::ExpressionStatement(token, expression) => {
                 Some(self.transpile_expression_stmt(token, expression.as_ref().to_owned()))
@@ -242,12 +249,19 @@ impl Transpiler {
                 (module_name, path_to_use)
             }
             _ => {
-                panic!("Path must be of type (Identifier, AsExpression, StringLiteral, DotExpression)");
+                panic!(
+                    "Path must be of type (Identifier, AsExpression, StringLiteral, DotExpression)"
+                );
             }
         }
     }
 
-    fn transpile_use_stmt(&mut self, token: token::Token, prefix: Expression, path: Expression) -> String {
+    fn transpile_use_stmt(
+        &mut self,
+        token: token::Token,
+        prefix: Expression,
+        path: Expression,
+    ) -> String {
         let mut res = String::new();
         let mut import_type = ImportType::Base;
 
@@ -284,7 +298,13 @@ impl Transpiler {
         res
     }
 
-    fn transpile_use_from_stmt(&mut self, token: token::Token, specs: Vec<Expression>, prefix: Expression, path: Expression) -> String {
+    fn transpile_use_from_stmt(
+        &mut self,
+        token: token::Token,
+        specs: Vec<Expression>,
+        prefix: Expression,
+        path: Expression,
+    ) -> String {
         let mut res = String::new();
         let mut import_type = ImportType::Base;
 
@@ -478,14 +498,14 @@ impl Transpiler {
         match expression {
             ast::Expression::IntegerLiteral(token, value) => value.to_string(),
             Expression::StringLiteral(token, value) => {
-                println!("{}", value);
-                let quote_type = if (&value.contains("$")).to_owned() || (&value.contains("\n")).to_owned() {
-                    "`"
-                } else if (&value.contains("'")).to_owned() {
-                    "\""
-                } else {
-                    "\'"
-                };
+                let quote_type =
+                    if (&value.contains("$")).to_owned() || (&value.contains("\n")).to_owned() {
+                        "`"
+                    } else if (&value.contains("'")).to_owned() {
+                        "\""
+                    } else {
+                        "\'"
+                    };
 
                 let str_value = string_interpolation(&value);
                 // supporting string $ interpolation.
@@ -610,7 +630,8 @@ impl Transpiler {
                     match arg {
                         ast::Expression::AssignExpression(_t, left, right) => {
                             has_named = true;
-                            named_args.push(vec![left.as_ref().to_owned(), right.as_ref().to_owned()]);
+                            named_args
+                                .push(vec![left.as_ref().to_owned(), right.as_ref().to_owned()]);
                         }
                         _ => {
                             if has_named {
@@ -866,6 +887,13 @@ impl Transpiler {
                 format!("new {}", self.transpile_expression(exp.as_ref().to_owned()))
             }
             Expression::FloatLiteral(token, value) => format!("{}", value),
+            Expression::IsExpression(_tk, left, right) => {
+                format!(
+                    "typeof({}) == {}",
+                    self.transpile_expression(left.as_ref().to_owned()),
+                    self.transpile_expression(right.as_ref().to_owned())
+                )
+            }
             _ => String::from(""),
         }
     }

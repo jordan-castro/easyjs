@@ -153,6 +153,8 @@ pub enum Expression {
     FloatLiteral(tk::Token, f64),
     /// Grouped Expression ()
     GroupedExpression(tk::Token, Box<Expression>),
+    /// left is right (typeof(left) == right)
+    IsExpression(tk::Token, Box<Expression>, Box<Expression>),
 }
 
 impl Expression {
@@ -192,7 +194,8 @@ impl Expression {
             Expression::DefaultIfNullExpression(_, _, _) => "DefaultIfNullExpression",
             Expression::NewClassExpression(_, _) => "NewClassExpression",
             Expression::FloatLiteral(_, _) => "FloatLiteral",
-            Expression::GroupedExpression(_, _) => "GroupedExpression"
+            Expression::GroupedExpression(_, _) => "GroupedExpression",
+            Expression::IsExpression(_, _, _) => "IsExpression"
         }
     }
 
