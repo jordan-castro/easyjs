@@ -1,0 +1,3 @@
+use {easyjs_ascii} from core:builtins
+
+console.log(easyjs_ascii())

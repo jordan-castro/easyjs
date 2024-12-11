@@ -13,3 +13,20 @@ export fn normal(mean, std_dev) {
     z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2) // Box-Muller transform
     return z0 * std_dev + mean
 }
+
+/// Shuffle an array randomly.
+export fn shuffle(arr) {
+    return arr.slice().sort(fn() {
+        return Math.random() - 0.5
+    })
+}
+
+/// Get a random number from min max
+export random_number = fn(min, max) {return Math.floor(Math.random() * (max - min + 1) + min)}
+
+/// Get a random hex color
+export random_hex_color = fn() {return "#${Math.random().toString(16).slice(2, 8).padEnd(6, '0')}"}
+
+/// Get a Random boolean
+export random_bool = fn() {return Math.random() >= 0.5}
+

@@ -67,6 +67,7 @@ pub const CONST_ASSIGNMENT: &str = "CONST_ASSIGNMENT";
 
 // Comments
 pub const COMMENT: &str = "//";
+pub const DOC_COMMENT: &str = "///";
 
 pub const L_PAREN: &str = "(";
 pub const R_PAREN: &str = ")";
@@ -102,6 +103,7 @@ pub const MACRO: &str = "MACRO";
 pub const NEW: &str = "NEW";
 pub const EXPORT: &str = "EXPORT";
 pub const IS: &str = "IS";
+pub const VAR: &str = "VAR";
 
 // Import prefixes
 pub const CORE: &str = "CORE";
@@ -141,6 +143,7 @@ pub fn lookup_ident(ident: &str) -> &'static str {
         "string" => STRING_IMPORT,
         "export" => EXPORT,
         "is" => IS,
+        "var" => VAR,
         _ => IDENT, // Default case for unknown identifiers
     }
 }

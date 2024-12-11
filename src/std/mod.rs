@@ -1,6 +1,6 @@
-// EasyJS STD version 0.2.1
+// EasyJS STD version 0.2.2
 const BUILTINS: &str = "export fn int_range(start, end) {
-    res = []
+    var res = []
     // the .. works because this is a for loop...
     for i in start..end {
         res.push(i)
@@ -24,7 +24,52 @@ export fn range(kwargs) {
     javascript{
         return Array(Math.ceil((end - start) / step)).fill(start).map((x,y) => x + y * step)
     }
+}
+
+/// Flatten a list in JS.
+export fn flat(list) {
+    javascript{
+        return [...new Set(list)];
+    }
+}
+
+/// Capitalize a string
+export fn capitalize(str) {
+    return \"${str.charAt(0).toUpperCase()}${str.slice(1)}\"
+}
+
+/// Merge 2 arrays
+export fn merge(arr1, arr2, flatten) {
+    var narr = [].concat(arr1, arr2)
+
+    if flatten == true {
+        return flat(narr)
+    }
+
+    return arr
+}
+
+/// Reverse a string
+export reverse_string = fn(str) {return str.split(\"\").reverse().join(\"\")} 
+
+/// Get the EasyJS ASCII
+export fn easyjs_ascii() {
+    return \"    ___       ___       ___       ___            ___       ___   
+   /\\  \\     /\\  \\     /\\  \\     /\\__\\          /\\  \\     /\\  \\  
+  /::\\  \\   /::\\  \\   /::\\  \\   |::L__L        _\\:\\  \\   /::\\  \\ 
+ /::\\:\\__\\ /::\\:\\__\\ /\\:\\:\\__\\  |:::\\__\\      /\\/::\\__\\ /\\:\\:\\__\\
+ \\:\\:\\/  / \\/\\::/  / \\:\\:\\/__/  /:;;/__/      \\::/\\/__/ \\:\\:\\/__/
+  \\:\\/  /    /:/  /   \\::/  /   \\/__/          \\/__/     \\::/  / 
+   \\/__/     \\/__/     \\/__/                              \\/__/  \"
 }";
+const DATE: &str = "/// Get the days between 2 dates
+export days_between_dates = fn(d1, d2) { return Math.ceil(Math.abs(date1 - date2) / (1000 * 60 * 60 * 24)) }
+
+/// Get the weekday of a date.
+export get_week_day = fn(d) { return d.toLocaleString('en-US', {weekday: 'long'}) }
+
+/// Is a date a weekend?
+export is_weekend = fn(d) {return [5,6].indexOf(d.getDay()) != -1}";
 const DOM: &str = "// ! This can only be used in the browser.
 
 // shorthand for document.
@@ -52,7 +97,14 @@ const MATH: &str = "export fn radians(degrees) {
     javascript{
         return degrees * (Math.PI / 180);
     }
-}";
+}
+
+/// Calculate the percentage in EasyJS.
+export fn calculate_percent(value:number,total:number) -> number {
+    Math.round((value / total) * 100)
+}
+
+//";
 const RANDOM: &str = "// EasyJS implementation of random.uniform from Python.
 export fn uniform(a,b) {
     return Math.random() * (b - a + 1) + a
@@ -67,7 +119,25 @@ export fn normal(mean, std_dev) {
     u2 = Math.random()
     z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2) // Box-Muller transform
     return z0 * std_dev + mean
-}";
+}
+
+/// Shuffle an array randomly.
+export fn shuffle(arr) {
+    return arr.slice().sort(fn() {
+        return Math.random() - 0.5
+    })
+}
+
+/// Get a random number from min max
+export random_number = fn(min, max) {return Math.floor(Math.random() * (max - min + 1) + min)}
+
+/// Get a random hex color
+export random_hex_color = fn() {return \"#${Math.random().toString(16).slice(2, 8).padEnd(6, '0')}\"}
+
+/// Get a Random boolean
+export random_bool = fn() {return Math.random() >= 0.5}
+
+";
 const STD: &str = "// Get the last element of an array
 macro last(array) {
     array[array.length - 1]
@@ -131,10 +201,11 @@ struct HTMLElement {
 const WASM: &str = "// the EasyWasm library
 ";
 
-/// Load a STD library from EasyJS version 0.2.1, or an empty string if not found.
+/// Load a STD library from EasyJS version 0.2.2, or an empty string if not found.
 pub fn load_std(name: &str) -> String {
 match name {
 "builtins" => BUILTINS,
+"date" => DATE,
 "dom" => DOM,
 "http" => HTTP,
 "json" => JSON,

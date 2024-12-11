@@ -9,8 +9,8 @@ pub fn interpret_js(js: &str, context: &mut Context) -> JsResult<JsValue> {
 pub fn is_javascript_var_defined(var: &str, context: &mut Context) -> bool {
     // Proper JavaScript to check if the variable is defined
     let js_code = format!(
-        "typeof {} !== 'undefined'",
-        var // Escape the variable name if needed
+        "typeof({}) !== 'undefined'",
+        var
     );
 
     match interpret_js(&js_code, context) {

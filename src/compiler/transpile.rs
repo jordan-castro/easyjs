@@ -23,6 +23,9 @@ pub struct Transpiler {
     pub functions: Vec<String>,
     /// All declared EasyJS structs.
     pub structs: Vec<String>,
+
+    /// Keep a list of all declared EasyJS variables.
+    variables: Vec<String>,
     /// Boa engine context.
     context: Context,
 }
@@ -35,6 +38,7 @@ impl Transpiler {
             macros: HashMap::new(),
             context: Context::default(),
             structs: vec![],
+            variables: vec![],
         };
 
         t
@@ -161,27 +165,13 @@ impl Transpiler {
         name: ast::Expression,
         value: ast::Expression,
     ) -> String {
-        let mut response = String::new();
-        match name {
-            ast::Expression::Identifier(token, name) => {
-                if !is_javascript_var_defined(name.as_str(), &mut self.context) {
-                    response.push_str("let ");
-                }
-                if is_javascript_keyword(&name) {
-                    response.push_str(&hash_string(&name));
-                } else {
-                    response.push_str(&name);
-                }
-                // response.push_str(name.as_str());
-                response.push_str("=");
-                response.push_str(&self.transpile_expression(value));
-                response.push_str(";\n");
-            }
-            _ => {
-                panic!("Name must be of type Identifier");
-            }
-        }
-        response
+        let name_string = self.transpile_expression(name.clone());
+        self.variables.push(name_string.clone());
+        format!(
+            "let {} = {};\n",
+            name_string,
+            self.transpile_expression(value)
+        )
     }
 
     fn transpile_return_stmt(
@@ -208,21 +198,13 @@ impl Transpiler {
         name: ast::Expression,
         value: ast::Expression,
     ) -> String {
-        match name.clone() {
-            ast::Expression::Identifier(_token, name) => {
-                if is_javascript_var_defined(name.as_str(), &mut self.context) {
-                    panic!("Variable can not be defined as CONST because it is already defined.");
-                }
-            }
-            _ => {
-                panic!("Name must be of type Identifier");
-            }
+        let left = self.transpile_expression(name.clone());
+        let value = self.transpile_expression(value);
+        if self.variables.contains(&left) {
+            format!("{} = {};\n", &left, &value)
+        } else {
+            format!("const {} = {};\n", &left, &value)
         }
-        format!(
-            "const {} = {};\n",
-            self.transpile_expression(name),
-            self.transpile_expression(value)
-        )
     }
 
     fn get_module_n_path(&mut self, exp: Expression) -> (String, String) {
@@ -802,9 +784,10 @@ impl Transpiler {
                 )
             }
             Expression::AssignExpression(token, left, right) => {
+                let left: String = self.transpile_expression(left.as_ref().to_owned());
                 format!(
                     "{} = {}",
-                    self.transpile_expression(left.as_ref().to_owned()),
+                    left,
                     self.transpile_expression(right.as_ref().to_owned())
                 )
             }

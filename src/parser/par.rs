@@ -354,10 +354,9 @@ impl Parser {
 /// Parse a statement, returns EmptyStatement on error.
 fn parse_statement(parser: &mut Parser) -> ast::Statement {
     let stmt = match parser.c_token.typ.as_str() {
+        token::VAR => parse_var_statement(parser),
         token::IDENT => {
             if parser.peek_token_is(token::ASSIGN) {
-                parse_var_statement(parser)
-            } else if parser.peek_token_is(token::CONST_ASSIGNMENT) {
                 parse_const_var_statement(parser)
             } else {
                 parse_expression_statement(parser)
@@ -393,12 +392,16 @@ fn parse_export_statement(p: &mut Parser) -> ast::Statement {
 
 fn parse_var_statement(p: &mut Parser) -> ast::Statement {
     p.debug_print("parse_var_statement");
-    let token = p.c_token.clone();
+    let token = p.c_token.clone(); // var
+    
+    if !p.expect_peek(token::IDENT) {
+        return ast::empty_statement();
+    }
+    let name = parse_identifier(p);
 
     if !p.expect_peek(token::ASSIGN) {
         return ast::Statement::EmptyStatement;
     }
-    let name = ast::Expression::Identifier(token.to_owned(), token.to_owned().literal);
     p.next_token();
 
     let value = parse_expression(p, LOWEST);
@@ -410,7 +413,7 @@ fn parse_const_var_statement(p: &mut Parser) -> ast::Statement {
     p.debug_print("parse_const_var_statement");
     let token = p.c_token.clone();
 
-    if !p.expect_peek(token::CONST_ASSIGNMENT) {
+    if !p.expect_peek(token::ASSIGN) {
         return ast::Statement::EmptyStatement;
     }
 

@@ -3,3 +3,10 @@ export fn radians(degrees) {
         return degrees * (Math.PI / 180);
     }
 }
+
+/// Calculate the percentage in EasyJS.
+export fn calculate_percent(value:number,total:number) -> number {
+    Math.round((value / total) * 100)
+}
+
+//

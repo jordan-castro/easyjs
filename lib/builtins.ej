@@ -1,5 +1,5 @@
 export fn int_range(start, end) {
-    res = []
+    var res = []
     // the .. works because this is a for loop...
     for i in start..end {
         res.push(i)
@@ -23,4 +23,41 @@ export fn range(kwargs) {
     javascript{
         return Array(Math.ceil((end - start) / step)).fill(start).map((x,y) => x + y * step)
     }
+}
+
+/// Flatten a list in JS.
+export fn flat(list) {
+    javascript{
+        return [...new Set(list)];
+    }
+}
+
+/// Capitalize a string
+export fn capitalize(str) {
+    return "${str.charAt(0).toUpperCase()}${str.slice(1)}"
+}
+
+/// Merge 2 arrays
+export fn merge(arr1, arr2, flatten) {
+    var narr = [].concat(arr1, arr2)
+
+    if flatten == true {
+        return flat(narr)
+    }
+
+    return arr
+}
+
+/// Reverse a string
+export reverse_string = fn(str) {return str.split("").reverse().join("")} 
+
+/// Get the EasyJS ASCII
+export fn easyjs_ascii() {
+    return "    ___       ___       ___       ___            ___       ___   
+   /\\  \\     /\\  \\     /\\  \\     /\\__\\          /\\  \\     /\\  \\  
+  /::\\  \\   /::\\  \\   /::\\  \\   |::L__L        _\\:\\  \\   /::\\  \\ 
+ /::\\:\\__\\ /::\\:\\__\\ /\\:\\:\\__\\  |:::\\__\\      /\\/::\\__\\ /\\:\\:\\__\\
+ \\:\\:\\/  / \\/\\::/  / \\:\\:\\/__/  /:;;/__/      \\::/\\/__/ \\:\\:\\/__/
+  \\:\\/  /    /:/  /   \\::/  /   \\/__/          \\/__/     \\::/  / 
+   \\/__/     \\/__/     \\/__/                              \\/__/  "
 }
