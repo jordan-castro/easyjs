@@ -57,7 +57,7 @@ easyjs repl
   \:\/  /    /:/  /   \::/  /   \/__/          \/__/     \::/  / 
    \/__/     \/__/     \/__/                              \/__/
 EasyJS 0.1.4
-> // your code goes here.
+>> // your code goes here.
 ```
 
 - Using in browser:
@@ -69,8 +69,8 @@ EasyJS 0.1.4
     </script>
 </head>
 <body>
-    <script type="easjs">
-        print("Hello world")
+    <script type="easjs"> 
+        console.log("Hello world")
     </script>
 </body>
 ```

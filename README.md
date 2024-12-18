@@ -48,12 +48,10 @@ easyjs
 Imagine you have a EasyJS file like so:
 ```rust
 fn foo() { // <-- functions use the fn keyword.  this will compile into a "function foo() {}"
-    print("foo") // <-- This will console.log("foo")
-    // or you could just use
     console.log("foo") // <-- mostly all JS objects  transfer over. 
 }
 
-bar := fn(x,y) {  // <-- This will compile into a "const bar = () => {};"
+bar = fn(x,y) {  // <-- This will compile into a "const bar = () => {};"
     ...
 }
 ```
@@ -67,11 +65,11 @@ Or you can inline the .ej file
     <!-- OR -->
     <script type="easyjs">
         fn foo() {
-            print("foo")
+            console.log("foo")
         }
 
         fn bar() {
-            print("bar")
+            console.log("bar")
         }
     </script>
 </head>
@@ -82,9 +80,9 @@ In this approach our wasm runtime will take care of transcribing it in REALTIME.
 ```rust
 fn fibonacci(n) { // <-- easyJS is dynamically typed. 
     if n == 0 {
-        return 0 // <-- optional semicolons.
+        return 0 // <-- no semicolons.
     } elif n == 1 {
-        1 // <-- optinal return statement.
+        return 1
     } else {
         fibonacci(n - 1) + fibonacci(n - 2)
     }
@@ -115,10 +113,10 @@ document.title = "Hello World!";
 That's a pretty basic example, but you can already tell it is a little more readable without the semicolons.
 
 **Making a GET request**
-```rust
-import http // <-- import the easyjs http library
+```js
+use core:http // <-- import the easyjs http library
 
-get_response := get("https://jsonplaceholder.typicode.com/posts/1") // <-- Call the http.get method
+get_response = http.get("https://jsonplaceholder.typicode.com/posts/1") // <-- Call the http.get method
 get_response.if { // <-- Conditional on object type.
     .status_code == 200 { // <-- if get_response.status_code == 200 (you also can use .ok which does the same thing)
         console.log(.json())
@@ -147,39 +145,47 @@ fetch('https://jsonplaceholder.typicode.com/posts/1')
 **Classes and objects**
 ```rust
 struct Person {
-    pub name::string // <-- Optinal typing
-    pub age // <-- struct properties are private by default.
-    diary::array[string] // <-- This property is private and is an array of strings.
+    name : string // <-- Optional typing
+    age : int // <-- instead of float
+    diary : array[string] // <-- an array of strings.
 
-    pub fn _new(name, age, diary) {} // <-- If using the same name as the struct property it will be set automatically.
+    fn new(name, age, diary) {  // <-- You can also use `construct`
+        self.name = name // use self instead of `this`
+        self.age = age
+        self.diary = diary
+    }
 
-    pub fn say_greeting() {
+    fn say_greeting() {
         console.log("Hello, my name is $name") // <-- Example of string interpolation. No need for ``
     }
 
-    fn read_diary() { // <-- struct functions are private by default.
-        for item of diary { // <-- 
-            print(item)
+    !fn read_diary() { // <-- add a '!' to make a struct function private.
+        for item in diary { // <-- compiles into a 'of', if you are looing to use a 'in' use for i, item in diary
+            console.log(item)
         }
     }
 }
 
 // You also have the option of a methodless struct for holding data
 struct PersonData {
-    pub name
-    pub age
-    pub diary
+    name : string
+    age = 0 // either needs to have a type or a value...
+    diary = []
 }
 
 // To instantiate a Person
-person := Person("Jordan", 22, ["Dear Diary", "I love Julia!", "I also love EasyJS!"])
+person = Person("Jordan", 22, ["Dear Diary", "I love Julia!", "I also love EasyJS!"])
 
 // To instantiate a PersonData
-person_data := PersonData("Evelyn", 19, ["Dear Diary", "I saw that Jordan loves a girl named Julia!", "Who is she???"])
+person_data = PersonData("Evelyn", 19, ["Dear Diary", "I saw that Jordan loves a girl named Julia!", "Who is she???"])
 ```
 VS the JavaScript equivalent
 ```javascript
 class Person {
+    name = "" // default values are instantiated.
+    age = 0
+    diary = []
+
     constructor(name, age, diary) {
         this.name = name;   // Name of the person
         this.age = age;     // Age of the person
@@ -193,9 +199,9 @@ class Person {
 
     // Private method to read the diary
     #readDiary() {
-        this.diary.forEach((entry, index) => {
-            console.log(`Diary entry ${index + 1}: ${entry}`);
-        });
+        for (let item of this.diary) {
+            console.log(item);
+        }
     }
 }
 
@@ -214,12 +220,11 @@ const personData = new PersonData("Evelyn", 19, ["Dear Diary", "..."])
 
 ```
 **Variables**
-```php
-const_var := "some data"                             // <-- This is a const string variable. consts are typed automatically.
-variable = "other data"                              // <-- This is a mutable string variable.
-typed_var::string = "more data"                      // <-- This is how you would type a variable.
-global variable = "a global string"                  // <-- This is a dynamic global mutable variable.
-global static_var::string = "a static global string" // <-- This is a static global mutable variable.
+```javascript
+var hello = "hello" // this compiles into let hello = "hello"
+world = "world" // this compiles into const world = "world"
+
+
 ```
 VS the JavaScript equivalent
 ```javascript

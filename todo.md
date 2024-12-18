@@ -1,9 +1,6 @@
 # TODO
 
 ## Compiler
-- ~~add kwargs as fn_call(var=value)~~
-- ~~Implement inheritence~~ Choose composition instead.
-- ~~add easyjs module support.~~
 - add test cases.
 - add a minifier option.
 - ~~track variable scope~~.
@@ -14,13 +11,7 @@
 - a,b = [0,1]
 - add switch case
 - add a way to determine if running in browser or nodejs/deno/bun
-- ~~add line count to lexer to track errors.~~
-- ~~Include seperators finaly.~~
-- ~~Better debugger.~~
 - Support UNICODE 
-- ~~Javascript token can use strings.~~
-- ~~add typeof() i.e. is~~
-- ~~add var keyword~~
 - Support Doc Comments
 - add types (using boa)
 - add ternirary statements

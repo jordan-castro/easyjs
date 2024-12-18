@@ -48,3 +48,8 @@ pub fn compile_module(input: String, module_name:&str) -> (String, Transpiler) {
 pub fn compile_for_repl(input: String) -> String {
     compile(input, false, "").expect("Could not compile0").0
 }
+
+/// Compile from wasm
+pub fn compile_from_wasm(input: String) -> HashMap<String, String> {
+    
+}
