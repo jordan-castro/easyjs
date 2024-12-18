@@ -1,14 +1,12 @@
 # This script takes the .ej files from lib directory and places them in the rust std
 # directory as strings. This will replace all current code in src/std/mod.rs
 
-import os
 from glob import glob
 
 
 def clean_file_contents(contents):
     contents = contents.replace("\t", " ")
     contents = contents.replace("\r", " ")
-    contents = contents.replace('"', '\\"')
 
     return contents
 
@@ -18,18 +16,6 @@ with open("lib/version", "r") as f:
     version = f.read()
 
 lib_files = glob("lib/*.ej")
-
-# pub fn std_lib_from(name: &str) -> String {
-#     match name {
-#         "io" => IO,
-#         "json" => JSON,
-#         "dom" => DOM,
-#         "easy_wasm" => EASY_WASM,
-#         "wasm" => WASM,
-#         "http" => HTTP,
-#         _ => ""
-#     }.to_string()
-# }
 
 with open("src/std/mod.rs", "w") as f:
     f.write(f"// EasyJS STD version {version}\n")
@@ -46,7 +32,7 @@ with open("src/std/mod.rs", "w") as f:
             name_to_source[name] = source
 
             f.write(
-                f"const {file.split('/')[-1].split('.')[0].upper()}: &str = \"{contents}\";\n"
+                f"const {file.split('/')[-1].split('.')[0].upper()}: &str = r##\"{contents}\"##;\n"
             )
     
     f.write("\n")
@@ -62,7 +48,3 @@ with open("src/std/mod.rs", "w") as f:
     f.write("}.to_string()")
 
     f.write("}")
-    # f.write("""pub fn load_std(name: &str) -> String {
-                # match name {
-                    # }
-            # }""")

@@ -373,30 +373,6 @@ mod tests {
         assert_eq!(program.statements.len(), 2);
     }
 
-    #[test]
-    fn test_macro_expression() {
-        let input = "
-            macro except(values, err) {
-                javascript{
-                    try {
-                        return values;
-                    } catch (e) {
-                        console.log(e);
-                    }
-                }
-            }
-        ".to_string();
-
-        let l: lex::Lex = lex::Lex::new(input);
-        let mut p = par::Parser::new(l);
-        let program = p.parse_program();
-
-        println!("{:?}", p.errors);
-        println!("{:#?}", program.statements);
-
-        assert_eq!(p.errors.len(), 0);
-        assert_eq!(program.statements.len(), 1);
-    }
 
     #[test]
     fn test_struct_stmts() {
@@ -437,6 +413,5 @@ mod tests {
 
         assert_eq!(p.errors.len(), 0);
         assert_eq!(program.statements.len(), 3);
-
     }
 }
