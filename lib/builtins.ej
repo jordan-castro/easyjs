@@ -45,7 +45,7 @@ export fn merge(arr1, arr2, flatten) {
         return flat(narr)
     }
 
-    return arr
+    return narr
 }
 
 /// Reverse a string

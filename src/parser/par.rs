@@ -148,6 +148,7 @@ impl Parser {
             token::DECORATOR => parse_macro_expression(self),
             token::MACRO => parse_macro_decleration(self),
             token::NEW => parse_new_expression(self),
+            token::BUILTIN => parse_builtin_expression(self),
             _ => ast::Expression::EmptyExpression,
         }
     }
@@ -177,6 +178,7 @@ impl Parser {
             token::DECORATOR => true,
             token::MACRO => true,
             token::NEW => true,
+            token::BUILTIN => true,
             _ => false,
         }
     }
@@ -1338,4 +1340,33 @@ fn parse_float_literal(p: &mut Parser) -> ast::Expression {
     let float = p.c_token.literal.parse::<f64>().unwrap();
 
     ast::Expression::FloatLiteral(token, float)
+}
+
+fn parse_builtin_expression(p: &mut Parser) -> ast::Expression {
+    p.debug_print("parse_builtin_expression");
+    let token = p.c_token.to_owned(); // builtin
+    
+    if !p.expect_peek(token::L_PAREN) { // (
+        return ast::empty_expression();
+    }
+
+    let mut args = vec![];
+
+    if p.peek_token_is(token::R_PAREN) { // )
+        p.next_token();
+        return ast::Expression::BuiltinCall(token, Box::new(args));
+    }
+    p.next_token(); // consume the (
+
+    while !p.cur_token_is(token::R_PAREN) { // !)
+        args.push(parse_expression(p, LOWEST));
+        p.next_token();
+
+        // check if , is current
+        if p.cur_token_is(token::COMMA) {
+            p.next_token();
+        }
+    }
+
+    ast::Expression::BuiltinCall(token, Box::new(args))
 }

@@ -1,5 +1,5 @@
 // EasyJS STD version 0.2.2
-const BUILTINS: &str = "export fn int_range(start, end) {
+const BUILTINS: &str = r##"export fn int_range(start, end) {
     var res = []
     // the .. works because this is a for loop...
     for i in start..end {
@@ -35,7 +35,7 @@ export fn flat(list) {
 
 /// Capitalize a string
 export fn capitalize(str) {
-    return \"${str.charAt(0).toUpperCase()}${str.slice(1)}\"
+    return "${str.charAt(0).toUpperCase()}${str.slice(1)}"
 }
 
 /// Merge 2 arrays
@@ -46,31 +46,31 @@ export fn merge(arr1, arr2, flatten) {
         return flat(narr)
     }
 
-    return arr
+    return narr
 }
 
 /// Reverse a string
-export reverse_string = fn(str) {return str.split(\"\").reverse().join(\"\")} 
+export reverse_string = fn(str) {return str.split("").reverse().join("")} 
 
 /// Get the EasyJS ASCII
 export fn easyjs_ascii() {
-    return \"    ___       ___       ___       ___            ___       ___   
+    return "    ___       ___       ___       ___            ___       ___   
    /\\  \\     /\\  \\     /\\  \\     /\\__\\          /\\  \\     /\\  \\  
   /::\\  \\   /::\\  \\   /::\\  \\   |::L__L        _\\:\\  \\   /::\\  \\ 
  /::\\:\\__\\ /::\\:\\__\\ /\\:\\:\\__\\  |:::\\__\\      /\\/::\\__\\ /\\:\\:\\__\\
  \\:\\:\\/  / \\/\\::/  / \\:\\:\\/__/  /:;;/__/      \\::/\\/__/ \\:\\:\\/__/
   \\:\\/  /    /:/  /   \\::/  /   \\/__/          \\/__/     \\::/  / 
-   \\/__/     \\/__/     \\/__/                              \\/__/  \"
-}";
-const DATE: &str = "/// Get the days between 2 dates
+   \\/__/     \\/__/     \\/__/                              \\/__/  "
+}"##;
+const DATE: &str = r##"/// Get the days between 2 dates
 export days_between_dates = fn(d1, d2) { return Math.ceil(Math.abs(date1 - date2) / (1000 * 60 * 60 * 24)) }
 
 /// Get the weekday of a date.
 export get_week_day = fn(d) { return d.toLocaleString('en-US', {weekday: 'long'}) }
 
 /// Is a date a weekend?
-export is_weekend = fn(d) {return [5,6].indexOf(d.getDay()) != -1}";
-const DOM: &str = "// ! This can only be used in the browser.
+export is_weekend = fn(d) {return [5,6].indexOf(d.getDay()) != -1}"##;
+const DOM: &str = r##"// ! This can only be used in the browser.
 
 // shorthand for document.
 dom := {
@@ -89,23 +89,22 @@ dom := {
     remove_from_body: fn (node) {
         document.body.removeChild(node)
     }
-}";
-const HTTP: &str = "";
-const JSON: &str = "export to_json := fn(str) { return JSON.parse(str) }
-export to_string := fn(json) { return JSON.stringify(json) }";
-const MATH: &str = "export fn radians(degrees) {
+}"##;
+const HTTP: &str = r##""##;
+const JSON: &str = r##"export to_json := fn(str) { return JSON.parse(str) }
+export to_string := fn(json) { return JSON.stringify(json) }"##;
+const MATH: &str = r##"export fn radians(degrees) {
     javascript{
         return degrees * (Math.PI / 180);
     }
 }
 
-/// Calculate the percentage in EasyJS.
-export fn calculate_percent(value:number,total:number) -> number {
+// Calculate the percentage in EasyJS.
+export fn calculate_percent(value,total) {
     Math.round((value / total) * 100)
 }
-
-//";
-const RANDOM: &str = "// EasyJS implementation of random.uniform from Python.
+"##;
+const RANDOM: &str = r##"// EasyJS implementation of random.uniform from Python.
 export fn uniform(a,b) {
     return Math.random() * (b - a + 1) + a
 }
@@ -132,13 +131,13 @@ export fn shuffle(arr) {
 export random_number = fn(min, max) {return Math.floor(Math.random() * (max - min + 1) + min)}
 
 /// Get a random hex color
-export random_hex_color = fn() {return \"#${Math.random().toString(16).slice(2, 8).padEnd(6, '0')}\"}
+export random_hex_color = fn() {return "#${Math.random().toString(16).slice(2, 8).padEnd(6, '0')}"}
 
 /// Get a Random boolean
 export random_bool = fn() {return Math.random() >= 0.5}
 
-";
-const STD: &str = "// Get the last element of an array
+"##;
+const STD: &str = r##"// Get the last element of an array
 macro last(array) {
     array[array.length - 1]
 }
@@ -160,8 +159,8 @@ macro expect(method, error_msg) {
             error_msg;
         }
     }
-}";
-const UI: &str = "// Used for creating EasyJS webapps.
+}"##;
+const UI: &str = r##"// Used for creating EasyJS webapps.
 struct Children {
     fn constructor() {
         self.elements = []
@@ -191,15 +190,17 @@ struct HTMLElement {
     }
 
     fn add(element) {
-        if @is(element, \"array\") {
+        if @is(element, "array") {
             self.children.add_many(element)
         } else {
             self.children.add_one(element)
         }
     }
-}";
-const WASM: &str = "// the EasyWasm library
-";
+}"##;
+const WASM: &str = r##"/// the EasyWasm library
+export struct EasyWasm {
+    fn compile(path_to_wasm) {}
+}"##;
 
 /// Load a STD library from EasyJS version 0.2.2, or an empty string if not found.
 pub fn load_std(name: &str) -> String {

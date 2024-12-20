@@ -25,9 +25,9 @@ mod tests {
     #[test]
     fn test_const_vars() {
         let input = "
-            x := 5;
-            y := 1
-            t := 'that'
+            x = 5;
+            y = 1
+            t = 'that'
         "
         .to_string();
         let l = lex::Lex::new(input);
@@ -139,15 +139,15 @@ mod tests {
     #[test]
     fn test_lambda() {
         let input = "
-            add := fn(n1, n2) {
+            add = fn(n1, n2) {
                 return n1 + n2
             }
 
-            minus_one := fn(n1) {
+            minus_one = fn(n1) {
                 return n1 - 1
             }
 
-            print := fn() {
+            print = fn() {
 
             }
         "
@@ -204,26 +204,26 @@ mod tests {
         assert_eq!(program.statements.len(), 3);
     }
 
-    #[test]
-    fn test_import_statement() {
-        let input = "
-            use core:io
-            use core:json as json
-            use {json} from base:to_json
-            use {json, to_json, is_json} from core:json
-        "
-        .to_string();
+    // #[test]
+    // fn test_import_statement() {
+    //     let input = "
+    //         use core:io
+    //         use core:json as json
+    //         use {json} from base:to_json
+    //         use {json, to_json, is_json} from core:json
+    //     "
+    //     .to_string();
 
-        let l: lex::Lex = lex::Lex::new(input);
-        let mut p = par::Parser::new(l);
-        let program = p.parse_program();
+    //     let l: lex::Lex = lex::Lex::new(input);
+    //     let mut p = par::Parser::new(l);
+    //     let program = p.parse_program();
 
-        println!("{:?}", p.errors);
-        println!("{:#?}", program.statements);
+    //     println!("{:?}", p.errors);
+    //     println!("{:#?}", program.statements);
 
-        assert_eq!(p.errors.len(), 0);
-        assert_eq!(program.statements.len(), 4);
-    }
+    //     assert_eq!(p.errors.len(), 0);
+    //     assert_eq!(program.statements.len(), 4);
+    // }
 
     #[test]
     fn test_js() {
@@ -256,7 +256,7 @@ mod tests {
     #[test]
     fn test_array() {
         let input = "
-        x := [0,1,2,3]
+        x = [0,1,2,3]
         y = ['1', '2', '3']
         z = []
         "
@@ -301,7 +301,7 @@ mod tests {
                 age: 22
             }
             {}
-            ee := {
+            ee = {
                 'hey': 'world'
             }
         "
@@ -405,7 +405,7 @@ mod tests {
         ".to_string();
 
         let l: lex::Lex = lex::Lex::new(input);
-        let mut p = par::Parser::new(l);
+        let mut p: par::Parser = par::Parser::new(l);
         let program = p.parse_program();
 
         println!("{:?}", p.errors);
@@ -413,5 +413,22 @@ mod tests {
 
         assert_eq!(p.errors.len(), 0);
         assert_eq!(program.statements.len(), 3);
+    }
+
+    #[test]
+    fn test_builtin_calls() {
+        let input = "
+            x = include (\"file.ej\")
+            
+        ".to_string();
+        let l: lex::Lex = lex::Lex::new(input);
+        let mut p: par::Parser = par::Parser::new(l);
+        let program = p.parse_program();
+
+        println!("{:?}", p.errors);
+        println!("{:#?}", program.statements);
+
+        assert_eq!(p.errors.len(), 0);
+        assert_eq!(program.statements.len(), 1);
     }
 }

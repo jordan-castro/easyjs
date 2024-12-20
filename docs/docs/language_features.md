@@ -61,7 +61,10 @@ for item in collection {
 ```
 
 ### Macros
-<!-- EasyJS supports macros. Macros in EasyJS are a form of metaprogramming allowing you to host your own code in a virtual enviroment.
+> [!WARNING]
+> Macros are still expiramental and might not work as expected.
+
+EasyJS supports macros. Macros in EasyJS are a form of metaprogramming allowing you to host your own code in a virtual enviroment.
 Macros work in 2 ways:
 
 - DunDun (Interpreter)
@@ -70,12 +73,12 @@ Macros work in 2 ways:
     - Using the `@` symbol before a macro call means that this macro is transpiled into Javascript as other EasyJS functions. The benefit
     of using the `@` is it allows you to hoist function names away from the end JS scope while still being regular easyJS methods.
 
-The benefir of both macro types is that they are hosted in a virtual enviroment are are only accessible via easyJS.
+The benefit of both macro types is that they are hosted in a virtual enviroment and are only accessible via easyJS.
 
 
 Macros are defined using the `macro` keyword.
 ```rust
-macro print(message) { // this is the $print macro.
+macro print(message) { // this is the @print macro.
     console.log(message)
 }
 
@@ -87,7 +90,7 @@ macro on_compile_do_stuff() {
 }
 
 $on_compile_do_stuff() // <-- This will run directly in the compiler enviroment.
-``` -->
+```
 
 ### JS Objects
 As easyjs is a easier version of JS, it supports JS objects.
@@ -146,7 +149,7 @@ struct Person {
         console.log(self)
     }
 
-    fn a_static_method() {
+    fn a_static_method() { // <-- A method is defined static when self is not passed
         console.log("Ayo sttaic dude")
     }
 }
@@ -210,42 +213,41 @@ And this gets compiled into:
 ```
 
 ### Importing modules
-To import modules in easyjs you use the `use` keyword. There are 4 different types of imports that easyjs allows.
+To import modules in easyjs you use the `use_mod` builtin. There are 2 different ways to import in easyJS.
 
-1. base
-2. core
-3. js
-4. string
+1. using a "core" module.
+2. using another .ej file.
 
 As for which type of import to use,
 
 For importing easyjs files that are relative to the current script:
-```rs
-use base:path.to.script
-
-// for importing specific functions/structs
-use {add} from base:path.to.add.script
-```
-
-For importing the easyjs std library:
-```rs
-use core:builtins
-```
-
-For a full list of easyjs core library check out: this link
-
-For importing JS files:
-```rs
-use js:file.path
-```
-
-For using npm packages or DENO imports:
 ```js
-use string:"npm package name"
-// DENO
-use string:"jsr:package name"
-use string:"npm:package name"
-use string:"https://url.js"
-use string:"some_file.wasm"
+utils = use_mod("utils.ej")
+module_within_folder = use_mod("folder/module.ej") // easyjs imports are path based.
 ```
-EasyJS does not strictly support importing WASM files. 
+
+For importing the easyjs core library:
+```rs
+math = use_mod("core:math")
+builtins = use_mod("core:builtins")
+```
+
+For a full list of easyjs core library check out: [core](https://jordanmcastro.com/easyjs/docs/core)
+
+For all other import types i.e. 
+
+- JavaScript files
+- npm modules
+- etc
+
+use the `javascript` keyword.
+
+```js
+javascript{
+    // importing a JS file
+    import utils from "./utils.js";
+
+    // importing a node module
+    const fs = require("node:fs");
+}
+```

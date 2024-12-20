@@ -1,9 +1,8 @@
 # TODO
 
 ## Compiler
-- ~~ v0.2.3 add test cases.~~
 - v0.4.0 add a minifier option.
-- v0.3.3 add pythonic x,y = [x,y]
+- v0.3.0 add pythonic x,y = [x,y]
 - v0.3.0 var {x,y} = coords
 - v0.3.0 {x,y} 
 - v0.3.0 a,b = [0,1]
@@ -13,7 +12,6 @@
 - v0.3.0 Support Doc Comments
 - v0.4.0 add types (using boa)
 - v0.4.0 add ternirary statements
-- ~~v0.2.3 Don't escape characters in Rust to EasyJS.~~
 
 ## EasyJS
 - v0.3.0 core

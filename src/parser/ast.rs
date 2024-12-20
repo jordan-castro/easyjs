@@ -155,6 +155,8 @@ pub enum Expression {
     GroupedExpression(tk::Token, Box<Expression>),
     /// left is right (typeof(left) == right)
     IsExpression(tk::Token, Box<Expression>, Box<Expression>),
+    /// Builtin function call
+    BuiltinCall(tk::Token, Box<Vec<Expression>>),
 }
 
 impl Expression {
@@ -195,7 +197,8 @@ impl Expression {
             Expression::NewClassExpression(_, _) => "NewClassExpression",
             Expression::FloatLiteral(_, _) => "FloatLiteral",
             Expression::GroupedExpression(_, _) => "GroupedExpression",
-            Expression::IsExpression(_, _, _) => "IsExpression"
+            Expression::IsExpression(_, _, _) => "IsExpression",
+            Expression::BuiltinCall(_, _) => "BuiltinCall",
         }
     }
 

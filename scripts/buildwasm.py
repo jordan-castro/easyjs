@@ -1,7 +1,7 @@
 import os
 import shutil
 
-os.system("wasm-pack build --target web")
+# os.system("wasm-pack build --target web")
 
 # check for bin
 if not os.path.exists("bin"):
@@ -11,7 +11,7 @@ if not os.path.exists("bin/wasm"):
     os.mkdir("bin/wasm")
 
 # this will create a pkg directory
-shutil.copyfile("pkg/easyjs_bg.wasm", "bin/wasm/easyjs_bg.wasm")
-shutil.copyfile("pkg/easyjs.js", "bin/wasm/easyjs.js")
+shutil.copyfile("pkg/easyjsc_bg.wasm", "bin/wasm/easyjsc_bg.wasm")
+shutil.copyfile("pkg/easyjsc.js", "bin/wasm/easyjsc.js")
 
 shutil.rmtree("pkg")

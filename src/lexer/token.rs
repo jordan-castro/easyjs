@@ -111,12 +111,15 @@ pub const BASE: &str = "BASE";
 pub const JS: &str = "JS";
 pub const STRING_IMPORT: &str = "STRING_IMPORT";
 
+// Builtin methods
+pub const BUILTIN: &str = "BUILTIN";
+
 /// Lookup the ident based on a string
 pub fn lookup_ident(ident: &str) -> &'static str {
     match ident {
         "fn" => FUNCTION,
         "struct" => STRUCT,
-        "use" => USE,
+        // "use" => USE,
         "true" => TRUE,
         "false" => FALSE,
         "if" => IF,
@@ -144,6 +147,7 @@ pub fn lookup_ident(ident: &str) -> &'static str {
         "export" => EXPORT,
         "is" => IS,
         "var" => VAR,
+        "use_mod" => BUILTIN,
         _ => IDENT, // Default case for unknown identifiers
     }
 }

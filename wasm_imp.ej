@@ -1,39 +1,43 @@
-import "dom"
-import "std"
-
-from "/easyjs.js" import def init, compile_easy_js
-
-fn load_ej_file(file_path) {
-    
+// import the easyjs wasm thingy.
+javascript{
+    import init, {compile_easy_js} from "/easyjs.js"
 }
 
-init().then(fn() {
-    @print(document.body)
-    // Find all scripts with the custom "easyjs" type
-    scripts := dom.select_all('script[type="easyjs"]')
+// Load an easyjs file.
+async fn load_ej_file(file_path) {
+    return (await fetch(file_path)).text()
+}
+
+init().then(async fn() {
+    // find all scripts witht he custom "easyjs" type
+    scripts = document.querySelectorAll('script[type="easyjs"]')
 
     for script in scripts {
-        code = null
+        var code = null
         // check if script has a src.
         if script.hasAttribute("src") {
-            // load EJ file content.
-            load_ej_file(file_path)
+            // load EJ file content
+            code = await load_ej_file(script.getAttribute("src"))
         } else {
-            code = compile_easy_js(script.textContent)
+            code = script.textContent
         }
-        
-        easyjs_script := dom.create_element('script')
+
+        // compile code
+        cc = compile_easy_js(code)
+
+        // create a script element
+        ej_el = document.createElement('script')
+        ej_el.textContent = cc
 
         if script.hasAttribute("module") {
-            easyjs_script.type = 'module'
+            ej_el.type = 'module'
         } else {
-            easyjs_script.type = 'text/javascript'
+            ej_el.type = 'text/javascript'
         }
-        easyjs_script.textContent = code
-    
+
         // clone and replace to force exec
-        cloned_script := easyjs_script.cloneNode(true)
-        dom.add_to_body(cloned_script)
-        dom.remove_from_body(script)
+        cloned_script = ej_el.cloneNode(true)
+        document.body.appendChild(cloned_script)
+        document.body.removeChild(script)
     }
 })

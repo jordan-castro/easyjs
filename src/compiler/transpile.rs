@@ -16,7 +16,6 @@ use super::import::{get_js_module_name, import, ImportType};
 pub struct Transpiler {
     /// Stmt by Stmt
     scripts: Vec<String>,
-    /// All EasyJS variables.
     /// All EasyJS macros
     pub macros: HashMap<String, Macro>,
     /// All declared EasyJS functions
@@ -51,10 +50,70 @@ impl Transpiler {
     /// Add a module to the current scope.
     ///
     /// `module: Transpiler` the modules transpiler.
+    #[deprecated(since = "0.2.1", note = "use `transpile_module` instead")]
     pub fn add_module(&mut self, module: &mut Transpiler) {
         // self.functions.append(&mut module.functions);
         // self.variables.append(&mut module.variables);
         self.structs.append(&mut module.structs);
+    }
+
+    /// Transpile a module.
+    pub fn transpile_module(p : ast::Program) -> String {
+        let mut t = Transpiler::new();
+
+        let mut res = String::new();
+
+        res.push_str("(function() {\n");
+
+        // exported identifiers
+        let mut exported_names = vec![];
+
+        for stmt in p.statements {
+            if stmt.is_empty() {
+                continue;
+            }
+
+            // check if the statement is an export
+            match stmt.clone() {
+                // add it to a list of exported identifiers
+                Statement::ExportStatement(tk, stmt) => {
+                    let name = t.transpile_stmt(stmt.as_ref().to_owned());
+
+                    if let Some(name) = name {
+                        // name is between the decleration and the identifier
+                        let name = name.split(" ").collect::<Vec<_>>()[1].to_string();
+                        exported_names.push(name);
+                    }
+                },
+                _ => {}
+            }
+
+            // transpile the statement
+            let script = t.transpile_stmt(stmt);
+            if let Some(script) = script {
+                // check if script starts with "export"
+                if script.starts_with(&token::EXPORT.to_lowercase()) {
+                    // remove the beginning of the script
+                    let script = script.split(" ").collect::<Vec<_>>()[1..].join(" ");
+                    res.push_str(&script);
+                } else {
+                    res.push_str(&script);
+                }
+                res.push_str("\n");
+            }
+        }
+
+        // return all exported values...
+        res.push_str("return {");
+        for name in exported_names {
+            res.push_str(format!("{},", name).as_str());
+        }
+        res.push_str("};\n");
+
+        // close the module
+        res.push_str("})();\n");
+
+        res
     }
 
     fn to_string(&self) -> String {
@@ -296,8 +355,8 @@ impl Transpiler {
                     import_type = ImportType::Core;
                 } else if prefix == "base" {
                     import_type = ImportType::Base;
-                } else if prefix == "js" {
-                    import_type = ImportType::JS;
+                // } else if prefix == "js" {
+                //     import_type = ImportType::JS;
                 } else if prefix == "string" {
                     import_type = ImportType::String;
                 }
@@ -876,6 +935,20 @@ impl Transpiler {
                     self.transpile_expression(left.as_ref().to_owned()),
                     self.transpile_expression(right.as_ref().to_owned())
                 )
+            }
+            Expression::BuiltinCall(tk, params) => {
+                // check builtin method name
+                let method_name = tk.literal.clone();
+                match method_name.as_str() {
+                    "use_mod" => {
+                        // get the first param
+                        let param = &params[0];
+                        builtins::include(&self.transpile_expression(param.to_owned()))
+                    }
+                    _ => {
+                        "".to_string()
+                    }
+                }
             }
             _ => String::from(""),
         }

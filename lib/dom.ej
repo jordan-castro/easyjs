@@ -1,20 +1,20 @@
 // ! This can only be used in the browser.
 
 // shorthand for document.
-dom := {
-    create_element: fn (name) {
+dom = {
+    create_element: fn(name) {
         return document.createElement(name)
     }
 
-    select_all: fn (query) {
+    select_all: fn(query) {
         return document.querySelectorAll(query)
     }
 
-    add_to_body: fn (node) {
+    add_to_body: fn(node) {
         document.body.appendChild(node)
     } 
 
-    remove_from_body: fn (node) {
+    remove_from_body: fn(node) {
         document.body.removeChild(node)
     }
 }

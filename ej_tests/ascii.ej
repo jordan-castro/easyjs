@@ -1,3 +1,4 @@
-use {easyjs_ascii} from core:builtins
+// use {easyjs_ascii} from "core:builtins"
+builtins = use_mod("core:builtins")
 
-console.log(easyjs_ascii())
+console.log(builtins.easyjs_ascii())
