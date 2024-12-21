@@ -1,5 +1,6 @@
 use boa_engine::Context;
 use std::collections::HashMap;
+use std::fmt::format;
 use std::path;
 
 use super::macros::Macro;
@@ -210,8 +211,27 @@ impl Transpiler {
             Statement::ExportStatement(token, stmt) => {
                 Some(self.transpile_export_stmt(token, stmt.as_ref().to_owned()))
             }
+            Statement::AsyncBlockStatement(tk, block) => {
+                Some(self.transpile_async_block_stmt(tk, block.as_ref().to_owned()))
+            }
             _ => None,
         }
+    }
+
+    fn transpile_async_block_stmt(&mut self, token: token::Token, block: ast::Statement) -> String {
+        let mut res = String::new();
+        res.push_str("(async function() {");
+        match block {
+            Statement::BlockStatement(tk, stmts) => {
+                res.push_str(&self.transpile_block_stmt(tk, stmts.as_ref().to_owned()));
+            }
+            _ => {
+                res.push_str("");
+            }
+        }
+        res.push_str("})();\n");
+
+        res
     }
 
     fn transpile_export_stmt(&mut self, token: token::Token, stmt: ast::Statement) -> String {

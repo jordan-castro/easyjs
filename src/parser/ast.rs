@@ -38,6 +38,15 @@ pub enum Statement {
     /// export var
     /// export const
     ExportStatement(tk::Token, Box<Statement>),
+    
+    /// Async block statement
+    /// 
+    /// async {
+    /// await this()
+    /// await that()
+    /// await thisotherthing()
+    /// }
+    AsyncBlockStatement(tk::Token, Box<Statement>),
 }
 
 impl Statement {
@@ -55,6 +64,7 @@ impl Statement {
             Statement::JavaScriptStatement(_, _) => "JavaScriptStatement",
             Statement::StructStatement(_, _, _, _, _) => "StructStatement",
             Statement::ExportStatement(_, _) => "ExportStatement",
+            Statement::AsyncBlockStatement(_, _) => "AsyncBlockStatement"
         }.to_string()
     }
 

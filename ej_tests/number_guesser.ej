@@ -1,0 +1,27 @@
+// number guessing game
+rand = use_mod("core:random")
+number = rand.random_number(1, 10)
+
+var msg = ""
+var count = 1
+var won = false
+
+for true {
+   answer = prompt("$msg guess a num: ")
+   if answer == null || answer == undefined {
+    break
+   }
+   num = Number(answer)
+   if num == number {
+      won = true
+      break
+   }
+   count += 1
+   msg = "Try again"
+}
+
+if won {
+  console.log("Good job! You guessed $number in $count tries!")
+} else {
+  console.log("Thanks for playing!")
+}

@@ -1,2 +1,0 @@
-export to_json := fn(str) { return JSON.parse(str) }
-export to_string := fn(json) { return JSON.stringify(json) }

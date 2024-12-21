@@ -1,0 +1,15 @@
+/// A controlled Integer value.
+pub struct Int(Number) {
+   fn new(value, round) {
+     var nv = value
+     // ensure value is INT
+     if not Number.isInteger(value) {
+        if round {
+          nv = Math.round(value)
+        } else {
+          nv = Math.floor(value)
+        }
+     }
+     super(nv)
+   }
+}

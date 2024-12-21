@@ -1,4 +1,4 @@
-export fn int_range(start, end) {
+pub fn int_range(start, end) {
     var res = []
     // the .. works because this is a for loop...
     for i in start..end {
@@ -8,14 +8,14 @@ export fn int_range(start, end) {
     return res
 }
 
-export fn sleep(ms) {
+pub fn sleep(ms) {
     javascript{
         return new Promise(resolve => setTimeout(resolve, ms))
     }
 }
 
 /// Creates a range
-export fn range(kwargs) {
+pub fn range(kwargs) {
     start = kwargs.start
     end = kwargs.end
     step = kwargs.step ?? 1
@@ -26,19 +26,19 @@ export fn range(kwargs) {
 }
 
 /// Flatten a list in JS.
-export fn flat(list) {
+pub fn flat(list) {
     javascript{
         return [...new Set(list)];
     }
 }
 
 /// Capitalize a string
-export fn capitalize(str) {
+pub fn capitalize(str) {
     return "${str.charAt(0).toUpperCase()}${str.slice(1)}"
 }
 
 /// Merge 2 arrays
-export fn merge(arr1, arr2, flatten) {
+pub fn merge(arr1, arr2, flatten) {
     var narr = [].concat(arr1, arr2)
 
     if flatten == true {
@@ -49,10 +49,10 @@ export fn merge(arr1, arr2, flatten) {
 }
 
 /// Reverse a string
-export reverse_string = fn(str) {return str.split("").reverse().join("")} 
+pub reverse_string = fn(str) {return str.split("").reverse().join("")} 
 
 /// Get the EasyJS ASCII
-export fn easyjs_ascii() {
+pub fn easyjs_ascii() {
     return "    ___       ___       ___       ___            ___       ___   
    /\\  \\     /\\  \\     /\\  \\     /\\__\\          /\\  \\     /\\  \\  
   /::\\  \\   /::\\  \\   /::\\  \\   |::L__L        _\\:\\  \\   /::\\  \\ 

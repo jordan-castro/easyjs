@@ -144,7 +144,7 @@ pub fn lookup_ident(ident: &str) -> &'static str {
         "base" => BASE,
         "js" => JS,
         "string" => STRING_IMPORT,
-        "export" => EXPORT,
+        "pub" => EXPORT,
         "is" => IS,
         "var" => VAR,
         "use_mod" => BUILTIN,

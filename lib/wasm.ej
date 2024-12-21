@@ -1,4 +1,4 @@
 /// the EasyWasm library
-export struct EasyWasm {
+pub struct EasyWasm {
     fn compile(path_to_wasm) {}
 }
