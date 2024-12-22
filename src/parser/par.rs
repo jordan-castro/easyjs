@@ -372,7 +372,7 @@ fn parse_statement(parser: &mut Parser) -> ast::Statement {
         ),
         token::FOR => parse_for_statement(parser),
         token::STRUCT => parse_struct_statement(parser),
-        token::EXPORT => parse_export_statement(parser),
+        token::PUB => parse_export_statement(parser),
         token::ASYNC => parse_async_block_statement(parser),
         _ => parse_expression_statement(parser),
     };
@@ -387,7 +387,7 @@ fn parse_statement(parser: &mut Parser) -> ast::Statement {
 
 fn parse_export_statement(p: &mut Parser) -> ast::Statement {
     p.debug_print("parse_export_statement");
-    let token = p.c_token.to_owned(); // export
+    let token = p.c_token.to_owned(); // pub
     p.next_token(); // get stmt
 
     ast::Statement::ExportStatement(token, Box::new(parse_statement(p)))

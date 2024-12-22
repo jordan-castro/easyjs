@@ -1,5 +1,5 @@
-// EasyJS STD version 0.2.2
-const BUILTINS: &str = r##"export fn int_range(start, end) {
+// EasyJS STD version 0.2.3
+const BUILTINS: &str = r##"pub fn int_range(start, end) {
     var res = []
     // the .. works because this is a for loop...
     for i in start..end {
@@ -9,14 +9,14 @@ const BUILTINS: &str = r##"export fn int_range(start, end) {
     return res
 }
 
-export fn sleep(ms) {
+pub fn sleep(ms) {
     javascript{
         return new Promise(resolve => setTimeout(resolve, ms))
     }
 }
 
 /// Creates a range
-export fn range(kwargs) {
+pub fn range(kwargs) {
     start = kwargs.start
     end = kwargs.end
     step = kwargs.step ?? 1
@@ -27,19 +27,19 @@ export fn range(kwargs) {
 }
 
 /// Flatten a list in JS.
-export fn flat(list) {
+pub fn flat(list) {
     javascript{
         return [...new Set(list)];
     }
 }
 
 /// Capitalize a string
-export fn capitalize(str) {
+pub fn capitalize(str) {
     return "${str.charAt(0).toUpperCase()}${str.slice(1)}"
 }
 
 /// Merge 2 arrays
-export fn merge(arr1, arr2, flatten) {
+pub fn merge(arr1, arr2, flatten) {
     var narr = [].concat(arr1, arr2)
 
     if flatten == true {
@@ -50,10 +50,10 @@ export fn merge(arr1, arr2, flatten) {
 }
 
 /// Reverse a string
-export reverse_string = fn(str) {return str.split("").reverse().join("")} 
+pub reverse_string = fn(str) {return str.split("").reverse().join("")} 
 
 /// Get the EasyJS ASCII
-export fn easyjs_ascii() {
+pub fn easyjs_ascii() {
     return "    ___       ___       ___       ___            ___       ___   
    /\\  \\     /\\  \\     /\\  \\     /\\__\\          /\\  \\     /\\  \\  
   /::\\  \\   /::\\  \\   /::\\  \\   |::L__L        _\\:\\  \\   /::\\  \\ 
@@ -63,57 +63,55 @@ export fn easyjs_ascii() {
    \\/__/     \\/__/     \\/__/                              \\/__/  "
 }"##;
 const DATE: &str = r##"/// Get the days between 2 dates
-export days_between_dates = fn(d1, d2) { return Math.ceil(Math.abs(date1 - date2) / (1000 * 60 * 60 * 24)) }
+pub days_between_dates = fn(d1, d2) { return Math.ceil(Math.abs(date1 - date2) / (1000 * 60 * 60 * 24)) }
 
 /// Get the weekday of a date.
-export get_week_day = fn(d) { return d.toLocaleString('en-US', {weekday: 'long'}) }
+pub get_week_day = fn(d) { return d.toLocaleString('en-US', {weekday: 'long'}) }
 
 /// Is a date a weekend?
-export is_weekend = fn(d) {return [5,6].indexOf(d.getDay()) != -1}"##;
+pub is_weekend = fn(d) {return [5,6].indexOf(d.getDay()) != -1}"##;
 const DOM: &str = r##"// ! This can only be used in the browser.
 
 // shorthand for document.
-dom := {
-    create_element: fn (name) {
+dom = {
+    create_element: fn(name) {
         return document.createElement(name)
     }
 
-    select_all: fn (query) {
+    select_all: fn(query) {
         return document.querySelectorAll(query)
     }
 
-    add_to_body: fn (node) {
+    add_to_body: fn(node) {
         document.body.appendChild(node)
     } 
 
-    remove_from_body: fn (node) {
+    remove_from_body: fn(node) {
         document.body.removeChild(node)
     }
 }"##;
 const HTTP: &str = r##""##;
-const JSON: &str = r##"export to_json := fn(str) { return JSON.parse(str) }
-export to_string := fn(json) { return JSON.stringify(json) }"##;
-const MATH: &str = r##"export fn radians(degrees) {
+const MATH: &str = r##"pub fn radians(degrees) {
     javascript{
         return degrees * (Math.PI / 180);
     }
 }
 
 // Calculate the percentage in EasyJS.
-export fn calculate_percent(value,total) {
+pub fn calculate_percent(value,total) {
     Math.round((value / total) * 100)
 }
 "##;
 const RANDOM: &str = r##"// EasyJS implementation of random.uniform from Python.
-export fn uniform(a,b) {
+pub fn uniform(a,b) {
     return Math.random() * (b - a + 1) + a
 }
 
-export fn choice(array) {
+pub fn choice(array) {
     array[Math.floor(Math.random() * array.length)]
 }
 
-export fn normal(mean, std_dev) {
+pub fn normal(mean, std_dev) {
     u1 = Math.random()
     u2 = Math.random()
     z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2) // Box-Muller transform
@@ -121,20 +119,20 @@ export fn normal(mean, std_dev) {
 }
 
 /// Shuffle an array randomly.
-export fn shuffle(arr) {
+pub fn shuffle(arr) {
     return arr.slice().sort(fn() {
         return Math.random() - 0.5
     })
 }
 
 /// Get a random number from min max
-export random_number = fn(min, max) {return Math.floor(Math.random() * (max - min + 1) + min)}
+pub random_number = fn(min, max) {return Math.floor(Math.random() * (max - min + 1) + min)}
 
 /// Get a random hex color
-export random_hex_color = fn() {return "#${Math.random().toString(16).slice(2, 8).padEnd(6, '0')}"}
+pub random_hex_color = fn() {return "#${Math.random().toString(16).slice(2, 8).padEnd(6, '0')}"}
 
 /// Get a Random boolean
-export random_bool = fn() {return Math.random() >= 0.5}
+pub random_bool = fn() {return Math.random() >= 0.5}
 
 "##;
 const STD: &str = r##"// Get the last element of an array
@@ -160,6 +158,22 @@ macro expect(method, error_msg) {
         }
     }
 }"##;
+const TYPES: &str = r##"/// A controlled Integer value.
+pub struct Int(Number) {
+   fn new(value, round) {
+     var nv = value
+     // ensure value is INT
+     if not Number.isInteger(value) {
+        if round {
+          nv = Math.round(value)
+        } else {
+          nv = Math.floor(value)
+        }
+     }
+     super(nv)
+   }
+}
+"##;
 const UI: &str = r##"// Used for creating EasyJS webapps.
 struct Children {
     fn constructor() {
@@ -198,21 +212,21 @@ struct HTMLElement {
     }
 }"##;
 const WASM: &str = r##"/// the EasyWasm library
-export struct EasyWasm {
+pub struct EasyWasm {
     fn compile(path_to_wasm) {}
 }"##;
 
-/// Load a STD library from EasyJS version 0.2.2, or an empty string if not found.
+/// Load a STD library from EasyJS version 0.2.3, or an empty string if not found.
 pub fn load_std(name: &str) -> String {
 match name {
 "builtins" => BUILTINS,
 "date" => DATE,
 "dom" => DOM,
 "http" => HTTP,
-"json" => JSON,
 "math" => MATH,
 "random" => RANDOM,
 "std" => STD,
+"types" => TYPES,
 "ui" => UI,
 "wasm" => WASM,
 _ => "",

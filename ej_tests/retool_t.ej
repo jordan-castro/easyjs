@@ -1,0 +1,48 @@
+random = use_mod("core:random")
+
+// possible random colors 
+random_colors = {
+  MISC: random.random_hex_color(),
+  ORG: random.random_hex_color(),
+  LOC: random.random_hex_color() 
+}
+
+macro first(list) {
+  list[0]
+}
+
+macro create_el(je) {
+  var sentence = je.merged_sentence
+  // check if entities exists
+  if je.entities != null and je.entities != undefined and je.entities.list.length > 0 {
+    // loop through elemenst
+    for el in je.entities.list {
+      word = el.element.word
+      group = el.element.entity_group
+
+      color = random_colors[group]
+      sentence = sentence.replace(word, "<span style=\"color: $color\" title=\"$group\">$word</span>")
+    }
+  }
+
+  res += "<strong>${je.speaker}</strong>: $sentence<br><br>"
+}
+
+fn parse_transcript(sentences) {
+    var res = ""
+    list = sentences.list
+
+    for obj in list {
+      element = obj.element
+
+      @create_el(element)
+    }
+
+  return res
+}
+
+// read a file using deno...
+// deno does not require us to wrap our shit in async (yipeee!)
+json = await Deno.readTextFile("ej_tests/se.json")
+result = parse_transcript(JSON.parse(json)[0].sentences)
+console.log(result)

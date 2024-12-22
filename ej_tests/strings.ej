@@ -1,0 +1,32 @@
+var x = '
+this
+is 
+a 
+test'
+
+console.log(x)
+
+var y = "
+this
+is
+A
+nother
+
+thest
+"
+console.log(y)
+
+x = '
+        "merged_sentence": "Bueno, en este caso sera nicamente lo que es cambio a aceite de motor. Permtame le confirmo disponibilidad, tambin mencionarle mantenemos lo que es el tema del servicio de Uber para que se pueda retirar del taller al momento de dejar el auto. Nosotros le cubrimos de cortesa un mximo de diez balbojas. Desea agregar el servicio? Sí.",
+        "speaker": "Agent",
+        "num_words": "58",
+        "start": "124.16000366210938",
+        "end": "145.510009765625",
+        "speech_rate": "2.7166264057159424",
+        "char_length_with_space": null,
+        "cumulative_char_offset": null,
+        "entities": null
+
+'
+
+console.log(x)

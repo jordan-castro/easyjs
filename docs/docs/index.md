@@ -3,7 +3,7 @@
 Welcome to the official documentation for **EasyJS**, a modern, beginner-friendly programming language that compiles down to JavaScript. EasyJS makes it intuitive and efficient to build web applications by providing clear, minimal syntax and extensive features for interacting with the DOM, server, and other JavaScript environments.
 
 > [!WARNING]
-> EasyJS is currently in an early stage of development and has yet to reach version `1.0.0`. The latest release is `v0.2.3`.
+> EasyJS is currently in an early stage of development and has yet to reach version `1.0.0`. The latest release is `v0.2.4`.
 
 ---
 
