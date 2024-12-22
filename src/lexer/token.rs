@@ -101,9 +101,9 @@ pub const FROM: &str = "FROM";
 pub const SELF: &str = "SELF";
 pub const MACRO: &str = "MACRO";
 pub const NEW: &str = "NEW";
-pub const EXPORT: &str = "EXPORT";
 pub const IS: &str = "IS";
 pub const VAR: &str = "VAR";
+pub const PUB: &str = "PUB";
 
 // Import prefixes
 pub const CORE: &str = "CORE";
@@ -144,7 +144,7 @@ pub fn lookup_ident(ident: &str) -> &'static str {
         "base" => BASE,
         "js" => JS,
         "string" => STRING_IMPORT,
-        "pub" => EXPORT,
+        "pub" => PUB,
         "is" => IS,
         "var" => VAR,
         "use_mod" => BUILTIN,

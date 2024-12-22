@@ -93,7 +93,7 @@ impl Transpiler {
             let script = t.transpile_stmt(stmt);
             if let Some(script) = script {
                 // check if script starts with "export"
-                if script.starts_with(&token::EXPORT.to_lowercase()) {
+                if script.starts_with("export") {
                     // remove the beginning of the script
                     let script = script.split(" ").collect::<Vec<_>>()[1..].join(" ");
                     res.push_str(&script);
@@ -258,7 +258,7 @@ impl Transpiler {
         token: token::Token,
         expression: ast::Expression,
     ) -> String {
-        format!("return {};", self.transpile_expression(expression))
+        format!("return {};\n", self.transpile_expression(expression))
     }
 
     fn transpile_block_stmt(&mut self, token: token::Token, stmts: Vec<ast::Statement>) -> String {
@@ -484,7 +484,7 @@ impl Transpiler {
             res.push_str(&stmt);
         }
 
-        res.push_str("}");
+        res.push_str("}\n");
 
         res
     }
@@ -992,8 +992,9 @@ impl Transpiler {
 
         let body = self.transpile_stmt(body).expect("No body error?");
 
+        // add the body up to the last ';\n'
         self.macros
-            .insert(name.to_owned(), Macro::new(name, parsed_args, body));
+            .insert(name.to_owned(), Macro::new(name, parsed_args, body[0..body.len() - 2].to_string()));
     }
 
     fn transpile_struct_method(&mut self, method: ast::Expression) -> String {

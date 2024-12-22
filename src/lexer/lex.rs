@@ -11,7 +11,9 @@ pub struct Lex {
     /// The exact column number.
     pub current_col: i64,
     /// The file being parsed.
-    pub current_file: String
+    pub current_file: String,
+    /// A vector of chars to not .chars() every read_char,
+    input_chars: Vec<char>,
 }
 
 /// Allowed chars in ident (other than letters of course)
@@ -21,18 +23,19 @@ impl Lex {
     /// Create a new Lex instance.
     pub fn new(input: String) -> Self {
         Lex {
-            input,
+            input: input.clone(),
             position: 0,
             read_position: 0,
             current_char: ' ', // Initialize with null character
             current_line: 1,
             current_col: 1,
-            current_file: String::new()
+            current_file: String::new(),
+            input_chars: input.chars().collect(),
         }
     }
 
     /// Create a new lex instance and send in file name.
-    pub fn new_with_file(input:String, file:String) -> Self {
+    pub fn new_with_file(input: String, file: String) -> Self {
         let mut l = Lex::new(input);
         l.current_file = file;
 
@@ -60,14 +63,11 @@ impl Lex {
         } else {
             self.current_col += 1;
         }
-        
-        if self.read_position >= self.input.len() {
-            self.current_char = '\0'; // Set to null character when end of input is reached
+
+        if self.read_position >= self.input_chars.len() {
+            self.current_char = '\0';
         } else {
-            self.current_char = self.input.chars().nth(self.read_position).expect(
-                format!("Could not parse char at line: {}.{} last read char: '{}'", self.current_line, self.current_col, self.current_char).as_str()
-            );
-            // Get the current character
+            self.current_char = self.input_chars[self.read_position];
         }
         self.position = self.read_position; // Update position
         self.read_position += 1; // Move to the next character
@@ -78,8 +78,7 @@ impl Lex {
         while (self.current_char == ' '
             || self.current_char == '\r'
             || self.current_char == '\t'
-            || self.current_char == '\n'
-        )
+            || self.current_char == '\n')
             && self.current_char != '\0'
         {
             self.read_char();
@@ -91,7 +90,7 @@ impl Lex {
         if self.read_position >= self.input.len() {
             '\0'
         } else {
-            self.input.chars().nth(self.read_position).unwrap()
+            self.input_chars[self.read_position]
         }
     }
 
@@ -109,10 +108,6 @@ impl Lex {
                 result.push(self.current_char);
                 // move pass the backslash
                 self.read_char();
-
-                if self.current_char == cs {
-                    break;
-                }
             }
 
             // add the current character to the result string

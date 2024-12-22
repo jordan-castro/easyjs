@@ -1,4 +1,3 @@
-// use {easyjs_ascii} from "core:builtins"
-builtins = use_mod("core:builtins")
+emoji = '\u{1b23}'
 
-console.log(builtins.easyjs_ascii())
+console.log(emoji)
