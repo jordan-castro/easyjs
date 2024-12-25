@@ -214,8 +214,23 @@ impl Transpiler {
             Statement::AsyncBlockStatement(tk, block) => {
                 Some(self.transpile_async_block_stmt(tk, block.as_ref().to_owned()))
             }
+            Statement::DocCommentStatement(tk, comments) => {
+                Some(self.transpile_doc_comment_stmt(tk, comments))
+            }
             _ => None,
         }
+    }
+
+    fn transpile_doc_comment_stmt(&mut self, token: token::Token, comments: Vec<String>) -> String {
+        let mut res = String::new();
+        res.push_str("/**\n"); // start doc
+
+        for comment in comments {
+            res.push_str(format!(" * {}\n", comment).as_str());
+        }
+
+        res.push_str("*/\n"); // end doc
+        res
     }
 
     fn transpile_async_block_stmt(&mut self, token: token::Token, block: ast::Statement) -> String {

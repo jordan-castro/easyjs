@@ -119,11 +119,16 @@ impl Lex {
     }
 
     /// read anything after the // token
-    fn read_comment(&mut self) -> String {
+    fn read_comment(&mut self) -> (&str, String) {
         // go next to not get stuck in the /
         self.read_char();
         self.read_char();
-
+        let is_doc = self.current_char == '/';
+        
+        if is_doc {
+            self.read_char();
+        }
+        
         let mut res: String = String::new();
 
         while self.current_char != '\n' && !self.is_eof() {
@@ -131,7 +136,11 @@ impl Lex {
             self.read_char();
         }
 
-        res
+        if is_doc {
+            (token::DOC_COMMENT, res)
+        } else {
+            (token::COMMENT, res)
+        }
     }
 
     /// read the identifier
@@ -293,7 +302,8 @@ impl Lex {
             }
             '/' => {
                 if self.peek_char() == '/' {
-                    token::new_token(token::COMMENT, &self.read_comment())
+                    let (tk, comment) = self.read_comment();
+                    token::new_token(tk, &comment)
                 } else if self.peek_char() == '=' {
                     token::new_token(token::SLASH_EQUALS, &self.cc_pp())
                 } else {

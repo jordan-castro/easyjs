@@ -47,6 +47,9 @@ pub enum Statement {
     /// await thisotherthing()
     /// }
     AsyncBlockStatement(tk::Token, Box<Statement>),
+
+    /// Doc comment statement
+    DocCommentStatement(tk::Token, Vec<String>),
 }
 
 impl Statement {
@@ -64,7 +67,8 @@ impl Statement {
             Statement::JavaScriptStatement(_, _) => "JavaScriptStatement",
             Statement::StructStatement(_, _, _, _, _) => "StructStatement",
             Statement::ExportStatement(_, _) => "ExportStatement",
-            Statement::AsyncBlockStatement(_, _) => "AsyncBlockStatement"
+            Statement::AsyncBlockStatement(_, _) => "AsyncBlockStatement",
+            Statement::DocCommentStatement(_, _) => "DocCommentStatement",
         }.to_string()
     }
 

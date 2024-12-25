@@ -1,4 +1,7 @@
+fs = require('fs/promises')
+
 random = use_mod("core:random")
+types = use_mod("core:types")
 
 // possible random colors 
 random_colors = {
@@ -13,6 +16,7 @@ macro first(list) {
 
 macro create_el(je) {
   var sentence = je.merged_sentence
+  start = new types.Int(je.start)
   // check if entities exists
   if je.entities != null and je.entities != undefined and je.entities.list.length > 0 {
     // loop through elemenst
@@ -25,9 +29,10 @@ macro create_el(je) {
     }
   }
 
-  res += "<strong>${je.speaker}</strong>: $sentence<br><br>"
+  res += "[$start] <strong>${je.speaker}</strong>: $sentence<br><br>"
 }
 
+/// This is a test
 fn parse_transcript(sentences) {
     var res = ""
     list = sentences.list
@@ -42,7 +47,13 @@ fn parse_transcript(sentences) {
 }
 
 // read a file using deno...
-// deno does not require us to wrap our shit in async (yipeee!)
-json = await Deno.readTextFile("ej_tests/se.json")
-result = parse_transcript(JSON.parse(json)[0].sentences)
-console.log(result)
+// deno does not require us to wrap in async
+// json = await Deno.readTextFile("ej_tests/se.json")
+// result = parse_transcript(JSON.parse(json)[0].sentences)
+// console.log(result)
+
+// node
+async {
+  json = await fs.readFile('ej_tests/se.json', 'utf8')
+  console.log(parse_transcript(JSON.parse(json)[0].sentences))
+}
