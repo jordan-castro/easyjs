@@ -1,4 +1,8 @@
 /// A controlled Integer value.
+/// @param {number|string} Ideally a value that is already a number. Does also work 
+/// with strings but uses similar unpredictability as a normal Number() constructor.
+///
+/// @returns {Int} a special kind of number that only has it's integer value.
 pub struct Int(Number) {
    fn new(value, round) {
      var nv = value

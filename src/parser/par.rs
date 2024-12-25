@@ -256,7 +256,7 @@ impl Parser {
     }
 
     /// Print if is debug mode
-    fn debug_print(&self, msg:&str) {
+    fn debug_print(&self, msg: &str) {
         if self.is_debug_mode {
             println!("{}", msg);
         }
@@ -310,10 +310,10 @@ impl Parser {
     }
 
     /// Expect peek token to be eos
-    fn expect_peek_eos(&mut self) -> bool{
+    fn expect_peek_eos(&mut self) -> bool {
         if !self.peek_token_is_eos() {
             self.add_error(
-                format!("Expected EOS but got: {} instead", self.peek_token.typ).as_str()
+                format!("Expected EOS but got: {} instead", self.peek_token.typ).as_str(),
             );
 
             return false;
@@ -374,6 +374,7 @@ fn parse_statement(parser: &mut Parser) -> ast::Statement {
         token::STRUCT => parse_struct_statement(parser),
         token::PUB => parse_export_statement(parser),
         token::ASYNC => parse_async_block_statement(parser),
+        token::DOC_COMMENT => parse_doc_comment_statement(parser),
         _ => parse_expression_statement(parser),
     };
 
@@ -383,6 +384,23 @@ fn parse_statement(parser: &mut Parser) -> ast::Statement {
     }
 
     stmt
+}
+
+fn parse_doc_comment_statement(p: &mut Parser) -> ast::Statement {
+    p.debug_print("parse_doc_comment_statement");
+    let token = p.c_token.to_owned(); // ///
+
+    let mut comments = vec![];
+
+    // add first comment
+    comments.push(p.c_token.to_owned().literal);
+
+    while p.peek_token_is(token::DOC_COMMENT) {
+        p.next_token();
+        comments.push(p.c_token.to_owned().literal);
+    }
+
+    ast::Statement::DocCommentStatement(token, comments)
 }
 
 fn parse_export_statement(p: &mut Parser) -> ast::Statement {
@@ -396,7 +414,7 @@ fn parse_export_statement(p: &mut Parser) -> ast::Statement {
 fn parse_async_block_statement(p: &mut Parser) -> ast::Statement {
     p.debug_print("parse_async_block_statement");
     let token = p.c_token.to_owned();
-    
+
     if !p.peek_token_is(token::L_BRACE) {
         return parse_expression_statement(p);
     }
@@ -410,7 +428,7 @@ fn parse_async_block_statement(p: &mut Parser) -> ast::Statement {
 fn parse_var_statement(p: &mut Parser) -> ast::Statement {
     p.debug_print("parse_var_statement");
     let token = p.c_token.clone(); // var
-    
+
     if !p.expect_peek(token::IDENT) {
         return ast::empty_statement();
     }
@@ -1360,20 +1378,23 @@ fn parse_float_literal(p: &mut Parser) -> ast::Expression {
 fn parse_builtin_expression(p: &mut Parser) -> ast::Expression {
     p.debug_print("parse_builtin_expression");
     let token = p.c_token.to_owned(); // builtin
-    
-    if !p.expect_peek(token::L_PAREN) { // (
+
+    if !p.expect_peek(token::L_PAREN) {
+        // (
         return ast::empty_expression();
     }
 
     let mut args = vec![];
 
-    if p.peek_token_is(token::R_PAREN) { // )
+    if p.peek_token_is(token::R_PAREN) {
+        // )
         p.next_token();
         return ast::Expression::BuiltinCall(token, Box::new(args));
     }
     p.next_token(); // consume the (
 
-    while !p.cur_token_is(token::R_PAREN) { // !)
+    while !p.cur_token_is(token::R_PAREN) {
+        // !)
         args.push(parse_expression(p, LOWEST));
         p.next_token();
 
