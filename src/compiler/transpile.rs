@@ -217,8 +217,42 @@ impl Transpiler {
             Statement::DocCommentStatement(tk, comments) => {
                 Some(self.transpile_doc_comment_stmt(tk, comments))
             }
+            Statement::MatchStatement(tk, expr, conditions) => {
+                Some(self.transpile_match_stmt(tk, expr.as_ref().to_owned(), conditions.as_ref().to_owned()))
+            }
             _ => None,
         }
+    }
+
+    fn transpile_match_stmt(&mut self, token: token::Token, expr: Expression, conditions: Vec<(Expression, Statement)>) -> String {
+        let mut res = String::new();
+        res.push_str("switch ");
+        // transpile expr
+        res.push_str(&format!("({})", self.transpile_expression(expr)));
+        res.push_str("{ \n");
+
+        let mut has_default = false;
+        for (condition, stmt) in conditions {
+            let formatted_condition = self.transpile_expression(condition);
+            if formatted_condition == "_" {
+                has_default = true;
+                
+                res.push_str(format!("default: \n\t{} \n\t break;\n", self.transpile_stmt(stmt).unwrap()).as_str());
+
+                continue;
+            }
+            res.push_str("case ");
+            res.push_str(&format!("{}: ", formatted_condition));
+            res.push_str(&self.transpile_stmt(stmt).unwrap());
+            res.push_str("\n\t break;\n");
+        }
+
+        if !has_default {
+            res.push_str(" default: \n\tbreak; \n");
+        }
+        res.push_str("}\n");
+
+        res
     }
 
     fn transpile_doc_comment_stmt(&mut self, token: token::Token, comments: Vec<String>) -> String {

@@ -104,6 +104,7 @@ pub const NEW: &str = "NEW";
 pub const IS: &str = "IS";
 pub const VAR: &str = "VAR";
 pub const PUB: &str = "PUB";
+pub const MATCH: &str = "MATCH";
 
 // Import prefixes
 pub const CORE: &str = "CORE";
@@ -119,7 +120,6 @@ pub fn lookup_ident(ident: &str) -> &'static str {
     match ident {
         "fn" => FUNCTION,
         "struct" => STRUCT,
-        // "use" => USE,
         "true" => TRUE,
         "false" => FALSE,
         "if" => IF,
@@ -148,6 +148,7 @@ pub fn lookup_ident(ident: &str) -> &'static str {
         "is" => IS,
         "var" => VAR,
         "use_mod" => BUILTIN,
+        "match" => MATCH,
         _ => IDENT, // Default case for unknown identifiers
     }
 }

@@ -42,14 +42,17 @@ pub enum Statement {
     /// Async block statement
     /// 
     /// async {
-    /// await this()
-    /// await that()
-    /// await thisotherthing()
+    ///   await this()
+    ///   await that()
+    ///   await thisotherthing()
     /// }
     AsyncBlockStatement(tk::Token, Box<Statement>),
 
     /// Doc comment statement
     DocCommentStatement(tk::Token, Vec<String>),
+
+    /// Match Statement
+    MatchStatement(tk::Token, Box<Expression>, Box<Vec<(Expression, Statement)>>)
 }
 
 impl Statement {
@@ -69,6 +72,7 @@ impl Statement {
             Statement::ExportStatement(_, _) => "ExportStatement",
             Statement::AsyncBlockStatement(_, _) => "AsyncBlockStatement",
             Statement::DocCommentStatement(_, _) => "DocCommentStatement",
+            Statement::MatchStatement(_, _, _) => "MatchStatement",
         }.to_string()
     }
 

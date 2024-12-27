@@ -14,9 +14,21 @@ macro first(list) {
   list[0]
 }
 
+format_time = fn(seconds) {
+  minutes = new types.Int(seconds / 60)
+  remaining_secs = new types.Int(seconds % 60)
+
+  // pad with zero
+  padded_minutes = minutes.toString().padStart(2, '0')
+  padded_seconds = remaining_secs.toString().padStart(2, '0')
+
+  return "$padded_minutes:$padded_seconds"
+}
+
 macro create_el(je) {
   var sentence = je.merged_sentence
-  start = new types.Int(je.start)
+  start = format_time(je.start)
+
   // check if entities exists
   if je.entities != null and je.entities != undefined and je.entities.list.length > 0 {
     // loop through elemenst

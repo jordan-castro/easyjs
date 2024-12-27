@@ -375,6 +375,7 @@ fn parse_statement(parser: &mut Parser) -> ast::Statement {
         token::PUB => parse_export_statement(parser),
         token::ASYNC => parse_async_block_statement(parser),
         token::DOC_COMMENT => parse_doc_comment_statement(parser),
+        token::MATCH => parse_match_statement(parser),
         _ => parse_expression_statement(parser),
     };
 
@@ -384,6 +385,48 @@ fn parse_statement(parser: &mut Parser) -> ast::Statement {
     }
 
     stmt
+}
+
+fn parse_match_statement(p: &mut Parser) -> ast::Statement {
+    p.debug_print("parse_match_statement");
+    let token = p.c_token.to_owned(); // match
+
+    if !p.expect_peek(token::IDENT) {
+        return ast::empty_statement();
+    }
+
+    let expr = parse_expression(p, LOWEST);
+
+    if !p.expect_peek(token::L_BRACE) {
+        return ast::empty_statement();
+    }
+
+    // a default block will be provided in the case that one is not set
+    let mut conditions = vec![];
+
+    if p.peek_token_is(token::R_BRACE) {
+        p.next_token(); // consume it and continue
+        return ast::Statement::MatchStatement(token, Box::new(expr), Box::new(conditions))
+    }
+
+    while !p.peek_token_is(token::R_BRACE) {
+        p.next_token(); // go to the condition.
+        let left_condition = parse_expression(p, LOWEST);
+        if !p.expect_peek(token::COLON) {
+            return ast::empty_statement();
+        }
+        p.next_token(); 
+        let right_block = parse_block_statement(p);
+        // p.next_token(); // consume the brace...
+        conditions.push((left_condition, right_block));
+    }
+
+    // expect a ending brace
+    if !p.expect_peek(token::R_BRACE) {
+        return ast::empty_statement();
+    }
+
+    ast::Statement::MatchStatement(token, Box::new(expr), Box::new(conditions))
 }
 
 fn parse_doc_comment_statement(p: &mut Parser) -> ast::Statement {
