@@ -335,6 +335,7 @@ impl Lex {
             }
             '$' => token::new_token(token::MACRO_SYMBOL, &self.current_char_str()),
             '@' => token::new_token(token::DECORATOR, &self.current_char_str()),
+            '_' => token::new_token(token::IDENT, &self.current_char_str()),
             _ => {
                 // check for identifier
                 if self.current_char.is_alphabetic() {

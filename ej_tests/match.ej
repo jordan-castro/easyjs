@@ -1,0 +1,21 @@
+x = 10
+
+match x {
+    1: {
+        console.log("1")
+    }
+    2: {
+        console.log("2")
+    }
+    3: {
+        console.log("3")
+    }
+    10: {
+        console.log("10")
+    }
+    _: {
+        console.log("Default")
+    }
+}
+
+console.log("after match")
