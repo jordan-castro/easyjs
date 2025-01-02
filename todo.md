@@ -23,6 +23,7 @@
 - v0.4.0 add advanced macros 
   - v0.4.0 macros that write easyJS.
   - v0.4.0 macros that run inside easyJS and not JS.
+- v0.4/5/6.0 add a fn {} block for creating modules. Or a mod {}?
 
 ## EasyJS
 - v0.3.0 core
