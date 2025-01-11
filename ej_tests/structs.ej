@@ -1,4 +1,4 @@
-export struct Person {
+pub struct Person {
     // can have fields
     name=null
     age=null
@@ -37,8 +37,7 @@ console.log(jordan.person.name)
 // inheritance
 struct JordanC(Person) {
     fn new() {
-        self.name = 'Inherited Jordan'
-        self.age = 22
+        super('Inherited Jordan', 22)
     }
 }
 

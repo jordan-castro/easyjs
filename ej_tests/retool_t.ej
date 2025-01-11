@@ -1,13 +1,13 @@
 fs = require('fs/promises')
 
-random = use_mod("core:random")
 types = use_mod("core:types")
 
 // possible random colors 
 random_colors = {
-  MISC: random.random_hex_color(),
-  ORG: random.random_hex_color(),
-  LOC: random.random_hex_color() 
+  MISC: "#123524",
+  ORG: "#123524",
+  LOC: "#123524",
+  AGR: "#C30E59" 
 }
 
 macro first(list) {
@@ -25,9 +25,31 @@ format_time = fn(seconds) {
   return "$padded_minutes:$padded_seconds"
 }
 
-macro create_el(je) {
+agregious_words = []
+
+fn change_color(sentence, word, group) {
+  color = random_colors[group]
+  return sentence.replace(word, '<span style="color: $color" title="$group">$word</span>')
+}
+
+fn check_agr(sentence) {
+  var ns = sentence
+  // check for agregious words
+  for word in agregious_words {
+    if sentence.includes(word) {
+      // update sentence
+      ns = change_color(ns, word, "AGR")
+    }
+  }
+
+  return ns
+}
+
+fn create_el(je) {
   var sentence = je.merged_sentence
   start = format_time(je.start)
+
+  sentence = check_agr(sentence)
 
   // check if entities exists
   if je.entities != null and je.entities != undefined and je.entities.list.length > 0 {
@@ -36,12 +58,11 @@ macro create_el(je) {
       word = el.element.word
       group = el.element.entity_group
 
-      color = random_colors[group]
-      sentence = sentence.replace(word, "<span style=\"color: $color\" title=\"$group\">$word</span>")
+      sentence = change_color(sentence, word, group)
     }
   }
 
-  res += "[$start] <strong>${je.speaker}</strong>: $sentence<br><br>"
+  return "[$start] <strong>${je.speaker}</strong>: $sentence<br><br>"
 }
 
 /// This is a test
@@ -52,7 +73,7 @@ fn parse_transcript(sentences) {
     for obj in list {
       element = obj.element
 
-      @create_el(element)
+      res += create_el(element)
     }
 
   return res
