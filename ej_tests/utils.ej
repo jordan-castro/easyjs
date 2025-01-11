@@ -1,0 +1,9 @@
+pub struct Person {
+    fn new(name) {
+        self.name = name
+    }
+
+    fn say_hello(self) {
+        console.log(self.name)
+    }
+}
