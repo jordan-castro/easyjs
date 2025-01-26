@@ -1,7 +1,7 @@
 pub struct Person {
     // can have fields
     name=null
-    age=null
+   age=null
 
     // The constrcutor...
     fn new(name, age) {
