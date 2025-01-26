@@ -1,12 +1,14 @@
 # TODO
 
 ## Compiler
-- v0.3.1 Introduce variable scoping
+- v0.3.0 add a LSP and text highlighting
+- v0.3.0 implement actual decorators.
+- v0.3.0 Introduce variable scoping
 - v0.4.0 add a minifier option.
-- v0.3.0 add pythonic x,y = [x,y]
-- v0.3.0 var {x,y} = coords
-- v0.3.0 {x,y} 
-- v0.3.0 a,b = [0,1]
+- v0.5.0 decopouling vairable decleration <!-- This can only be done when types are added -->
+  - var x,y = array // [100,200]
+  - var x,y = dictionary // {x: 10, y: 20}
+  
 - ~~v0.3.0 add switch case~~
 - ~~v0.3.0 add a way to determine if running in browser or nodejs/deno/bun~~
 - ~~v0.3.0 use pub instead of export~~
@@ -15,9 +17,7 @@
 - ~~v0.3.0 add a default _ placeholder~~
 - ~~v0.3.0 Support Doc Comments~~
 - ~~v0.3.0 add support for base:file~~
-- v0.3.0 add getters and setters to structs
 - v0.3.0 Support struct without new when coming from modules.
-- v0.4.0 add a `include_js` builtin function that completely loads a JS file and makes it available to the program.
 - v0.3.1 Fix builtins.int_range logic.
 - v0.3.0 Add a new way to handle .then logic.
 - v0.4.0 add types (using boa)

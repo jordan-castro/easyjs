@@ -9,7 +9,7 @@ pub const INT_RANGE: &str = "int_range";
 ///     file module...
 /// }
 /// 
-pub fn include(file_path_param: &str) -> String {
+pub fn include(file_path_param: &str) -> (String, Transpiler) {
     // parse the file path
     let binding = file_path_param.replace("'", "").replace("\"", "");
 

@@ -24,6 +24,9 @@ pub struct Transpiler {
     /// All declared EasyJS structs.
     pub structs: Vec<String>,
 
+    /// All declares structs within modules.
+    pub structs_in_modules: Vec<String>,
+
     /// Keep a list of all declared EasyJS variables.
     variables: Vec<String>,
     /// Boa engine context.
@@ -39,6 +42,7 @@ impl Transpiler {
             context: Context::default(),
             structs: vec![],
             variables: vec![],
+            structs_in_modules: vec![],
         };
 
         t
@@ -59,7 +63,7 @@ impl Transpiler {
     }
 
     /// Transpile a module.
-    pub fn transpile_module(p : ast::Program) -> String {
+    pub fn transpile_module(p : ast::Program) -> (String, Transpiler) {
         let mut t = Transpiler::new();
 
         let mut res = String::new();
@@ -114,7 +118,7 @@ impl Transpiler {
         // close the module
         res.push_str("})();\n");
 
-        res
+        (res, t)
     }
 
     fn to_string(&self) -> String {
@@ -1012,7 +1016,12 @@ impl Transpiler {
                     "use_mod" => {
                         // get the first param
                         let param = &params[0];
-                        builtins::include(&self.transpile_expression(param.to_owned()))
+                        let (result, module_t) = builtins::include(&self.transpile_expression(param.to_owned()));
+                        
+                        // let structs = &module_t.structs;
+                        // update our transpilers structs context only.
+                        // self.structs_in_modules.append(&mut structs);
+                        result
                     }
                     _ => {
                         "".to_string()
