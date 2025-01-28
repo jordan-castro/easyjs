@@ -1,5 +1,2 @@
-use core:std // import * from "./std.js"
-use base:file // import "./file.js"
-use js:file // import "./file.js"
+structs = use_mod('ej_tests/structs.ej')
 
-use string:"any thing goes here..."

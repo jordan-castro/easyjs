@@ -1,44 +1,22 @@
-pub struct Person {
-    // can have fields
-    name=null
-   age=null
+pub struct Person[name, age] with GreetMixin {
+    var has_job = true
+    species = "HomoSapien"
 
-    // The constrcutor...
-    fn new(name, age) {
-        self.name = name
-        self.age = age
-    }
-    
-    // a method that takes in self, is a non static method,
-    fn greet(self) {
-        console.log(self)
+    fn set_name(self, new_name) {
+        self.name = new_name
     }
 
-    // a method that does not have self is a static method.
-    fn a_static_method(rg1) {
-        console.log("ayo dude")
+    fn get_name(self) {
+        return self.name
     }
-    
-    async fn grow_up(self) {
-        self.age = 1 + self.age
+
+    fn static_method() {
+        console.log("This is a static method")
     }
 }
 
-// Composition (preferred method)
-struct Jordan {
-    fn new() {
-        self.person = Person('Composed Jordan', '22')
+struct GreetMixin {
+    fn say_hi(self) {
+        console.log('Hello, my name is ${this.name}')
     }
 }
-
-jordan = Jordan()
-console.log(jordan.person.name)
-
-// inheritance
-struct JordanC(Person) {
-    fn new() {
-        super('Inherited Jordan', 22)
-    }
-}
-
-console.log(JordanC())

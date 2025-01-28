@@ -23,15 +23,17 @@ pub enum Statement {
     // javascript{}
     JavaScriptStatement(tk::Token, String),
     /// ```easyjs
-    /// struct Person {
-    ///     name = "" // variables
-    ///     age = null
-    ///     fn constructor(self, name) { // constructor
-    ///        self.name = name // <- set the length
+    /// struct Person[name,age] with GreetMixin, FarewellMixin {
+    ///     MAX_AGE = 150 // static variables
+    /// 
+    ///     fn greet(self) { // methods
+    ///     }
+    /// 
+    ///     fn ask_question(question) { // static methods
     ///     }
     /// }
     /// ```
-    StructStatement(tk::Token, Box<Expression>, Option<Box<Expression>>, Box<Vec<Statement>>, Box<Vec<Expression>>),
+    StructStatement(tk::Token, Box<Expression>, Option<Box<Vec<Expression>>>, Option<Box<Vec<Expression>>>, Box<Vec<Statement>>, Box<Vec<Expression>>),
 
     /// export fn
     /// export struct
@@ -68,7 +70,7 @@ impl Statement {
             Statement::ConstVariableStatement(_, _, _) => "ConstVarStatement",
             Statement::ForStatement(_, _, _) => "ForStatement",
             Statement::JavaScriptStatement(_, _) => "JavaScriptStatement",
-            Statement::StructStatement(_, _, _, _, _) => "StructStatement",
+            Statement::StructStatement(_, _, _, _, _, _) => "StructStatement",
             Statement::ExportStatement(_, _) => "ExportStatement",
             Statement::AsyncBlockStatement(_, _) => "AsyncBlockStatement",
             Statement::DocCommentStatement(_, _) => "DocCommentStatement",

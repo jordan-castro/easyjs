@@ -378,23 +378,13 @@ mod tests {
     fn test_struct_stmts() {
         let input = "
             struct Person {
-            // sad
-                fn constructor(self, name) {
-                    self.name = name
-                }
-
                 fn greet(self) {
                 }
             }
             
-            struct StructWithVarsAndMethods {
+            struct StructWithVarsAndMethods[name, age] {
                 name = ''
                 age = null
-
-                fn constructor(self,name,age) {
-                    self.name = name
-                    self.age = age
-                }
             }
 
             struct EmptyStruct {
