@@ -1,4 +1,4 @@
-use boa_engine::Context;
+use boa_engine::{value, Context};
 use std::collections::HashMap;
 use std::fmt::format;
 use std::path;
@@ -63,7 +63,7 @@ impl Transpiler {
     }
 
     /// Transpile a module.
-    pub fn transpile_module(p : ast::Program) -> (String, Transpiler) {
+    pub fn transpile_module(p : ast::Program) -> String {
         let mut t = Transpiler::new();
 
         let mut res = String::new();
@@ -74,6 +74,7 @@ impl Transpiler {
         let mut exported_names = vec![];
 
         for stmt in p.statements {
+            let mut export_name = String::new();
             if stmt.is_empty() {
                 continue;
             }
@@ -82,15 +83,41 @@ impl Transpiler {
             match stmt.clone() {
                 // add it to a list of exported identifiers
                 Statement::ExportStatement(tk, stmt) => {
-                    let name = t.transpile_stmt(stmt.as_ref().to_owned());
-
-                    if let Some(name) = name {
-                        // name is between the decleration and the identifier
-                        let name = name.split(" ").collect::<Vec<_>>()[1].to_string();
-                        exported_names.push(name);
+                    match stmt.as_ref().to_owned() {
+                        Statement::VariableStatement(_, name, _) => {
+                            export_name = t.transpile_expression(name.as_ref().to_owned());
+                        }
+                        Statement::ConstVariableStatement(_, name, _) => {
+                            export_name = t.transpile_expression(name.as_ref().to_owned());
+                        }
+                        Statement::StructStatement(_, name, _, _, _, _) => {
+                            export_name = t.transpile_expression(name.as_ref().to_owned());
+                        }
+                        Statement::ExpressionStatement(_, expression) => {
+                            match expression.as_ref().to_owned() {
+                                Expression::Identifier(_, name) => {
+                                    exported_names.push(name);
+                                }
+                                // TODO: continue module work
+                                // Expression::
+                                _ => {}
+                            }
+                        }
+                        _ => {}
                     }
+                    // let name = t.transpile_stmt(stmt.as_ref().to_owned());
+
+                    // if let Some(name) = name {
+                    //     // name is between the decleration and the identifier
+                    //     let name = name.split(" ").collect::<Vec<_>>()[1].to_string();
+                    //     exported_names.push(name);
+                    // }
                 },
                 _ => {}
+            }
+            
+            if !export_name.is_empty() {
+                exported_names.push(export_name);
             }
 
             // transpile the statement
@@ -118,7 +145,7 @@ impl Transpiler {
         // close the module
         res.push_str("})();\n");
 
-        (res, t)
+        res
     }
 
     fn to_string(&self) -> String {
@@ -204,10 +231,11 @@ impl Transpiler {
             ast::Statement::JavaScriptStatement(token, js) => {
                 Some(self.transpile_javascript_stmt(token, js))
             }
-            ast::Statement::StructStatement(token, name, inherited_structs, vars, methods) => {
+            ast::Statement::StructStatement(token, name, constructor_vars, mixins, vars, methods) => {
                 Some(self.transpile_struct_stmt(
                     name.as_ref().to_owned(),
-                    inherited_structs,
+                    constructor_vars,
+                    mixins,
                     vars.as_ref().to_owned(),
                     methods.as_ref().to_owned(),
                 ))
@@ -555,56 +583,125 @@ impl Transpiler {
     fn transpile_struct_stmt(
         &mut self,
         name: ast::Expression,
-        parent: Option<Box<Expression>>,
+        constructor_vars: Option<Box<Vec<Expression>>>,
+        mixins: Option<Box<Vec<ast::Expression>>>,
         variables: Vec<ast::Statement>,
         methods: Vec<ast::Expression>,
     ) -> String {
         let mut res = String::new();
+        let mut parsed_mixins = vec![];
 
-        res.push_str("class ");
-        let name = self.transpile_expression(name);
-
-        self.structs.push(name.clone());
-
-        res.push_str(&name);
-
-        // check if we have inheritance.
-        match parent {
-            Some(v) => {
-                res.push_str(" extends ");
-                res.push_str(&self.transpile_expression(v.as_ref().to_owned()));
+        if let Some(mixins) = mixins {
+            for mixin in mixins.as_ref().to_owned() {
+                let mixin_name = self.transpile_expression(mixin.clone());
+                parsed_mixins.push(mixin_name);
             }
-            None => {}
         }
+        
+        res.push_str("function ");
+        let struct_name = self.transpile_expression(name);
+        self.structs.push(struct_name.clone());
+        res.push_str(&struct_name);
+        res.push_str("(");
 
-        res.push_str(" {\n");
+        let mut struct_vars = vec![];
+        // add construcot variables        
+        if let Some(vars) = constructor_vars {
+            let vars = vars.as_ref().to_owned();
+            for i in 0..vars.len() {
+                let var = &vars[i];
+                let var_name = self.transpile_expression(var.clone());
+                struct_vars.push((var_name.clone(), None));
+                res.push_str(&var_name);
+                // only if it is not the last variable add a comma
+                if i != vars.len() - 1 {
+                    res.push_str(", ");
+                }
+            }
+        }
+        
+        // close constructor
+        res.push_str(") {\n");
 
+        // add variables.
+        // static variables are added now while struct variables are added at the end.
         for var in variables {
             match var {
-                Statement::VariableStatement(token, name, value) => {
-                    res.push_str(&self.transpile_expression(name.as_ref().to_owned()));
-                    res.push_str(" = ");
-                    res.push_str(&self.transpile_expression(value.as_ref().to_owned()));
-                    res.push_str(";\n");
+                ast::Statement::ConstVariableStatement(_, name, value) => {
+                    let name = self.transpile_expression(name.as_ref().to_owned());
+                    let value = self.transpile_expression(value.as_ref().to_owned());
+
+                    res.push_str(format!("{}.{} = {};\n", struct_name, name, value).as_str());
                 }
-                Statement::ConstVariableStatement(token, name, value) => {
-                    res.push_str("static ");
-                    res.push_str(&self.transpile_expression(name.as_ref().to_owned()));
-                    res.push_str(" = ");
-                    res.push_str(&self.transpile_expression(value.as_ref().to_owned()));
-                    res.push_str(";\n");
+                ast::Statement::VariableStatement(_, name, value) => {
+                    let name = self.transpile_expression(name.as_ref().to_owned());
+                    let value = self.transpile_expression(value.as_ref().to_owned());
+
+                    struct_vars.push((name, Some(value)));
                 }
-                _ => {
-                    res.push_str("");
-                }
+                _ => {}
             }
         }
 
+        // add methods.
+        // static methods are added now while struct methods are added at the end.
+        let mut cleaned_methods = vec![];
+
         for method in methods {
-            res.push_str(&self.transpile_struct_method(method));
+            let mut result = String::new();
+            let cleaned_method_is_static = self.get_struct_method_function_exp(method);
+                match cleaned_method_is_static.0.clone() {
+                    Expression::FunctionLiteral(_, name, params, body) => {
+                      result = (self.transpile_struct_method(&struct_name, cleaned_method_is_static.0, false, cleaned_method_is_static.1));
+                    }
+                    Expression::AsyncExpression(_, function) => {
+                        result = (self.transpile_struct_method(&struct_name, cleaned_method_is_static.0, true, cleaned_method_is_static.1));
+                    }
+                    _ => {}
+                }
+            if cleaned_method_is_static.1 {
+                res.push_str(&result);
+            } else {
+                cleaned_methods.push(result);
+            }
         }
 
+        // begin returning object.
+        res.push_str("return ");
+        if parsed_mixins.len() > 0 {
+            res.push_str(" Object.assign({\n");
+        } else {
+            res.push_str("{\n");
+        }
+
+        // add struct variables second
+        for (name, value) in struct_vars {
+            res.push_str(&name);
+            if let Some(value) = value {
+                res.push_str(": ");
+                res.push_str(&value);
+            }
+            res.push_str(", ");
+        }
+        // add methods last
+        for method in cleaned_methods {
+            res.push_str(&method);
+        }
+        // close struct
         res.push_str("}\n");
+        
+        if parsed_mixins.len() > 0 {
+            res.push_str(", ");
+            for mixin in parsed_mixins {
+                res.push_str(&mixin);
+                res.push_str("(),");
+            }
+            res.push_str(");\n");
+        }
+        
+        // close the functoin
+        res.push_str("}\n");
+        // }\n
         res
     }
 
@@ -721,10 +818,6 @@ impl Transpiler {
 
                 let name_exp = self.transpile_expression(name.as_ref().to_owned());
                 if name_exp.chars().nth(0).unwrap().is_ascii_uppercase() {
-                    // check if is a struct/class constructor
-                    if self.structs.contains(&name_exp) {
-                        res.push_str(" new ");
-                    }
                     res.push_str(&name_exp);
                 } else {
                     res.push_str(name_exp.as_str());
@@ -1016,7 +1109,7 @@ impl Transpiler {
                     "use_mod" => {
                         // get the first param
                         let param = &params[0];
-                        let (result, module_t) = builtins::include(&self.transpile_expression(param.to_owned()));
+                        let result = builtins::include(&self.transpile_expression(param.to_owned()));
                         
                         // let structs = &module_t.structs;
                         // update our transpilers structs context only.
@@ -1055,18 +1148,52 @@ impl Transpiler {
             .insert(name.to_owned(), Macro::new(name, parsed_args, body[0..body.len() - 2].to_string()));
     }
 
-    fn transpile_struct_method(&mut self, method: ast::Expression) -> String {
+    /// Transpile a struct method
+    fn transpile_struct_method(&mut self, struct_name: &str, method: ast::Expression, is_async: bool, is_static : bool) -> String {
         let mut res = String::new();
-        let struct_method = self.get_struct_method_function_exp(method);
+        match method {
+            Expression::FunctionLiteral(_, name, params, body) => {
+                let name = self.transpile_expression(name.as_ref().to_owned());
+                let params = {
+                    let params = params.as_ref().to_owned();
+                    let mut res = String::new();
+                    for i in 0..params.len() {
+                        let param = &params[i];
+                        res.push_str(&self.transpile_expression(param.clone()));
+                        // only if it is not the last variable add a comma
+                        if i != params.len() - 1 {
+                            res.push_str(", ");
+                        }
+                    }
+                    res
+                };
 
-        let fn_string = self.transpile_expression(struct_method.0);
+                let body = self.transpile_stmt(body.as_ref().to_owned());
 
-        if struct_method.1 {
-            res.push_str("static ");
+                if is_static {
+                    res.push_str(format!("{}.{} = ", struct_name, &name).as_str());
+                } else {
+                    res.push_str(format!("{}: ", &name).as_str());
+                }
+                
+                if is_async {
+                    res.push_str(" async ");
+                }
+                res.push_str(format!("function({})", &params).as_str());
+                res.push_str("{");
+
+                if let Some(body) = body {
+                    res.push_str(&body);
+                }
+                res.push_str("}");
+                if is_static {
+                    res.push_str(";\n");
+                } else {
+                    res.push_str(",\n");
+                }
+            }
+            _ => {}
         }
-
-        let fn_string = fn_string.replace("function ", "");
-        res.push_str(&fn_string);
 
         res
     }
@@ -1086,21 +1213,21 @@ impl Transpiler {
                 );
             }
             Expression::FunctionLiteral(fn_token, fn_name, params, body) => {
-                // check if is a predescribed method like new => constructor
-                if self.transpile_expression(fn_name.as_ref().to_owned()) == "new" {
-                    return (
-                        Expression::FunctionLiteral(
-                            fn_token,
-                            Box::new(Expression::Identifier(
-                                token::new_token(token::IDENT, "constructor"),
-                                "constructor".to_string(),
-                            )),
-                            params,
-                            body,
-                        ),
-                        false,
-                    );
-                }
+                // // check if is a predescribed method like new => constructor
+                // if self.transpile_expression(fn_name.as_ref().to_owned()) == "new" {
+                //     return (
+                //         Expression::FunctionLiteral(
+                //             fn_token,
+                //             Box::new(Expression::Identifier(
+                //                 token::new_token(token::IDENT, "constructor"),
+                //                 "constructor".to_string(),
+                //             )),
+                //             params,
+                //             body,
+                //         ),
+                //         false,
+                //     );
+                // }
 
                 // check for a self param
                 if params.len() == 0 {

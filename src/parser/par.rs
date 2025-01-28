@@ -1256,17 +1256,40 @@ fn parse_struct_statement(p: &mut Parser) -> ast::Statement {
     }
     let ident = parse_identifier(p);
 
-    // get optional inheritence.
-    let mut inherits: Option<Box<ast::Expression>> = None;
-    if p.peek_token_is(token::L_PAREN) {
-        p.next_token();
-        if !p.expect_peek(token::IDENT) {
-            return ast::empty_statement();
+    let mut constructor_vars : Option<Box<Vec<ast::Expression>>> = None;
+
+    // We have constructor variables
+    if p.peek_token_is(token::L_BRACKET) {
+        let mut constructor_vars_vector = vec![];
+        p.next_token(); // consume the [
+        p.next_token(); // be on the indentifier
+
+        constructor_vars_vector.push(parse_identifier(p));
+
+        while p.peek_token_is(token::COMMA) {
+            p.next_token(); // consume the ,
+            p.next_token(); // be on the indentifier
+            constructor_vars_vector.push(parse_identifier(p));
         }
-        inherits = Some(Box::new(parse_identifier(p)));
-        if !p.expect_peek(token::R_PAREN) {
-            return ast::empty_statement();
+
+        constructor_vars = Some(Box::new(constructor_vars_vector));
+        p.next_token(); // consume the ]
+    }
+
+    let mut mixins: Option<Box<Vec<ast::Expression>>> = None;
+   if p.peek_token_is(token::WITH) {
+        let mut mixin_names = vec![];
+        p.next_token(); // consume the WITH
+        p.next_token(); // be on the mixin
+        mixin_names.push(parse_identifier(p));
+
+        while p.peek_token_is(token::COMMA) {
+            p.next_token(); // consume the ,
+            p.next_token(); // be on the mixin
+            mixin_names.push(parse_identifier(p));
         }
+
+        mixins = Some(Box::new(mixin_names));
     }
 
     if !p.expect_peek(token::L_BRACE) {
@@ -1281,14 +1304,15 @@ fn parse_struct_statement(p: &mut Parser) -> ast::Statement {
         return ast::Statement::StructStatement(
             token,
             Box::new(ident),
-            inherits,
+            constructor_vars,
+            mixins,
             Box::new(variables),
             Box::new(methods),
         );
     }
 
     // Check if we have a list of variables
-    if p.peek_token_is(token::IDENT) {
+    if p.peek_token_is(token::IDENT) || p.peek_token_is(token::VAR) {
         p.next_token();
         loop {
             let stmt = parse_statement(p);
@@ -1316,7 +1340,8 @@ fn parse_struct_statement(p: &mut Parser) -> ast::Statement {
             return ast::Statement::StructStatement(
                 token,
                 Box::new(ident),
-                inherits,
+                constructor_vars,
+                mixins,
                 Box::new(variables),
                 Box::new(methods),
             );
@@ -1346,7 +1371,8 @@ fn parse_struct_statement(p: &mut Parser) -> ast::Statement {
     ast::Statement::StructStatement(
         token,
         Box::new(ident),
-        inherits,
+        constructor_vars,
+        mixins,
         Box::new(variables),
         Box::new(methods),
     )
