@@ -1,0 +1,18 @@
+N = 1
+var x = 0
+
+fn some_on_x() {
+    x += 1
+    javascript{
+        try {
+            easyjs {
+                N = 2
+            }
+        } catch (e) {
+            console.log(e);
+        }
+    }
+    x_ = 0
+    // use global x
+    console.log(x)
+}

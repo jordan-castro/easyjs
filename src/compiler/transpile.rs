@@ -14,6 +14,13 @@ use crate::{lexer::token, utils::h::hash_string};
 
 use super::import::{get_js_module_name, import, ImportType};
 
+/// Variable data. (used mostly for scoping)
+struct Variable {
+    name: String, 
+    /// Is mutable
+    is_mutable: bool
+}
+
 pub struct Transpiler {
     /// Stmt by Stmt
     scripts: Vec<String>,
@@ -27,8 +34,9 @@ pub struct Transpiler {
     /// All declares structs within modules.
     pub structs_in_modules: Vec<String>,
 
-    /// Keep a list of all declared EasyJS variables.
-    variables: Vec<String>,
+    /// Keep a list of all scopes the EasyJS code has.
+    scopes: Vec<Vec<Variable>>,
+    // variables: Vec<Variable>,
     /// Boa engine context.
     context: Context,
 }
@@ -41,10 +49,12 @@ impl Transpiler {
             macros: HashMap::new(),
             context: Context::default(),
             structs: vec![],
-            variables: vec![],
+            scopes: vec![],
             structs_in_modules: vec![],
         };
 
+        // add the first scope. This scope will never be popped.
+        t.add_scope();
         t
     }
 
@@ -146,6 +156,16 @@ impl Transpiler {
         res.push_str("})();\n");
 
         res
+    }
+
+    /// Add a new scope
+    fn add_scope(&mut self) {
+        self.scopes.push(vec![]);
+    }
+
+    /// Remove last scope
+    fn pop_scope(&mut self) {
+        self.scopes.pop();
     }
 
     fn to_string(&self) -> String {
@@ -326,7 +346,11 @@ impl Transpiler {
         value: ast::Expression,
     ) -> String {
         let name_string = self.transpile_expression(name.clone());
-        self.variables.push(name_string.clone());
+
+        self.scopes.last_mut().unwrap().push(Variable {
+            name: name_string.clone(),
+            is_mutable: true
+        });
         format!(
             "let {} = {};\n",
             name_string,
@@ -343,12 +367,14 @@ impl Transpiler {
     }
 
     fn transpile_block_stmt(&mut self, token: token::Token, stmts: Vec<ast::Statement>) -> String {
+        self.add_scope();
         let mut response = String::new();
         for stmt in stmts {
             if let Some(stmt) = self.transpile_stmt(stmt) {
                 response.push_str(&stmt);
             }
         }
+        self.pop_scope();
         response
     }
 
@@ -360,9 +386,25 @@ impl Transpiler {
     ) -> String {
         let left = self.transpile_expression(name.clone());
         let value = self.transpile_expression(value);
-        if self.variables.contains(&left) {
+
+        // search for the variable in scope.
+        let mut found = false;
+        for scope in self.scopes.iter() {
+            for v in scope.iter() {
+                if v.name == left {
+                    found = true;
+                    break;
+                }
+            }
+        }
+
+        if found {
             format!("{} = {};\n", &left, &value)
         } else {
+            self.scopes.last_mut().unwrap().push(Variable {
+                name: left.clone(),
+                is_mutable: false
+            });
             format!("const {} = {};\n", &left, &value)
         }
     }
