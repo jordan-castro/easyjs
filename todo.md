@@ -3,6 +3,8 @@
 ## Compiler
 - v0.3.0 add a LSP and text highlighting
 - v0.3.0 implement actual decorators.
+- v0.3.0 implement the first wasm functions.
+- v0.3.0 allow variable names to start with '_'
 - v0.3.0 ~~Introduce variable scoping~~
 - v0.4.0 add a minifier option.
 - v0.5.0 decopouling vairable decleration <!-- This can only be done when types are added -->
