@@ -1,0 +1,20 @@
+// version 1
+fn first_decorator(fun) {
+    console.log('called before function')
+    fun()
+}
+
+@first_decorator
+fn say_hello() {
+    console.log("Hello")
+}
+
+
+// version 2
+fn first_decorator() {
+    console.log('Called before function')
+}
+
+fn say_hello() first_decorator {
+    console.log('Hello')
+}

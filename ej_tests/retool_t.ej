@@ -1,92 +1,104 @@
 fs = require('fs/promises')
 
-types = use_mod("core:types")
+types = use_mod('core:types')
+builtins = use_mod('core:builtins')
 
-// possible random colors 
-random_colors = {
-  MISC: "#123524",
-  ORG: "#123524",
-  LOC: "#123524",
-  AGR: "#C30E59" 
-}
-
-macro first(list) {
-  list[0]
-}
-
-format_time = fn(seconds) {
-  minutes = new types.Int(seconds / 60)
-  remaining_secs = new types.Int(seconds % 60)
-
-  // pad with zero
-  padded_minutes = minutes.toString().padStart(2, '0')
-  padded_seconds = remaining_secs.toString().padStart(2, '0')
-
-  return "$padded_minutes:$padded_seconds"
-}
-
-agregious_words = []
-
-fn change_color(sentence, word, group) {
-  color = random_colors[group]
-  return sentence.replace(word, '<span style="color: $color" title="$group">$word</span>')
-}
-
-fn check_agr(sentence) {
-  var ns = sentence
-  // check for agregious words
-  for word in agregious_words {
-    if sentence.includes(word) {
-      // update sentence
-      ns = change_color(ns, word, "AGR")
-    }
-  }
-
-  return ns
-}
-
-fn create_el(je) {
-  var sentence = je.merged_sentence
-  start = format_time(je.start)
-
-  sentence = check_agr(sentence)
-
-  // check if entities exists
-  if je.entities != null and je.entities != undefined and je.entities.list.length > 0 {
-    // loop through elemenst
-    for el in je.entities.list {
-      word = el.element.word
-      group = el.element.entity_group
-
-      sentence = change_color(sentence, word, group)
-    }
-  }
-
-  return "[$start] <strong>${je.speaker}</strong>: $sentence<br><br>"
-}
-
-/// This is a test
-fn parse_transcript(sentences) {
-    var res = ""
-    list = sentences.list
-
-    for obj in list {
-      element = obj.element
-
-      res += create_el(element)
+/// Parse the transcript based on the `sentences`
+///
+/// @param {array} sentences
+fn parse_transcript(sentences, agregious_words, negative_words) {
+    var transcript = ""
+    
+    // color options
+    var color_options = {
+        MISC: '#85A947',
+        ORG: '#85A947',
+        LOC: '#85A947',
+        AGR: '#C30E59',
+        NEG: '#C30E59'    
     }
 
-  return res
+    // format the time
+    format_time = fn(seconds) {
+        minutes = new types.Int(seconds / 60)
+        remaining_secs = new types.Int(seconds % 60)
+        padded_minutes = minutes.toString().padStart(2, '0')
+        padded_seconds = remaining_secs.toString().padStart(2, '0')
+        return "$padded_minutes:$padded_seconds"
+    }
+
+    // loop through all sentences
+    for sentence in sentences.list {
+        // get sentence element
+        var sentence_element = sentence.element
+        // get start of sentence
+        var sentence_start = format_time(sentence_element.start)
+        var speaker = sentence_element.speaker
+
+        // grab the actual sentence
+        var merged_sentence = sentence_element.merged_sentence
+        
+        if sentence_element.entities != null and sentence_element.entities != undefined {
+            // now get the entities
+            for entity in sentence_element.entities.list {
+                var entity_element = entity.element
+                var start_offset = entity_element.start
+                var end_offset = entity_element.end
+                var entity_group = entity_element.entity_group
+                var word = entity_element.word
+
+                // update the merged_sentence
+                var before = merged_sentence.slice(0, start_offset)
+                var add = '
+                <span style="color: ${color_options[entity_group]}; font-weight: bold;" title="$entity_group">
+                $word</span>'
+
+                var after = merged_sentence.slice(start_offset + word.length)
+
+                merged_sentence = before + add + after
+            }
+        }
+
+        transform_words = fn(sentence, words, group) {
+            var ns = sentence
+            for object in words {
+                var element = object.element
+                var word = element.word
+
+                var lower_n_capital = [word, builtins.capitalize(word)]
+                for w in lower_n_capital {
+                    ns = ns.replaceAll(w, '<span style="color: ${color_options[group]}; font-weight: bold;" title="$group">
+                        $w
+                        </span>
+                    ')
+                }
+            }
+
+            return ns
+        }
+
+        // now transform the agregious and negative words
+        for agr_words in agregious_words {
+            merged_sentence = transform_words(merged_sentence, agr_words, 'AGR')
+        }
+        for neg_words in negative_words {
+            merged_sentence = transform_words(merged_sentence, neg_words, 'NEG')
+        }
+
+        transcript += "[$sentence_start] <strong>$speaker</strong> $merged_sentence<br><br>"
+    }
+
+    return transcript
 }
 
-// read a file using deno...
-// deno does not require us to wrap in async
-// json = await Deno.readTextFile("ej_tests/se.json")
-// result = parse_transcript(JSON.parse(json)[0].sentences)
-// console.log(result)
-
-// node
 async {
-  json = await fs.readFile('ej_tests/se.json', 'utf8')
-  console.log(parse_transcript(JSON.parse(json)[0].sentences))
+    data = JSON.parse(await fs.readFile('ej_tests/data.json'))
+
+    transcript = parse_transcript(
+        data[0].result[0].sentences, 
+        [data[0].result[0].agent_agregious, data[0].result[0].customer_agregious],
+        [data[0].result[0].agent_negative, data[0].result[0].customer_negative]
+    )
+
+    console.log(transcript)
 }
