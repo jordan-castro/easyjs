@@ -966,6 +966,13 @@ impl Transpiler {
                     name
                 }
             }
+            Expression::IdentifierWithType(token, name, var_type) => {
+                if is_javascript_keyword(&name) {
+                    hash_string(&name)
+                } else {
+                    name
+                }
+            }
             Expression::DotExpression(token, left, right) => {
                 let mut res = String::new();
 

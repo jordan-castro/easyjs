@@ -1,6 +1,17 @@
 native {
     pub fn add(x:i32, y:i32): i32 {
-        var z:i32 = x + y
-        return z
+        return x + y
+    }
+
+    pub fn sub(x:i32, y:i32): i32 {
+        return x - y
+    }
+
+    fn add_floats(x:f32, y:f32): f32 {
+        return x + y
+    }
+
+    pub fn call_fn():i32 {
+        return add(1,2)
     }
 }

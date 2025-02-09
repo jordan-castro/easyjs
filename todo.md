@@ -19,6 +19,7 @@
 - v0.6.0 Add benchmarks for:
   - compilation (vs TypeScript, Dart, Nim, other to JS options)
   - performance (vs JavaScript, TypeScript, Dart, WASM)
+-v0.5.0 Better errors.
 
 ## EasyJS
 - v0.5.0 core
@@ -36,8 +37,18 @@
 - v0.4.0 add to path (also update path...)
 
 ## WASM
-- v0.4.0 wasmer functions
-- v0.4.0 compile wasm funct.ions AOT or JIT or don't compile and just interpret at the Rust Level.
+- v0.4.0 ~~wasmer functions~~
+- v0.4.0 ~~compile wasm funct.ions AOT or JIT or don't compile and just interpret at the Rust Level.~~
+- v0.4.0 Additions
+  - smart memory
+  - strings
+  - arrays
+  - classes
+  - global variables
+  - import functions from external.
+  - ~~call other functions~~
+  - loops
+  - if statements
 
 ## Repl
 
