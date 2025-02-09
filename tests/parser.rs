@@ -421,4 +421,24 @@ mod tests {
         assert_eq!(p.errors.len(), 0);
         assert_eq!(program.statements.len(), 1);
     }
+
+    #[test]
+    fn test_types() {
+        let input = "
+            var x :: i32 = 1
+            fn test() :: i32 {
+                return 1
+            }
+            y :: i32 = 1
+        ".to_string();
+        let l = lex::Lex::new(input);
+        let mut p = par::Parser::new(l);
+        let program = p.parse_program();
+
+        println!("{:?}", p.errors);
+        println!("{:#?}", program.statements);
+
+        assert_eq!(p.errors.len(), 0);
+        assert_eq!(program.statements.len(), 3);
+    }
 }

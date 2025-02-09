@@ -1,24 +1,27 @@
 /// EasyJS compiler token.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Token {
-    pub typ:String,
-    pub literal:String
+    pub typ: String,
+    pub literal: String,
 }
 
-pub const EMPTY_TOKEN:Token = Token{typ: String::new(), literal: String::new()};
+pub const EMPTY_TOKEN: Token = Token {
+    typ: String::new(),
+    literal: String::new(),
+};
 
 /// Create a new token on the fly
-pub fn new_token(typ:&str, literal:&str) -> Token {
-    Token{
+pub fn new_token(typ: &str, literal: &str) -> Token {
+    Token {
         typ: typ.to_owned(),
-        literal: literal.to_owned()
+        literal: literal.to_owned(),
     }
 }
 
 // Types below
 
-pub const ILLEGAL:&str = "ILLEGAL";
-pub const EOF:&str = "EOF";
+pub const ILLEGAL: &str = "ILLEGAL";
+pub const EOF: &str = "EOF";
 
 // Identifiers
 pub const IDENT: &str = "IDENT"; // add, foobar, x, y, ....
@@ -63,7 +66,16 @@ pub const EOL: &str = "EOL";
 
 // Specials
 pub const TYPE: &str = "TYPE";
-pub const CONST_ASSIGNMENT: &str = "CONST_ASSIGNMENT";
+pub const TYPE_ASSIGNMENT: &str = "TYPE_ASSIGNMENT";
+
+// Types
+pub const INT_32_TYPE: &str = "INT_32_TYPE";
+pub const INT_64_TYPE: &str = "INT_64_TYPE";
+pub const FLOAT_32_TYPE: &str = "FLOAT_32_TYPE";
+pub const FLOAT_64_TYPE: &str = "FLOAT_64_TYPE";
+pub const BOOLEAN_TYPE: &str = "BOOLEAN_TYPE";
+pub const STRING_TYPE: &str = "STRING_TYPE";
+pub const CUSTOM_TYPE: &str = "CUSTOM_TYPE";
 
 // Comments
 pub const COMMENT: &str = "//";
@@ -76,8 +88,8 @@ pub const R_BRACE: &str = "}";
 pub const L_BRACKET: &str = "[";
 pub const R_BRACKET: &str = "]";
 
-pub const MACRO_SYMBOL: &str = "MACRO_SYMBOL";
-pub const DECORATOR: &str = "DECORATOR";
+// pub const MACRO_SYMBOL: &str = "MACRO_SYMBOL";
+// pub const DECORATOR: &str = "DECORATOR";
 
 // Keywords
 pub const FUNCTION: &str = "FUNCTION";
@@ -99,7 +111,8 @@ pub const AWAIT: &str = "AWAIT";
 pub const NOT: &str = "NOT";
 pub const FROM: &str = "FROM";
 pub const SELF: &str = "SELF";
-pub const MACRO: &str = "MACRO";
+pub const NATIVE: &str = "NATIVE";
+// pub const MACRO: &str = "MACRO";
 pub const NEW: &str = "NEW";
 pub const IS: &str = "IS";
 pub const VAR: &str = "VAR";
@@ -137,7 +150,8 @@ pub fn lookup_ident(ident: &str) -> &'static str {
         "not" => NOT,
         "from" => FROM,
         "self" => SELF,
-        "macro" => MACRO,
+        "native" => NATIVE,
+        // "macro" => MACRO,
         "and" => AND_SYMBOL,
         "or" => OR_SYMBOL,
         "new" => NEW,
@@ -151,16 +165,21 @@ pub fn lookup_ident(ident: &str) -> &'static str {
         "use_mod" => BUILTIN,
         "match" => MATCH,
         "with" => WITH,
+        "i32" => INT_32_TYPE,
+        "i64" => INT_64_TYPE,
+        "f32" => FLOAT_32_TYPE,
+        "f64" => FLOAT_64_TYPE,
+        "bool" => BOOLEAN_TYPE,
         _ => IDENT, // Default case for unknown identifiers
     }
 }
 
 /// Lookup the colon special if any.
-pub fn lookup_colon_special(cs:&str) -> &'static str {
+pub fn lookup_colon_special(cs: &str) -> &'static str {
     match cs {
         "::" => &TYPE,
-        ":=" => &CONST_ASSIGNMENT,
-        _ => &COLON
+        ":=" => &TYPE_ASSIGNMENT,
+        _ => &COLON,
     }
 }
 

@@ -1,0 +1,85 @@
+native fn add(x:int, y:int): int {
+    return x + y
+}
+
+// JS (random hash)
+const q3i09kdopaskdpa = ... // bytes
+(async () => {
+    // instance the wasm
+})();
+
+// block thread until native is instanced.
+while (!native.instanced) {
+    if (wasm_not_work) {
+        throw new Exception('easyJs could not read your native module.');
+    }
+    continue;
+}
+
+// to call native functions
+result = native.add(1, 2)
+
+// The code below will be compiled to WASM
+native {
+    import io
+
+    struct Image {
+        RGB_MODE = 1
+        HUE_MODE = 2
+        RGBA_MODE = 3
+        FLOAT_MODE = 4
+
+        var bytes : uint8[]
+        var mode : int
+        var size : Vector2
+
+        /// Create a new image from a file
+        fn from_file(file_path:string, mode:int):Image {
+            var image := Image()
+            image.bytes = io.read_file(file_path)
+            image.mode = mode
+            image.size = bytes.length() / 2
+        }
+
+        /// Get a specific pixel.
+        fn get_pixel(self, x, y) {
+            // do the operation
+        }
+
+        /// Set a specific pixel.
+        fn put_pixel(self, x, y, pixel) {
+            // do the opreation
+        }
+    }
+
+    pub fn change_image_color(image: int[], from_color: int[], to_color: int[]): Image {
+        // create a new image structure
+        var new_image := Image()
+
+        // create a instance of pixel outside of the loop (as to not reinstate it over and over again)
+        var pixel : int[] = []
+
+        // Loop through x and y coords
+        for x in 0..image.size.width {
+            for y in 0..image.size.height {
+                // get pixel
+                pixel = image.get_pixel(x, y)
+                if pixel == from_color {
+                    // change to new color
+                    new_image.put_pixel(x, y, to_color)
+                } else {
+                    // otherwise keep the old pixel
+                    new_image.put_pixel(x, y, pixel)
+                }
+            }
+        }
+
+        return new_image
+    }
+}
+
+// Get an image
+var image = Image('test.png', Image.RGB_MODE)
+
+// change black to white using native function
+image = change_image_color(image, [0,0,0], [255,255,255])
