@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use wasm_encoder::{
     CodeSection, ExportKind, ExportSection, Function, FunctionSection, Instruction, Module,
-    TypeSection, ValType,
+    TypeSection, ValType
 };
 
 use crate::parser::ast::{self, Expression, Statement};
@@ -13,7 +13,7 @@ use super::{
 };
 
 /// EasyWasm is tasked with compiling easyjs into WebAssembly.
-struct EasyWasm {
+pub struct EasyWasm {
     /// The wasmer module
     module: Module,
 
@@ -98,6 +98,14 @@ impl EasyWasm {
         }
     }
 
+    /// Get the function idx from the function name.
+    pub fn get_function_idx(&self, name: &str) -> u32 {
+        let func_name = self.function_names.get(name).expect("Function name not found");
+        let func_idx = func_name.split_at(1).1;
+        let func_idx = func_idx.parse::<u32>().expect("Function index not found");
+        func_idx
+    }
+
     fn add_function(
         &mut self,
         name: Expression,
@@ -108,7 +116,7 @@ impl EasyWasm {
     ) {
         // Encode the types section
         // let mut types = TypeSection::new();
-        let wasm_params: Vec<ValType> = params.iter().map(|param| ValType::I32).collect();
+        let wasm_params: Vec<ValType> = params.iter().map(|param| get_param_type(param.clone())).collect();
         let results = vec![get_param_type(return_type)];
 
         let sig = FunctionSignature {
@@ -124,12 +132,13 @@ impl EasyWasm {
         // function names
         match name {
             Expression::Identifier(tk, name) => {
+                let func_idx = self.function_names.len() as u32;
                 self.function_names
-                    .insert(name.clone(), format!("f{}", type_idx));
+                    .insert(name.clone(), format!("f{}", func_idx));
                 // add to export section if this is a public function.
                 if is_public {
                     self.export_section
-                        .export(&name, ExportKind::Func, type_idx);
+                        .export(&name, ExportKind::Func, func_idx);
                 }
             }
             _ => {
@@ -138,11 +147,11 @@ impl EasyWasm {
         }
 
         // actually create the function
-        let mut fn_builder = FNBuilder::new();
+        let mut fn_builder = FNBuilder::new(&self);
         for param in params {
             match param.clone() {
-                Expression::Identifier(tk, name) => {
-                    fn_builder.add_param(name, ValType::I32);
+                Expression::IdentifierWithType(tk, name, var_type) => {
+                    fn_builder.add_param(name, get_param_type(var_type.as_ref().to_owned()));
                 }
                 _ => {
                     panic!("Unsupported function parameter");

@@ -12,6 +12,9 @@ pub fn get_param_type(param: Expression) -> ValType {
             "bool" => ValType::I32,
             _ => panic!("Unsupported type"),
         },
+        Expression::IdentifierWithType(tk, _, var_type) => {
+            get_param_type(var_type.as_ref().to_owned())
+        }
         _ => panic!("Unsupported type"),
     }
 }

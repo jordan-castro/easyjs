@@ -126,8 +126,8 @@ impl Parser {
     /// This is how we do it, run this function to call a prefix method.
     fn prefix_fns(&mut self, token_type: &str) -> ast::Expression {
         match token_type {
-            token::IDENT => parse_identifier(self),
-            token::SELF => parse_identifier(self),
+            token::IDENT => parse_identifier(self, false),
+            token::SELF => parse_identifier(self, false),
             token::INT => parse_integer_literal(self),
             token::FLOAT => parse_float_literal(self),
             token::BANG => parse_prefix_expression(self),
@@ -358,7 +358,7 @@ fn parse_statement(parser: &mut Parser) -> ast::Statement {
     let stmt = match parser.c_token.typ.as_str() {
         token::VAR => parse_var_statement(parser),
         token::IDENT => {
-            if parser.peek_token_is(token::ASSIGN) || parser.peek_token_is(token::TYPE) {
+            if parser.peek_token_is(token::ASSIGN) || parser.peek_token_is(token::COLON) {
                 parse_const_var_statement(parser)
             } else {
                 parse_expression_statement(parser)
@@ -498,14 +498,14 @@ fn parse_var_statement(p: &mut Parser) -> ast::Statement {
     if !p.expect_peek(token::IDENT) {
         return ast::empty_statement();
     }
-    let name = parse_identifier(p);
+    let name = parse_identifier(p, false);
 
     let mut var_type: Option<Box<ast::Expression>> = None;
     // check for type
-    if p.peek_token_is(token::TYPE) {
+    if p.peek_token_is(token::COLON) {
         p.next_token();
         p.next_token(); // consume the type
-        var_type = Some(Box::new(parse_identifier(p)));
+        var_type = Some(Box::new(parse_identifier(p, false)));
     }
 
     if !p.expect_peek(token::ASSIGN) {
@@ -524,10 +524,10 @@ fn parse_const_var_statement(p: &mut Parser) -> ast::Statement {
 
     let mut var_type: Option<Box<ast::Expression>> = None;
     // check for type
-    if p.peek_token_is(token::TYPE) {
+    if p.peek_token_is(token::COLON) {
         p.next_token(); // consume ::
         p.next_token(); // consume the type
-        var_type = Some(Box::new(parse_identifier(p)));
+        var_type = Some(Box::new(parse_identifier(p, false)));
     }
 
     if !p.expect_peek(token::ASSIGN) {
@@ -601,7 +601,7 @@ fn parse_use_statement(p: &mut Parser) -> ast::Statement {
     p.next_token();
 
     // get the prefix:path
-    let prefix = parse_identifier(p);
+    let prefix = parse_identifier(p, false);
 
     if !p.expect_peek(token::COLON) {
         return ast::empty_statement();
@@ -711,14 +711,26 @@ fn parse_prefix_expression(p: &mut Parser) -> ast::Expression {
 }
 
 /// Parse an identifier
-fn parse_identifier(parser: &mut Parser) -> ast::Expression {
+fn parse_identifier(parser: &mut Parser, try_parse_type: bool) -> ast::Expression {
     parser.debug_print("parse_identifier");
     let token = parser.c_token.clone();
     let mut lit = token.literal.to_owned();
+    // check if we are parsing a self
     if token.typ == token::SELF {
         lit = "this".to_owned();
+    } 
+
+    // should we try to parse a type?
+    if try_parse_type {
+        if parser.peek_token_is(token::COLON) {
+            parser.next_token(); // consume ::
+            parser.next_token(); // consume type
+            let type_expr = parse_identifier(parser, false);
+            return ast::Expression::IdentifierWithType(token, lit, Box::new(type_expr));
+        }
     }
     ast::Expression::Identifier(token, lit)
+
 }
 
 /// parse an integer literal, returns EmptyExpression if not valid.
@@ -828,7 +840,7 @@ fn parse_function_literal(p: &mut Parser) -> ast::Expression {
         return ast::Expression::EmptyExpression;
     }
     p.next_token();
-    let name = parse_identifier(p);
+    let name = parse_identifier(p, false);
 
     if !p.expect_peek(token::L_PAREN) {
         return ast::Expression::EmptyExpression;
@@ -839,10 +851,10 @@ fn parse_function_literal(p: &mut Parser) -> ast::Expression {
 
     let mut var_type: Option<Box<ast::Expression>> = None;
     // check for type
-    if p.peek_token_is(token::TYPE) {
+    if p.peek_token_is(token::COLON) {
         p.next_token();
         p.next_token(); // consume the type
-        var_type = Some(Box::new(parse_identifier(p)));
+        var_type = Some(Box::new(parse_identifier(p, false)));
     }
 
     if !p.expect_peek(token::L_BRACE) {
@@ -876,12 +888,12 @@ fn parse_function_paramaters(p: &mut Parser) -> Vec<ast::Expression> {
 
     // go to first identifier
     p.next_token();
-    idents.push(parse_identifier(p));
+    idents.push(parse_identifier(p, true));
 
     while p.peek_token_is(token::COMMA) {
         p.next_token();
         p.next_token();
-        idents.push(parse_identifier(p));
+        idents.push(parse_identifier(p, true));
     }
 
     if !p.expect_peek(token::R_PAREN) {
@@ -1302,7 +1314,7 @@ fn parse_struct_statement(p: &mut Parser) -> ast::Statement {
     if !p.expect_peek(token::IDENT) {
         return ast::empty_statement();
     }
-    let ident = parse_identifier(p);
+    let ident = parse_identifier(p, false);
 
     let mut constructor_vars : Option<Box<Vec<ast::Expression>>> = None;
 
@@ -1312,12 +1324,12 @@ fn parse_struct_statement(p: &mut Parser) -> ast::Statement {
         p.next_token(); // consume the [
         p.next_token(); // be on the indentifier
 
-        constructor_vars_vector.push(parse_identifier(p));
+        constructor_vars_vector.push(parse_identifier(p, true));
 
         while p.peek_token_is(token::COMMA) {
             p.next_token(); // consume the ,
             p.next_token(); // be on the indentifier
-            constructor_vars_vector.push(parse_identifier(p));
+            constructor_vars_vector.push(parse_identifier(p, true));
         }
 
         constructor_vars = Some(Box::new(constructor_vars_vector));
@@ -1329,12 +1341,12 @@ fn parse_struct_statement(p: &mut Parser) -> ast::Statement {
         let mut mixin_names = vec![];
         p.next_token(); // consume the WITH
         p.next_token(); // be on the mixin
-        mixin_names.push(parse_identifier(p));
+        mixin_names.push(parse_identifier(p, false));
 
         while p.peek_token_is(token::COMMA) {
             p.next_token(); // consume the ,
             p.next_token(); // be on the mixin
-            mixin_names.push(parse_identifier(p));
+            mixin_names.push(parse_identifier(p, false));
         }
 
         mixins = Some(Box::new(mixin_names));

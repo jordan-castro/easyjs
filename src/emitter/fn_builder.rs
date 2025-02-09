@@ -4,7 +4,7 @@ use wasm_encoder::{Instruction, ValType};
 
 use crate::parser::ast::{Expression, Statement};
 
-use super::utils::get_param_type;
+use super::{utils::get_param_type, wasm_emitter::EasyWasm};
 
 /// Handle building functions in easyjs to WebAssembly.
 pub struct FNBuilder<'a> {
@@ -17,17 +17,21 @@ pub struct FNBuilder<'a> {
     instructions: Vec<Instruction<'a>>,
 
     /// Map of variable names to local indices
-    locals_map: HashMap<String, u32>,
+    locals_map: HashMap<String, (u32, bool)>,
+
+    /// A reference to the EasyWasm struct
+    easy_wasm: &'a EasyWasm,
 }
 
 impl<'a> FNBuilder<'a> {
     /// Create a new function builder.
-    pub fn new() -> Self {
+    pub fn new(easy_wasm_ref: &'a EasyWasm) -> Self {
         FNBuilder {
             params: Vec::new(),
             locals: Vec::new(),
             instructions: Vec::new(),
             locals_map: HashMap::new(),
+            easy_wasm: easy_wasm_ref,
         }
     }
     /// Add a parameter to the function.
@@ -36,7 +40,7 @@ impl<'a> FNBuilder<'a> {
 
         // Add the parameter to the locals map
         let idx = self.locals_map.len() as u32;
-        self.locals_map.insert(name, idx);
+        self.locals_map.insert(name, (idx, true));
     }
 
     /// Add a local to the function.
@@ -45,7 +49,7 @@ impl<'a> FNBuilder<'a> {
 
         // Add the local to the locals map
         let idx = self.locals_map.len() as u32;
-        self.locals_map.insert(name, idx);
+        self.locals_map.insert(name, (idx, false));
     }
 
     /// Add an instruction to the function.
@@ -64,30 +68,51 @@ impl<'a> FNBuilder<'a> {
         }
     }
 
+    fn get_local(&mut self, name: &str) -> (u32, ValType, bool) {
+        let local = self.locals_map.get(name);
+        if local.is_none() {
+            // could be global?
+            unimplemented!();
+        }
+
+        let local = local.unwrap();
+        if local.1 {
+            // is param
+            (local.0, self.params[local.0 as usize], false)
+        } else {
+            (local.0, self.locals[local.0 as usize], false)
+        }
+    }
+
     /// This compiles an expression and sets instructions.
     fn compile_expression(&mut self, expr: &'a Expression) {
         match expr {
+            Expression::Identifier(_, name) => {
+                // check if in local, param, or TODO: global
+                let local = self.get_local(name);
+
+                // is global:
+                if local.2 {
+                    unimplemented!();
+                }
+
+                self.add_instruction(Instruction::LocalGet(local.0));
+            }
+            Expression::IntegerLiteral(_, value) => {
+                self.add_instruction(Instruction::I32Const(*value as i32));
+            }
             Expression::InfixExpression(_, left, op, right) => {
                 let left = self.read_expression(left.as_ref());
                 let right = self.read_expression(right.as_ref());
 
                 // get local
-                let left = self.locals_map.get(&left).expect("Local not found").to_owned();
-                let right = self.locals_map.get(&right).expect("Local not found").to_owned();
+                let left = self.get_local(&left);
+                let right = self.get_local(&right);
 
-                self.add_instruction(Instruction::LocalGet(left));
-                self.add_instruction(Instruction::LocalGet(right));
+                self.add_instruction(Instruction::LocalGet(left.0));
+                self.add_instruction(Instruction::LocalGet(right.0));
 
-                // check valtype
-                let val_type = {
-                    if let Some(val_type) = self.locals.get(left as usize) {
-                        val_type
-                    } else {
-                        panic!("Local not found");
-                    }   
-                };
-
-                match (val_type, op.as_str()) {
+                match (left.1, op.as_str()) {
                     (ValType::I32, "+") => self.add_instruction(Instruction::I32Add),
                     (ValType::I32, "-") => self.add_instruction(Instruction::I32Sub),
                     (ValType::I32, "*") => self.add_instruction(Instruction::I32Mul),
@@ -111,10 +136,20 @@ impl<'a> FNBuilder<'a> {
                         unimplemented!();
                     }
                 }
+            }
+            Expression::CallExpression(_, name, args) => {
+                let name = self.read_expression(name.as_ref());
 
+                // add the arguments as instructions
+                for arg in args.as_ref() {
+                    self.compile_expression(arg);
+                }
+                // call the function
+                self.add_instruction(Instruction::Call(self.easy_wasm.get_function_idx(&name)));
             }
             _ => {
-                unimplemented!();
+                // nothign to do
+                self.add_instruction(Instruction::Nop);
             }
         }
     }
@@ -137,7 +172,7 @@ impl<'a> FNBuilder<'a> {
                 self.compile_expression(value.as_ref());
             }
             Statement::ReturnStatement(_, expr) => {
-                // self.compile_expression(expr.as_ref());
+                self.compile_expression(expr.as_ref());
                 self.add_instruction(Instruction::Return);
             }
             _ => {

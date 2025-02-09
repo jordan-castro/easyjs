@@ -65,7 +65,6 @@ pub const SEMICOLON: &str = ";";
 pub const EOL: &str = "EOL";
 
 // Specials
-pub const TYPE: &str = "TYPE";
 pub const TYPE_ASSIGNMENT: &str = "TYPE_ASSIGNMENT";
 
 // Types
@@ -177,7 +176,6 @@ pub fn lookup_ident(ident: &str) -> &'static str {
 /// Lookup the colon special if any.
 pub fn lookup_colon_special(cs: &str) -> &'static str {
     match cs {
-        "::" => &TYPE,
         ":=" => &TYPE_ASSIGNMENT,
         _ => &COLON,
     }

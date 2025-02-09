@@ -182,6 +182,8 @@ pub enum Expression {
     IsExpression(tk::Token, Box<Expression>, Box<Expression>),
     /// Builtin function call
     BuiltinCall(tk::Token, Box<Vec<Expression>>),
+    /// Identifier with type
+    IdentifierWithType(tk::Token, String, Box<Expression>),
 }
 
 impl Expression {
@@ -224,6 +226,7 @@ impl Expression {
             Expression::GroupedExpression(_, _) => "GroupedExpression",
             Expression::IsExpression(_, _, _) => "IsExpression",
             Expression::BuiltinCall(_, _) => "BuiltinCall",
+            Expression::IdentifierWithType(_, _, _) => "IdentifierWithType",
         }
     }
 
