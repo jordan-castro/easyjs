@@ -2,25 +2,14 @@
 
 ## Compiler
 - v0.5.0 add a LSP and text highlighting
-- v0.3.0 ~~allow variable names to start with '_'~~
-- v0.3.0 ~~Introduce variable scoping~~
 - v0.4.0 add a minifier option.
-- v0.5.0 decopouling vairable decleration <!-- This can only be done when types are added -->
+- v0.5.0 decopouling vairable decleration 
   - var x,y = array // [100,200]
   - var x,y = dictionary // {x: 10, y: 20}
 - v0.4.0 Rework imports.  
-- ~~v0.3.0 add switch case~~
-- ~~v0.3.0 add a way to determine if running in browser or nodejs/deno/bun~~
-- ~~v0.3.0 use pub instead of export~~
-- ~~v0.3.0 add a async block~~
 - v0.4.0 Support UNICODE 
-- ~~v0.3.0 add a default _ placeholder~~
-- ~~v0.3.0 Support Doc Comments~~
-- ~~v0.3.0 add support for base:file~~
-- v0.3.0 ~~Support struct without new when coming from modules.~~
-- v0.3.1 Fix builtins.int_range logic. (I think I'll just remove it. Only using it with for loops.)
-- v0.3.0 ~~Add a new way to handle .then logic. ~~
-- v0.4.0 add types (using boa)
+- v0.4.0 Fix builtins.int_range logic. (I think I'll just remove it. Only using it with for loops.)
+- v0.4.0 ~~add types~~
 - v0.4.0 add ternirary statements (using ? :)
 - v0.4.0 add if expressions (compiled into ternirary statements)
 - v0.4.0 add advanced macros 
@@ -63,7 +52,7 @@
 
 
 ## Website
-- v0.3.0 Links
+- v0.4.0 Links
   - Github repo
   - personal email
   - twitter
