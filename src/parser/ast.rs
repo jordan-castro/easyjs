@@ -8,7 +8,7 @@ pub enum NodeType {
 #[derive(Clone, Debug)]
 pub enum Statement {
     EmptyStatement,                                                 // there was an issue
-    VariableStatement(tk::Token, Box<Expression>, Box<Expression>), // variable = expression
+    VariableStatement(tk::Token, Box<Expression>, Option<Box<Expression>>, Box<Expression>), // variable = expression
     ReturnStatement(tk::Token, Box<Expression>),                    // return expression
     /// use prefix:path
     UseStatement(tk::Token, Box<Expression>, Box<Expression>),
@@ -17,7 +17,7 @@ pub enum Statement {
     ExpressionStatement(tk::Token, Box<Expression>), // token expression
     BlockStatement(tk::Token, Box<Vec<Statement>>),  // { statements }
     // token identifier = value
-    ConstVariableStatement(tk::Token, Box<Expression>, Box<Expression>),
+    ConstVariableStatement(tk::Token, Box<Expression>, Option<Box<Expression>>, Box<Expression>),
     // for condition { body }
     ForStatement(tk::Token, Box<Expression>, Box<Statement>),
     // javascript{}
@@ -54,20 +54,23 @@ pub enum Statement {
     DocCommentStatement(tk::Token, Vec<String>),
 
     /// Match Statement
-    MatchStatement(tk::Token, Box<Expression>, Box<Vec<(Expression, Statement)>>)
+    MatchStatement(tk::Token, Box<Expression>, Box<Vec<(Expression, Statement)>>),
+
+    /// A native statement
+    NativeStatement(tk::Token, Box<Vec<Statement>>)
 }
 
 impl Statement {
     pub fn variant_type(&self) -> String {
         match self {
             Statement::EmptyStatement => "EmptyStatement",
-            Statement::VariableStatement(_, _, _) => "VariableStatement",
+            Statement::VariableStatement(_, _, _, _) => "VariableStatement",
             Statement::ReturnStatement(_, _) => "ReturnStatement",
             Statement::UseStatement(_, _, _) => "UseStatement",
             Statement::UseFromStatement(_, _, _, _) => "UseFromStatement",
             Statement::ExpressionStatement(_, _) => "ExpressionStatement",
             Statement::BlockStatement(_, _) => "BlockStatement",
-            Statement::ConstVariableStatement(_, _, _) => "ConstVarStatement",
+            Statement::ConstVariableStatement(_, _, _, _) => "ConstVarStatement",
             Statement::ForStatement(_, _, _) => "ForStatement",
             Statement::JavaScriptStatement(_, _) => "JavaScriptStatement",
             Statement::StructStatement(_, _, _, _, _, _) => "StructStatement",
@@ -75,6 +78,7 @@ impl Statement {
             Statement::AsyncBlockStatement(_, _) => "AsyncBlockStatement",
             Statement::DocCommentStatement(_, _) => "DocCommentStatement",
             Statement::MatchStatement(_, _, _) => "MatchStatement",
+            Statement::NativeStatement(_, _) => "NativeStatement",
         }.to_string()
     }
 
@@ -114,6 +118,7 @@ pub enum Expression {
         tk::Token,
         Box<Expression>,
         Box<Vec<Expression>>,
+        Option<Box<Expression>>,
         Box<Statement>,
     ),
     // fn(params) {statement}
@@ -142,15 +147,15 @@ pub enum Expression {
     NotExpression(tk::Token, Box<Expression>),
     /// left as right
     AsExpression(tk::Token, Box<Expression>, Box<Expression>),
-    /// Macro ($, ident, arguments, body)
-    MacroExpression(tk::Token, Box<Expression>, Box<Vec<Expression>>),
-    /// Declaring the macro ($, ident, arguments, body as BlockStatment)
-    MacroDecleration(
-        tk::Token,
-        Box<Expression>,
-        Box<Vec<Expression>>,
-        Box<Statement>,
-    ),
+    // /// Macro ($, ident, arguments, body)
+    // MacroExpression(tk::Token, Box<Expression>, Box<Vec<Expression>>),
+    // /// Declaring the macro ($, ident, arguments, body as BlockStatment)
+    // MacroDecleration(
+    //     tk::Token,
+    //     Box<Expression>,
+    //     Box<Vec<Expression>>,
+    //     Box<Statement>,
+    // ),
     /// And expression
     AndExpression(
         tk::Token,
@@ -194,7 +199,7 @@ impl Expression {
             Expression::IfExpression(_, _, _, _, _) => "IfExpression",
             Expression::AsyncExpression(_, _) => "AsyncExpression",
             Expression::AwaitExpression(_, _) => "AwaitExpression",
-            Expression::FunctionLiteral(_, _, _, _) => "FunctionLiteral",
+            Expression::FunctionLiteral(_, _, _, _, _) => "FunctionLiteral",
             Expression::LambdaLiteral(_, _, _) => "LambdaLiteral",
             Expression::CallExpression(_, _, _) => "CallExpression",
             Expression::InExpression(_, _, _) => "InExpression",
@@ -208,8 +213,8 @@ impl Expression {
             Expression::AssignExpression(_, _, _) => "AssignExpression",
             Expression::NotExpression(_, _) => "NotExpression",
             Expression::AsExpression(_, _, _) => "AsExpression",
-            Expression::MacroExpression(_, _, _) => "MacroExpression",
-            Expression::MacroDecleration(_, _, _, _) => "MacroDecleration",
+            // Expression::MacroExpression(_, _, _) => "MacroExpression",
+            // Expression::MacroDecleration(_, _, _, _) => "MacroDecleration",
             Expression::AndExpression(_, _, _) => "AndExpression",
             Expression::OrExpression(_, _, _) => "OrExpression",
             Expression::NullExpression(_, _, _) => "NullExpression",

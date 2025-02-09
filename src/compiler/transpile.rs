@@ -1,11 +1,11 @@
-use boa_engine::{value, Context};
+// use boa_engine::{value, Context};
 use std::collections::HashMap;
 use std::fmt::format;
 use std::path;
 
 use super::macros::Macro;
-use crate::builtins;
-use crate::interpreter::{interpret_js, is_javascript_var_defined};
+use crate::{builtins, emitter};
+// use crate::interpreter::{interpret_js, is_javascript_var_defined};
 use crate::lexer::lex::{self, ALLOWED_IN_IDENT};
 use crate::parser::ast::{Expression, Statement};
 use crate::parser::{ast, par};
@@ -36,9 +36,9 @@ pub struct Transpiler {
 
     /// Keep a list of all scopes the EasyJS code has.
     scopes: Vec<Vec<Variable>>,
-    // variables: Vec<Variable>,
-    /// Boa engine context.
-    context: Context,
+
+    /// Track all native statements
+    native_stmts: Vec<Statement>
 }
 
 impl Transpiler {
@@ -47,10 +47,11 @@ impl Transpiler {
             scripts: vec![],
             functions: vec![],
             macros: HashMap::new(),
-            context: Context::default(),
+            // context: Context::default(),
             structs: vec![],
             scopes: vec![],
             structs_in_modules: vec![],
+            native_stmts: vec![]
         };
 
         // add the first scope. This scope will never be popped.
@@ -73,6 +74,7 @@ impl Transpiler {
     }
 
     /// Transpile a module.
+    #[deprecated(since = "0.4.0", note = "easyjs supports ES6 modules now, this is no longer needed.")]
     pub fn transpile_module(p : ast::Program) -> String {
         let mut t = Transpiler::new();
 
@@ -94,10 +96,10 @@ impl Transpiler {
                 // add it to a list of exported identifiers
                 Statement::ExportStatement(tk, stmt) => {
                     match stmt.as_ref().to_owned() {
-                        Statement::VariableStatement(_, name, _) => {
+                        Statement::VariableStatement(_, name, _, _) => {
                             export_name = t.transpile_expression(name.as_ref().to_owned());
                         }
-                        Statement::ConstVariableStatement(_, name, _) => {
+                        Statement::ConstVariableStatement(_, name, _, _) => {
                             export_name = t.transpile_expression(name.as_ref().to_owned());
                         }
                         Statement::StructStatement(_, name, _, _, _, _) => {
@@ -171,6 +173,14 @@ impl Transpiler {
     fn to_string(&self) -> String {
         let mut res = String::new();
 
+        // TODO: compile native...
+        // let compiled_native = emitter::wasm_emitter::emit_wasm(self.native_stmts.clone());
+        // res.push_str("const n_a_t_i_v_e = new WebAssembly.Instance(new WebAssembly.Module(Uint8Array.from([");
+        // for byte in compiled_native {
+        //     res.push_str(&format!("{},", byte));
+        // }
+        // res.push_str("])));\n");
+
         for script in self.scripts.iter() {
             res.push_str(&script);
         }
@@ -200,7 +210,7 @@ impl Transpiler {
             let script = self.transpile_stmt(stmt);
             if let Some(script) = script {
                 // add to context
-                let _ = interpret_js(&script, &mut self.context);
+                // let _ = interpret_js(&script, &mut self.context);
                 self.scripts.push(script);
             }
         }
@@ -209,7 +219,7 @@ impl Transpiler {
 
     fn transpile_stmt(&mut self, stmt: ast::Statement) -> Option<String> {
         match stmt {
-            ast::Statement::VariableStatement(token, name, value) => Some(self.transpile_var_stmt(
+            ast::Statement::VariableStatement(token, name, _, value) => Some(self.transpile_var_stmt(
                 token,
                 name.as_ref().to_owned(),
                 value.as_ref().to_owned(),
@@ -236,7 +246,7 @@ impl Transpiler {
             ast::Statement::BlockStatement(token, stmts) => {
                 Some(self.transpile_block_stmt(token, stmts.as_ref().to_owned()))
             }
-            ast::Statement::ConstVariableStatement(token, name, value) => {
+            ast::Statement::ConstVariableStatement(token, name, _, value) => {
                 Some(self.transpile_const_var_stmt(
                     token,
                     name.as_ref().to_owned(),
@@ -271,6 +281,13 @@ impl Transpiler {
             }
             Statement::MatchStatement(tk, expr, conditions) => {
                 Some(self.transpile_match_stmt(tk, expr.as_ref().to_owned(), conditions.as_ref().to_owned()))
+            }
+            Statement::NativeStatement(tk, stmts) => {
+                // add statments
+                for stmt in stmts.as_ref().to_owned() {
+                    self.native_stmts.push(stmt);
+                }
+                None
             }
             _ => None,
         }
@@ -669,13 +686,13 @@ impl Transpiler {
         // static variables are added now while struct variables are added at the end.
         for var in variables {
             match var {
-                ast::Statement::ConstVariableStatement(_, name, value) => {
+                ast::Statement::ConstVariableStatement(_, name, _, value) => {
                     let name = self.transpile_expression(name.as_ref().to_owned());
                     let value = self.transpile_expression(value.as_ref().to_owned());
 
                     res.push_str(format!("{}.{} = {};\n", struct_name, name, value).as_str());
                 }
-                ast::Statement::VariableStatement(_, name, value) => {
+                ast::Statement::VariableStatement(_, name, _,value) => {
                     let name = self.transpile_expression(name.as_ref().to_owned());
                     let value = self.transpile_expression(value.as_ref().to_owned());
 
@@ -693,7 +710,7 @@ impl Transpiler {
             let mut result = String::new();
             let cleaned_method_is_static = self.get_struct_method_function_exp(method);
                 match cleaned_method_is_static.0.clone() {
-                    Expression::FunctionLiteral(_, name, params, body) => {
+                    Expression::FunctionLiteral(_, name, params,_, body) => {
                       result = (self.transpile_struct_method(&struct_name, cleaned_method_is_static.0, false, cleaned_method_is_static.1));
                     }
                     Expression::AsyncExpression(_, function) => {
@@ -824,7 +841,7 @@ impl Transpiler {
 
                 res
             }
-            Expression::FunctionLiteral(token, name, paramters, body) => {
+            Expression::FunctionLiteral(token, name, paramters,_, body) => {
                 let mut res = String::new();
 
                 res.push_str("function ");
@@ -1068,43 +1085,43 @@ impl Transpiler {
                     self.transpile_expression(right.as_ref().to_owned())
                 )
             }
-            Expression::MacroExpression(token, name, arguments) => {
-                let name = self.transpile_expression(name.as_ref().to_owned());
-                let mut parsed_args = vec![];
+            // Expression::MacroExpression(token, name, arguments) => {
+            //     let name = self.transpile_expression(name.as_ref().to_owned());
+            //     let mut parsed_args = vec![];
 
-                for a in arguments.as_ref().to_owned() {
-                    parsed_args.push(self.transpile_expression(a));
-                }
+            //     for a in arguments.as_ref().to_owned() {
+            //         parsed_args.push(self.transpile_expression(a));
+            //     }
 
-                let m = self.macros.get(&name);
-                if m.is_some() {
-                    let m: &Macro = m.unwrap();
-                    let code = m.compile(parsed_args);
-                    if token.typ == token::MACRO_SYMBOL {
-                        let result = interpret_js(&code, &mut self.context);
-                        if result.is_err() {
-                            println!("Error: {}", result.err().unwrap());
-                            println!("Macro in question: \n{}", code);
-                            "".to_string()
-                        } else {
-                            result.unwrap().display().to_string()
-                        }
-                    } else {
-                        code
-                    }
-                } else {
-                    "".to_string()
-                }
-            }
-            Expression::MacroDecleration(token, name, parameters, body) => {
-                let name_as_string = self.transpile_expression(name.as_ref().to_owned());
-                self.add_macro_function(
-                    name_as_string,
-                    parameters.as_ref().to_owned(),
-                    body.as_ref().to_owned(),
-                );
-                "".to_string()
-            }
+            //     let m = self.macros.get(&name);
+            //     if m.is_some() {
+            //         let m: &Macro = m.unwrap();
+            //         let code = m.compile(parsed_args);
+            //         if token.typ == token::MACRO_SYMBOL {
+            //             // let result = interpret_js(&code, &mut self.context);
+            //             if result.is_err() {
+            //                 println!("Error: {}", result.err().unwrap());
+            //                 println!("Macro in question: \n{}", code);
+            //                 "".to_string()
+            //             } else {
+            //                 result.unwrap().display().to_string()
+            //             }
+            //         } else {
+            //             code
+            //         }
+            //     } else {
+            //         "".to_string()
+            //     }
+            // }
+            // Expression::MacroDecleration(token, name, parameters, body) => {
+            //     let name_as_string = self.transpile_expression(name.as_ref().to_owned());
+            //     self.add_macro_function(
+            //         name_as_string,
+            //         parameters.as_ref().to_owned(),
+            //         body.as_ref().to_owned(),
+            //     );
+            //     "".to_string()
+            // }
             Expression::AndExpression(token, left, right) => {
                 format!(
                     "{} && {}",
@@ -1194,7 +1211,7 @@ impl Transpiler {
     fn transpile_struct_method(&mut self, struct_name: &str, method: ast::Expression, is_async: bool, is_static : bool) -> String {
         let mut res = String::new();
         match method {
-            Expression::FunctionLiteral(_, name, params, body) => {
+            Expression::FunctionLiteral(_, name, params, _, body) => {
                 let name = self.transpile_expression(name.as_ref().to_owned());
                 let params = {
                     let params = params.as_ref().to_owned();
@@ -1254,7 +1271,7 @@ impl Transpiler {
                     result.1,
                 );
             }
-            Expression::FunctionLiteral(fn_token, fn_name, params, body) => {
+            Expression::FunctionLiteral(fn_token, fn_name, params, var_type, body) => {
                 // // check if is a predescribed method like new => constructor
                 // if self.transpile_expression(fn_name.as_ref().to_owned()) == "new" {
                 //     return (
@@ -1284,13 +1301,14 @@ impl Transpiler {
                             fn_token,
                             fn_name,
                             Box::new(params.as_ref().to_owned()[1..].to_vec()),
+                            var_type,
                             body,
                         ),
                         false,
                     );
                 } else {
                     return (
-                        Expression::FunctionLiteral(fn_token, fn_name, params, body),
+                        Expression::FunctionLiteral(fn_token, fn_name, params, var_type, body),
                         true,
                     );
                 }

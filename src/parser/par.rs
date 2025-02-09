@@ -41,9 +41,9 @@ const AWAIT: i64 = 15; // await
 const ASSIGN: i64 = 16;
 
 const AS: i64 = 18;
-const MACRO_SYMBOL: i64 = 19;
-const DECORATOR: i64 = 20;
-const MACRO: i64 = 21;
+// const MACRO_SYMBOL: i64 = 19;
+// const DECORATOR: i64 = 20;
+// const MACRO: i64 = 21;
 const AND: i64 = 22;
 const OR: i64 = 23;
 const QUESTION_MARK: i64 = 24;
@@ -74,9 +74,9 @@ fn precedences(tk: &str) -> i64 {
         token::AWAIT => AWAIT,
         token::ASSIGN => ASSIGN,
         token::AS => AS,
-        token::MACRO_SYMBOL => MACRO_SYMBOL,
-        token::DECORATOR => DECORATOR,
-        token::MACRO => MACRO,
+        // token::MACRO_SYMBOL => MACRO_SYMBOL,
+        // token::DECORATOR => DECORATOR,
+        // token::MACRO => MACRO,
         token::AND_SYMBOL => AND,
         token::OR_SYMBOL => OR,
         token::QUESTION_MARK => QUESTION_MARK,
@@ -144,9 +144,9 @@ impl Parser {
             token::L_BRACE => parse_object_literal(self),
             token::ASYNC => parse_async_expressoin(self),
             token::AWAIT => parse_await_expression(self),
-            token::MACRO_SYMBOL => parse_macro_expression(self),
-            token::DECORATOR => parse_macro_expression(self),
-            token::MACRO => parse_macro_decleration(self),
+            // token::MACRO_SYMBOL => parse_macro_expression(self),
+            // token::DECORATOR => parse_macro_expression(self),
+            // token::MACRO => parse_macro_decleration(self),
             token::NEW => parse_new_expression(self),
             token::BUILTIN => parse_builtin_expression(self),
             _ => ast::Expression::EmptyExpression,
@@ -174,9 +174,9 @@ impl Parser {
             token::L_BRACE => true,
             token::ASYNC => true,
             token::AWAIT => true,
-            token::MACRO_SYMBOL => true,
-            token::DECORATOR => true,
-            token::MACRO => true,
+            // token::MACRO_SYMBOL => true,
+            // token::DECORATOR => true,
+            // token::MACRO => true,
             token::NEW => true,
             token::BUILTIN => true,
             _ => false,
@@ -358,7 +358,7 @@ fn parse_statement(parser: &mut Parser) -> ast::Statement {
     let stmt = match parser.c_token.typ.as_str() {
         token::VAR => parse_var_statement(parser),
         token::IDENT => {
-            if parser.peek_token_is(token::ASSIGN) {
+            if parser.peek_token_is(token::ASSIGN) || parser.peek_token_is(token::TYPE) {
                 parse_const_var_statement(parser)
             } else {
                 parse_expression_statement(parser)
@@ -477,6 +477,14 @@ fn parse_var_statement(p: &mut Parser) -> ast::Statement {
     }
     let name = parse_identifier(p);
 
+    let mut var_type: Option<Box<ast::Expression>> = None;
+    // check for type
+    if p.peek_token_is(token::TYPE) {
+        p.next_token();
+        p.next_token(); // consume the type
+        var_type = Some(Box::new(parse_identifier(p)));
+    }
+
     if !p.expect_peek(token::ASSIGN) {
         return ast::Statement::EmptyStatement;
     }
@@ -484,12 +492,20 @@ fn parse_var_statement(p: &mut Parser) -> ast::Statement {
 
     let value = parse_expression(p, LOWEST);
 
-    ast::Statement::VariableStatement(token, Box::new(name), Box::new(value))
+    ast::Statement::VariableStatement(token, Box::new(name), var_type, Box::new(value))
 }
 
 fn parse_const_var_statement(p: &mut Parser) -> ast::Statement {
     p.debug_print("parse_const_var_statement");
     let token = p.c_token.clone();
+
+    let mut var_type: Option<Box<ast::Expression>> = None;
+    // check for type
+    if p.peek_token_is(token::TYPE) {
+        p.next_token(); // consume ::
+        p.next_token(); // consume the type
+        var_type = Some(Box::new(parse_identifier(p)));
+    }
 
     if !p.expect_peek(token::ASSIGN) {
         return ast::Statement::EmptyStatement;
@@ -505,7 +521,7 @@ fn parse_const_var_statement(p: &mut Parser) -> ast::Statement {
         return ast::Statement::EmptyStatement;
     }
 
-    ast::Statement::ConstVariableStatement(token, Box::new(name), Box::new(value))
+    ast::Statement::ConstVariableStatement(token, Box::new(name), var_type, Box::new(value))
 }
 
 fn parse_return_statement(p: &mut Parser) -> ast::Statement {
@@ -798,6 +814,14 @@ fn parse_function_literal(p: &mut Parser) -> ast::Expression {
     // params
     let parameters = parse_function_paramaters(p);
 
+    let mut var_type: Option<Box<ast::Expression>> = None;
+    // check for type
+    if p.peek_token_is(token::TYPE) {
+        p.next_token();
+        p.next_token(); // consume the type
+        var_type = Some(Box::new(parse_identifier(p)));
+    }
+
     if !p.expect_peek(token::L_BRACE) {
         return ast::Expression::EmptyExpression;
     }
@@ -811,6 +835,7 @@ fn parse_function_literal(p: &mut Parser) -> ast::Expression {
         token.to_owned(),
         Box::new(name),
         Box::new(parameters),
+        var_type,
         Box::new(body),
     )
 }
@@ -1167,86 +1192,86 @@ fn parse_is_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression
     ast::Expression::IsExpression(token, Box::new(left), Box::new(right))
 }
 
-fn parse_macro_expression(p: &mut Parser) -> ast::Expression {
-    p.debug_print("parse_macro_expression");
-    let token = p.c_token.to_owned(); // $ || @
+// fn parse_macro_expression(p: &mut Parser) -> ast::Expression {
+//     p.debug_print("parse_macro_expression");
+//     let token = p.c_token.to_owned(); // $ || @
 
-    if !p.expect_peek(token::IDENT) {
-        return ast::empty_expression();
-    }
-    let ident = parse_identifier(p);
+//     if !p.expect_peek(token::IDENT) {
+//         return ast::empty_expression();
+//     }
+//     let ident = parse_identifier(p);
 
-    if !p.expect_peek(token::L_PAREN) {
-        return ast::empty_expression();
-    }
+//     if !p.expect_peek(token::L_PAREN) {
+//         return ast::empty_expression();
+//     }
 
-    let args = {
-        let mut args = Vec::new();
-        if p.peek_token_is(token::R_PAREN) {
-            args
-        } else {
-            p.next_token();
-            args.push(parse_expression(p, LOWEST));
-            while p.peek_token_is(token::COMMA) {
-                p.next_token(); // ,
-                p.next_token(); // expr
-                args.push(parse_expression(p, LOWEST));
-            }
-            args
-        }
-    };
+//     let args = {
+//         let mut args = Vec::new();
+//         if p.peek_token_is(token::R_PAREN) {
+//             args
+//         } else {
+//             p.next_token();
+//             args.push(parse_expression(p, LOWEST));
+//             while p.peek_token_is(token::COMMA) {
+//                 p.next_token(); // ,
+//                 p.next_token(); // expr
+//                 args.push(parse_expression(p, LOWEST));
+//             }
+//             args
+//         }
+//     };
 
-    if !p.expect_peek(token::R_PAREN) {
-        return ast::empty_expression();
-    }
+//     if !p.expect_peek(token::R_PAREN) {
+//         return ast::empty_expression();
+//     }
 
-    // let args = parse_args
-    ast::Expression::MacroExpression(token, Box::new(ident), Box::new(args))
-}
+//     // let args = parse_args
+//     ast::Expression::MacroExpression(token, Box::new(ident), Box::new(args))
+// }
 
-fn parse_macro_decleration(p: &mut Parser) -> ast::Expression {
-    p.debug_print("parse_macro_decleration");
-    let token = p.c_token.to_owned(); // macro
+// fn parse_macro_decleration(p: &mut Parser) -> ast::Expression {
+//     p.debug_print("parse_macro_decleration");
+//     let token = p.c_token.to_owned(); // macro
 
-    if !p.expect_peek(token::IDENT) {
-        return ast::empty_expression();
-    }
+//     if !p.expect_peek(token::IDENT) {
+//         return ast::empty_expression();
+//     }
 
-    let name = parse_identifier(p);
+//     let name = parse_identifier(p);
 
-    if !p.expect_peek(token::L_PAREN) {
-        return ast::empty_expression();
-    }
+//     if !p.expect_peek(token::L_PAREN) {
+//         return ast::empty_expression();
+//     }
 
-    let args = {
-        let mut args = Vec::new();
-        if p.peek_token_is(token::R_PAREN) {
-            args
-        } else {
-            p.next_token();
-            args.push(parse_expression(p, LOWEST));
-            while p.peek_token_is(token::COMMA) {
-                p.next_token(); // ,
-                p.next_token(); // expr
-                args.push(parse_expression(p, LOWEST));
-            }
-            args
-        }
-    };
+//     let args = {
+//         let mut args = Vec::new();
+//         if p.peek_token_is(token::R_PAREN) {
+//             args
+//         } else {
+//             p.next_token();
+//             args.push(parse_expression(p, LOWEST));
+//             while p.peek_token_is(token::COMMA) {
+//                 p.next_token(); // ,
+//                 p.next_token(); // expr
+//                 args.push(parse_expression(p, LOWEST));
+//             }
+//             args
+//         }
+//     };
 
-    if !p.expect_peek(token::R_PAREN) {
-        return ast::empty_expression();
-    }
+//     if !p.expect_peek(token::R_PAREN) {
+//         return ast::empty_expression();
+//     }
 
-    if !p.expect_peek(token::L_BRACE) {
-        return ast::empty_expression();
-    }
+//     if !p.expect_peek(token::L_BRACE) {
+//         return ast::empty_expression();
+//     }
 
-    let body = parse_block_statement(p);
+//     let body = parse_block_statement(p);
 
-    ast::Expression::MacroDecleration(token, Box::new(name), Box::new(args), Box::new(body))
-    // ast::Expression::MacroLiteral(token)
-}
+//     ast::Expression::MacroDecleration(token, Box::new(name), Box::new(args), Box::new(body))
+//     // ast::Expression::MacroLiteral(token)
+// }
 
 fn parse_struct_statement(p: &mut Parser) -> ast::Statement {
     p.debug_print("parse_struct_statement");
@@ -1320,10 +1345,12 @@ fn parse_struct_statement(p: &mut Parser) -> ast::Statement {
             if !stmt.eq(ast::Statement::VariableStatement(
                 token::EMPTY_TOKEN,
                 ast::empty_box_exp(),
+                None,
                 ast::empty_box_exp(),
             )) && !stmt.eq(ast::Statement::ConstVariableStatement(
                 token::EMPTY_TOKEN,
                 ast::empty_box_exp(),
+                None,
                 ast::empty_box_exp(),
             )) {
                 return ast::empty_statement();

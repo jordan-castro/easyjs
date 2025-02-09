@@ -45,17 +45,16 @@ mod tests {
             token::new_token(token::FUNCTION, "fn"),
             token::new_token(token::COLON, ":"),
             token::new_token(token::TYPE, "::"),
-            token::new_token(token::CONST_ASSIGNMENT, ":="),
+            token::new_token(token::TYPE_ASSIGNMENT, ":="),
             token::new_token(token::ASSIGN, "="),
             token::new_token(token::EQ, "=="),
             token::new_token(token::SEMICOLON, ";"),
             token::new_token(token::INT, "0"),
             token::new_token(token::DOTDOT, ".."),
             token::new_token(token::INT, "10"),
-            token::new_token(token::EOF, "\0")
+            token::new_token(token::EOF, "\0"),
         ];
 
         assert_eq!(lex::read_all_tokens(input.to_string()), results);
     }
-    
 }

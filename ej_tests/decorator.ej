@@ -9,7 +9,6 @@ fn say_hello() {
     console.log("Hello")
 }
 
-
 // version 2
 fn first_decorator() {
     console.log('Called before function')

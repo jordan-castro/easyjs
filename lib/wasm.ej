@@ -1,4 +1,20 @@
 /// the EasyWasm library
 pub struct EasyWasm {
-    fn compile(path_to_wasm) {}
+    /// Load your wasm fiel.
+    fn load(path_to_wasm) {
+        return new Promise(async fn() {
+            // load wasm
+            wasmer = await WasmInstanceWorker.load(path_to_wasm)
+
+            return wasmer.instance
+        })
+    }
+
+    /// Load your wasm bytes
+    fn load_bytes(bytes) {
+        return new Promise(async fn() {
+            // load wasm
+            
+        })
+    }
 }

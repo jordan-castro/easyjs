@@ -102,3 +102,10 @@ async {
 
     console.log(transcript)
 }
+
+native {
+    // 0x001;0x102;0x002;1x022
+    fn parse_transcript(sentences : object[], a_words : string[], words: string[]): string {
+
+    }
+}
