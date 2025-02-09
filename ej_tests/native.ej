@@ -1,0 +1,6 @@
+native {
+    pub fn add(x:i32, y:i32): i32 {
+        var z:i32 = x + y
+        return z
+    }
+}

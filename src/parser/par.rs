@@ -376,6 +376,7 @@ fn parse_statement(parser: &mut Parser) -> ast::Statement {
         token::ASYNC => parse_async_block_statement(parser),
         token::DOC_COMMENT => parse_doc_comment_statement(parser),
         token::MATCH => parse_match_statement(parser),
+        token::NATIVE => parse_native_statement(parser),
         _ => parse_expression_statement(parser),
     };
 
@@ -385,6 +386,28 @@ fn parse_statement(parser: &mut Parser) -> ast::Statement {
     }
 
     stmt
+}
+
+fn parse_native_statement(p: &mut Parser) -> ast::Statement {
+    p.debug_print("parse_native_statement");
+    let token = p.c_token.clone(); // native
+
+    if !p.expect_peek(token::L_BRACE) {
+        return ast::empty_statement();
+    }
+
+    let mut stmts = vec![];
+
+    while !p.peek_token_is(token::R_BRACE) {
+        p.next_token();
+        let stmt = parse_statement(p);
+        if !stmt.is_empty() {
+            stmts.push(stmt);
+        }
+    }
+    p.next_token(); // consume the }
+
+    ast::Statement::NativeStatement(token, Box::new(stmts))
 }
 
 fn parse_match_statement(p: &mut Parser) -> ast::Statement {

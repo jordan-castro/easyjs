@@ -1,9 +1,11 @@
 // use boa_engine::{value, Context};
 use std::collections::HashMap;
 use std::fmt::format;
+use std::io::Write;
 use std::path;
 
 use super::macros::Macro;
+use crate::emitter::wasm_emitter::emit_wasm;
 use crate::{builtins, emitter};
 // use crate::interpreter::{interpret_js, is_javascript_var_defined};
 use crate::lexer::lex::{self, ALLOWED_IN_IDENT};
@@ -283,14 +285,27 @@ impl Transpiler {
                 Some(self.transpile_match_stmt(tk, expr.as_ref().to_owned(), conditions.as_ref().to_owned()))
             }
             Statement::NativeStatement(tk, stmts) => {
-                // add statments
-                for stmt in stmts.as_ref().to_owned() {
-                    self.native_stmts.push(stmt);
-                }
-                None
+                Some(self.transpile_native_stmt(stmts.as_ref().to_owned()))
             }
+            // Statement::NativeStatement(tk, stmts) => {
+            //     // add statments
+            //     for stmt in stmts.as_ref().to_owned() {
+            //         self.native_stmts.push(stmt);
+            //     }
+            //     None
+            // }
             _ => None,
         }
+    }
+
+    fn transpile_native_stmt(&mut self, stmts: Vec<Statement>) -> String {
+        let mut res = String::new();
+        let easy_wasm = emit_wasm(stmts);
+        // save the wasm to a file
+        let mut file = std::fs::File::create("easyjs.wasm").unwrap();
+        file.write(&easy_wasm).unwrap();
+
+        res
     }
 
     fn transpile_match_stmt(&mut self, token: token::Token, expr: Expression, conditions: Vec<(Expression, Statement)>) -> String {
