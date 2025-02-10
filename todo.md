@@ -7,7 +7,7 @@
   - var x,y = array // [100,200]
   - var x,y = dictionary // {x: 10, y: 20}
 - v0.4.0 Rework imports.  
-- v0.4.0 Support UNICODE 
+- v0.4.0 Support UNICODE [I_THINK_THIS_ALREADY_WORKS_dog]
 - v0.4.0 Fix builtins.int_range logic. (I think I'll just remove it. Only using it with for loops.)
 - v0.4.0 ~~add types~~
 - v0.4.0 add ternirary statements (using ? :)
@@ -15,7 +15,6 @@
 - v0.4.0 add advanced macros 
   - v0.4.0 macros that write easyJS.
   - v0.4.0 macros that run WASM.
-- v0.4/5/6.0 add a fn {} block for creating modules. Or a mod {}?
 - v0.6.0 Add benchmarks for:
   - compilation (vs TypeScript, Dart, Nim, other to JS options)
   - performance (vs JavaScript, TypeScript, Dart, WASM)
@@ -44,7 +43,7 @@
   - strings
   - arrays
   - classes
-  - global variables
+  - global variables [NEXT]
   - import functions from external.
   - ~~call other functions~~
   - loops

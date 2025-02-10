@@ -14,4 +14,9 @@ native {
     pub fn call_fn():i32 {
         return add(1,2)
     }
+
+    fn set_value_test() {
+        var z:f32 = 100.00
+        return z
+    }
 }
