@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use wasm_encoder::{
     CodeSection, ExportKind, ExportSection, Function, FunctionSection, Instruction, Module,
-    TypeSection, ValType
+    TypeSection, ValType, GlobalSection, GlobalType
 };
 
 use crate::parser::ast::{self, Expression, Statement};
@@ -31,6 +31,9 @@ pub struct EasyWasm {
 
     /// Track function names
     function_names: HashMap<String, String>,
+
+    // /// Global section
+    // pub global_section: GlobalSection,
 }
 
 /// Emits a WebAssembly module.
@@ -78,7 +81,7 @@ impl EasyWasm {
             // }
             Statement::ExpressionStatement(tk, expr) => match expr.as_ref().to_owned() {
                 Expression::FunctionLiteral(tk, name, params, var_type, body) => {
-                    let var_type = var_type.expect("Type must exist in ").as_ref().to_owned();
+                    // let var_type = var_type.expect("Type must exist in ").as_ref().to_owned();
                     self.add_function(
                         name.as_ref().to_owned(),
                         params.as_ref().to_owned(),
@@ -110,14 +113,19 @@ impl EasyWasm {
         &mut self,
         name: Expression,
         params: Vec<Expression>,
-        return_type: Expression,
+        return_type: Option<Box<Expression>>,
         body: Statement,
         is_public: bool,
     ) {
         // Encode the types section
-        // let mut types = TypeSection::new();
         let wasm_params: Vec<ValType> = params.iter().map(|param| get_param_type(param.clone())).collect();
-        let results = vec![get_param_type(return_type)];
+        let results = {
+            if let Some(return_type) = return_type {
+                vec![get_param_type(return_type.as_ref().to_owned())]
+            } else {
+                vec![]
+            }
+        };
 
         let sig = FunctionSignature {
             params: wasm_params,

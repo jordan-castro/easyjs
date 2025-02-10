@@ -57,6 +57,9 @@ impl<'a> FNBuilder<'a> {
         self.instructions.push(instruction);
     }
 
+    /// Get a string representation of certain expressions.
+    /// 
+    /// Identifier.
     fn read_expression(&mut self, expr: &'a Expression) -> String {
         match expr {
             Expression::Identifier(tk, ident) => {
@@ -101,6 +104,9 @@ impl<'a> FNBuilder<'a> {
             Expression::IntegerLiteral(_, value) => {
                 self.add_instruction(Instruction::I32Const(*value as i32));
             }
+            Expression::FloatLiteral(_, value) => {
+                self.add_instruction(Instruction::F32Const(*value as f32));
+            }
             Expression::InfixExpression(_, left, op, right) => {
                 let left = self.read_expression(left.as_ref());
                 let right = self.read_expression(right.as_ref());
@@ -133,7 +139,7 @@ impl<'a> FNBuilder<'a> {
                     (ValType::F64, "*") => self.add_instruction(Instruction::F64Mul),
                     (ValType::F64, "/") => self.add_instruction(Instruction::F64Div),
                     _ => {
-                        unimplemented!();
+                        self.add_instruction(Instruction::Nop);
                     }
                 }
             }
@@ -147,6 +153,20 @@ impl<'a> FNBuilder<'a> {
                 // call the function
                 self.add_instruction(Instruction::Call(self.easy_wasm.get_function_idx(&name)));
             }
+            // Expression::AssignExpression(_, left, right) => {
+            //     // Set right value
+            //     self.compile_expression(right.as_ref());
+            //     match left.as_ref() {
+            //         Expression::Identifier(_, name) => {
+            //             let local = self.get_local(name);
+            //             // TODO: check if global
+            //             self.add_instruction(Instruction::LocalSet(local.0));
+            //         }
+            //         _ => {
+            //             self.add_instruction(Instruction::Nop);
+            //         }
+            //     }
+            // }
             _ => {
                 // nothign to do
                 self.add_instruction(Instruction::Nop);
@@ -166,17 +186,21 @@ impl<'a> FNBuilder<'a> {
                 let name = self.read_expression(name.as_ref());
 
                 let var_type = var_type.clone().expect("Variable type not found").as_ref().to_owned();
-                self.add_local(name, get_param_type(var_type));
+                self.add_local(name.clone(), get_param_type(var_type));
 
-                // instruction to set the local
+                // Add the value instruction
                 self.compile_expression(value.as_ref());
+                
+                // set the local instruction
+                let local = self.get_local(&name);
+                self.add_instruction(Instruction::LocalSet(local.0));
             }
             Statement::ReturnStatement(_, expr) => {
                 self.compile_expression(expr.as_ref());
                 self.add_instruction(Instruction::Return);
             }
             _ => {
-                unimplemented!();
+                self.add_instruction(Instruction::Nop);
             }
         }
     }
