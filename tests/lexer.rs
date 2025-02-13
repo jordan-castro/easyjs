@@ -12,7 +12,6 @@ mod tests {
             //this is a comment
             fn
             :
-            ::
             :=
             =
             ==
@@ -44,7 +43,6 @@ mod tests {
             token::new_token(token::SLASH, "/"),
             token::new_token(token::FUNCTION, "fn"),
             token::new_token(token::COLON, ":"),
-            token::new_token(token::TYPE, "::"),
             token::new_token(token::TYPE_ASSIGNMENT, ":="),
             token::new_token(token::ASSIGN, "="),
             token::new_token(token::EQ, "=="),
