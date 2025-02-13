@@ -18,7 +18,8 @@
 - v0.6.0 Add benchmarks for:
   - compilation (vs TypeScript, Dart, Nim, other to JS options)
   - performance (vs JavaScript, TypeScript, Dart, WASM)
--v0.5.0 Better errors.
+- v0.5.0 Better errors.
+- v0.5.0 Make the change to use &str as much as possible
 
 ## EasyJS
 - v0.5.0 core
@@ -48,6 +49,8 @@
   - ~~call other functions~~
   - loops
   - if statements
+  - math statements with consts.
+- v0.6.0 explore multi threaded wasm.
 
 ## Repl
 

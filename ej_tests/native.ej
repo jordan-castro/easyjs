@@ -1,4 +1,6 @@
 native {
+    var global_variable : i32 = 0
+
     pub fn add(x:i32, y:i32): i32 {
         return x + y
     }
@@ -15,8 +17,13 @@ native {
         return add(1,2)
     }
 
-    fn set_value_test() {
-        var z:f32 = 100.00
-        return z
+    fn set_var() {
+        var x : i32 = 1
+        var y : i32 = 2
+        var z : f32 = 1.0
+    }
+
+    fn read_global_test(): i32 {
+        return global_variable
     }
 }
