@@ -44,12 +44,12 @@
   - strings
   - arrays
   - classes
-  - global variables [NEXT]
+  - ~~global variables~~
   - import functions from external.
   - ~~call other functions~~
   - loops
   - if statements
-  - math statements with consts.
+  - ~~math statements with consts~~
 - v0.6.0 explore multi threaded wasm.
 
 ## Repl

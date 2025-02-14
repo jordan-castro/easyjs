@@ -358,7 +358,7 @@ fn parse_statement(parser: &mut Parser) -> ast::Statement {
     let stmt = match parser.c_token.typ.as_str() {
         token::VAR => parse_var_statement(parser),
         token::IDENT => {
-            if parser.peek_token_is(token::ASSIGN) || parser.peek_token_is(token::COLON) {
+            if parser.peek_token_is(token::ASSIGN) || parser.peek_token_is(token::COLON) || parser.peek_token_is(token::TYPE_ASSIGNMENT) {
                 parse_const_var_statement(parser)
             } else {
                 parse_expression_statement(parser)
@@ -503,19 +503,20 @@ fn parse_var_statement(p: &mut Parser) -> ast::Statement {
     let mut var_type: Option<Box<ast::Expression>> = None;
     // check for type
     if p.peek_token_is(token::COLON) {
-        p.next_token();
-        p.next_token(); // consume the type
-        var_type = Some(Box::new(parse_identifier(p, false)));
+        var_type = Some(Box::new(parse_type(p)));
     }
 
-    if !p.expect_peek(token::ASSIGN) {
+    if !p.peek_token_is(token::ASSIGN) && !p.peek_token_is(token::TYPE_ASSIGNMENT) {
+        p.add_error(format!("Expected {} or {} but got {} instead.", token::ASSIGN, token::TYPE_ASSIGNMENT, p.peek_token.literal).as_str());
         return ast::Statement::EmptyStatement;
-    }
+    } 
+    let infer_type = p.peek_token_is(token::TYPE_ASSIGNMENT);
+    p.next_token();
     p.next_token();
 
     let value = parse_expression(p, LOWEST);
 
-    ast::Statement::VariableStatement(token, Box::new(name), var_type, Box::new(value))
+    ast::Statement::VariableStatement(token, Box::new(name), var_type, Box::new(value), infer_type)
 }
 
 fn parse_const_var_statement(p: &mut Parser) -> ast::Statement {
@@ -525,14 +526,15 @@ fn parse_const_var_statement(p: &mut Parser) -> ast::Statement {
     let mut var_type: Option<Box<ast::Expression>> = None;
     // check for type
     if p.peek_token_is(token::COLON) {
-        p.next_token(); // consume ::
-        p.next_token(); // consume the type
-        var_type = Some(Box::new(parse_identifier(p, false)));
+        var_type = Some(Box::new(parse_type(p)));
     }
 
-    if !p.expect_peek(token::ASSIGN) {
+    if !p.peek_token_is(token::ASSIGN) && !p.peek_token_is(token::TYPE_ASSIGNMENT) {
+        p.add_error(format!("Expected {} or {} but got {} instead.", token::ASSIGN, token::TYPE_ASSIGNMENT, p.peek_token.literal).as_str());
         return ast::Statement::EmptyStatement;
-    }
+    } 
+    let infer_type = p.peek_token_is(token::TYPE_ASSIGNMENT);
+    p.next_token();
 
     let name = ast::Expression::Identifier(token.to_owned(), token.to_owned().literal);
 
@@ -544,7 +546,7 @@ fn parse_const_var_statement(p: &mut Parser) -> ast::Statement {
         return ast::Statement::EmptyStatement;
     }
 
-    ast::Statement::ConstVariableStatement(token, Box::new(name), var_type, Box::new(value))
+    ast::Statement::ConstVariableStatement(token, Box::new(name), var_type, Box::new(value), infer_type)
 }
 
 fn parse_return_statement(p: &mut Parser) -> ast::Statement {
@@ -723,14 +725,25 @@ fn parse_identifier(parser: &mut Parser, try_parse_type: bool) -> ast::Expressio
     // should we try to parse a type?
     if try_parse_type {
         if parser.peek_token_is(token::COLON) {
-            parser.next_token(); // consume ::
-            parser.next_token(); // consume type
-            let type_expr = parse_identifier(parser, false);
-            return ast::Expression::IdentifierWithType(token, lit, Box::new(type_expr));
+            return ast::Expression::IdentifierWithType(token, lit, Box::new(parse_type(parser)));
         }
     }
     ast::Expression::Identifier(token, lit)
+}
 
+/// Parse a type
+fn parse_type(p: &mut Parser) -> ast::Expression {
+    p.debug_print("parse_type");
+    let token = p.c_token.clone();
+    
+    // consume the : 
+    p.next_token();
+    // and go to the identifer
+    if !p.expect_peek(token::IDENT) {
+        return ast::Expression::EmptyExpression;
+    }
+
+    ast::Expression::Type(token, p.c_token.literal.clone())
 }
 
 /// parse an integer literal, returns EmptyExpression if not valid.
@@ -852,9 +865,7 @@ fn parse_function_literal(p: &mut Parser) -> ast::Expression {
     let mut var_type: Option<Box<ast::Expression>> = None;
     // check for type
     if p.peek_token_is(token::COLON) {
-        p.next_token();
-        p.next_token(); // consume the type
-        var_type = Some(Box::new(parse_identifier(p, false)));
+        var_type = Some(Box::new(parse_type(p)));
     }
 
     if !p.expect_peek(token::L_BRACE) {
@@ -1382,11 +1393,13 @@ fn parse_struct_statement(p: &mut Parser) -> ast::Statement {
                 ast::empty_box_exp(),
                 None,
                 ast::empty_box_exp(),
+                false
             )) && !stmt.eq(ast::Statement::ConstVariableStatement(
                 token::EMPTY_TOKEN,
                 ast::empty_box_exp(),
                 None,
                 ast::empty_box_exp(),
+                false
             )) {
                 return ast::empty_statement();
             }

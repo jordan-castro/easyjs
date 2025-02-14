@@ -1,29 +1,37 @@
 native {
-    var global_variable : i32 = 0
+    var global_variable : int = 0
+    immutable_global := 1.0
 
-    pub fn add(x:i32, y:i32): i32 {
+    pub fn add(x:int, y:int): int {
         return x + y
     }
 
-    pub fn sub(x:i32, y:i32): i32 {
+    pub fn sub(x:int, y:int): int {
         return x - y
     }
 
-    fn add_floats(x:f32, y:f32): f32 {
+    fn add_floats(x:float, y:float): float {
         return x + y
     }
 
-    pub fn call_fn():i32 {
+    pub fn call_fn():int {
         return add(1,2)
     }
 
     fn set_var() {
-        var x : i32 = 1
-        var y : i32 = 2
-        var z : f32 = 1.0
+        var x : int = 1
+        var y : int = 2
+        var z : float = 1.0
+        var s : int = x
     }
 
-    fn read_global_test(): i32 {
+    fn infer_types() {
+        var x := 1
+        var y := x
+        var z := call_fn()
+    }
+
+    fn read_global_test(): int {
         return global_variable
     }
 }
