@@ -8,7 +8,7 @@ pub enum NodeType {
 #[derive(Clone, Debug)]
 pub enum Statement {
     EmptyStatement,                                                 // there was an issue
-    VariableStatement(tk::Token, Box<Expression>, Option<Box<Expression>>, Box<Expression>), // variable = expression
+    VariableStatement(tk::Token, Box<Expression>, Option<Box<Expression>>, Box<Expression>, bool), // variable = expression
     ReturnStatement(tk::Token, Box<Expression>),                    // return expression
     /// use prefix:path
     UseStatement(tk::Token, Box<Expression>, Box<Expression>),
@@ -17,7 +17,7 @@ pub enum Statement {
     ExpressionStatement(tk::Token, Box<Expression>), // token expression
     BlockStatement(tk::Token, Box<Vec<Statement>>),  // { statements }
     // token identifier = value
-    ConstVariableStatement(tk::Token, Box<Expression>, Option<Box<Expression>>, Box<Expression>),
+    ConstVariableStatement(tk::Token, Box<Expression>, Option<Box<Expression>>, Box<Expression>, bool),
     // for condition { body }
     ForStatement(tk::Token, Box<Expression>, Box<Statement>),
     // javascript{}
@@ -64,13 +64,13 @@ impl Statement {
     pub fn variant_type(&self) -> String {
         match self {
             Statement::EmptyStatement => "EmptyStatement",
-            Statement::VariableStatement(_, _, _, _) => "VariableStatement",
+            Statement::VariableStatement(_, _, _, _, _) => "VariableStatement",
             Statement::ReturnStatement(_, _) => "ReturnStatement",
             Statement::UseStatement(_, _, _) => "UseStatement",
             Statement::UseFromStatement(_, _, _, _) => "UseFromStatement",
             Statement::ExpressionStatement(_, _) => "ExpressionStatement",
             Statement::BlockStatement(_, _) => "BlockStatement",
-            Statement::ConstVariableStatement(_, _, _, _) => "ConstVarStatement",
+            Statement::ConstVariableStatement(_, _, _, _, _) => "ConstVarStatement",
             Statement::ForStatement(_, _, _) => "ForStatement",
             Statement::JavaScriptStatement(_, _) => "JavaScriptStatement",
             Statement::StructStatement(_, _, _, _, _, _) => "StructStatement",
@@ -184,6 +184,8 @@ pub enum Expression {
     BuiltinCall(tk::Token, Box<Vec<Expression>>),
     /// Identifier with type
     IdentifierWithType(tk::Token, String, Box<Expression>),
+    /// Type expression
+    Type(tk::Token, String)
 }
 
 impl Expression {
@@ -227,6 +229,7 @@ impl Expression {
             Expression::IsExpression(_, _, _) => "IsExpression",
             Expression::BuiltinCall(_, _) => "BuiltinCall",
             Expression::IdentifierWithType(_, _, _) => "IdentifierWithType",
+            Expression::Type(_, _) => "Type"
         }
     }
 

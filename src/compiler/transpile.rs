@@ -98,10 +98,10 @@ impl Transpiler {
                 // add it to a list of exported identifiers
                 Statement::ExportStatement(tk, stmt) => {
                     match stmt.as_ref().to_owned() {
-                        Statement::VariableStatement(_, name, _, _) => {
+                        Statement::VariableStatement(_, name, _, _, _) => {
                             export_name = t.transpile_expression(name.as_ref().to_owned());
                         }
-                        Statement::ConstVariableStatement(_, name, _, _) => {
+                        Statement::ConstVariableStatement(_, name, _, _, _) => {
                             export_name = t.transpile_expression(name.as_ref().to_owned());
                         }
                         Statement::StructStatement(_, name, _, _, _, _) => {
@@ -221,7 +221,7 @@ impl Transpiler {
 
     fn transpile_stmt(&mut self, stmt: ast::Statement) -> Option<String> {
         match stmt {
-            ast::Statement::VariableStatement(token, name, _, value) => Some(self.transpile_var_stmt(
+            ast::Statement::VariableStatement(token, name, _, value, _) => Some(self.transpile_var_stmt(
                 token,
                 name.as_ref().to_owned(),
                 value.as_ref().to_owned(),
@@ -248,7 +248,7 @@ impl Transpiler {
             ast::Statement::BlockStatement(token, stmts) => {
                 Some(self.transpile_block_stmt(token, stmts.as_ref().to_owned()))
             }
-            ast::Statement::ConstVariableStatement(token, name, _, value) => {
+            ast::Statement::ConstVariableStatement(token, name, _, value, _) => {
                 Some(self.transpile_const_var_stmt(
                     token,
                     name.as_ref().to_owned(),
@@ -701,13 +701,13 @@ impl Transpiler {
         // static variables are added now while struct variables are added at the end.
         for var in variables {
             match var {
-                ast::Statement::ConstVariableStatement(_, name, _, value) => {
+                ast::Statement::ConstVariableStatement(_, name, _, value, _) => {
                     let name = self.transpile_expression(name.as_ref().to_owned());
                     let value = self.transpile_expression(value.as_ref().to_owned());
 
                     res.push_str(format!("{}.{} = {};\n", struct_name, name, value).as_str());
                 }
-                ast::Statement::VariableStatement(_, name, _,value) => {
+                ast::Statement::VariableStatement(_, name, _,value, _) => {
                     let name = self.transpile_expression(name.as_ref().to_owned());
                     let value = self.transpile_expression(value.as_ref().to_owned());
 

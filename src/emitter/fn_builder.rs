@@ -5,7 +5,7 @@ use wasm_encoder::{Instruction, ValType};
 use crate::parser::ast::{Expression, Statement};
 
 use super::{
-    utils::{get_param_type, make_instruction_for_value, StrongValType},
+    utils::{ get_param_type_by_named_expression, get_param_type_by_string, infer_variable_type, make_instruction_for_value, StrongValType},
     variables::{WasmVariable, WasmVariables},
     wasm_emitter::EasyWasm,
 };
@@ -92,17 +92,16 @@ impl<'a> FNBuilder<'a> {
             Expression::IntegerLiteral(_, _) => ValType::I32,
             Expression::FloatLiteral(_, _) => ValType::F32,
             Expression::Identifier(_, name) => {
-                let ty = get_param_type(expr.to_owned());
-                return match ty {
-                    StrongValType::Some(t) => {
-                        t
-                    },
-                    _ => {
-                        self.get_variable(name.to_owned()).0.ty
-                    }
-                }
-                // self.get_variable(name.to_owned()).0.ty
+                // it's a variable...
+                self.get_variable(name.to_owned()).0.ty
             },
+            Expression::Type(_, ty) => {
+                let t = get_param_type_by_string(ty.to_owned());
+                match t {
+                    Some(v) => v,
+                    None => unimplemented!()
+                }
+            }
             _ => {
                 unimplemented!();
             }
@@ -181,15 +180,31 @@ impl<'a> FNBuilder<'a> {
                     self.compile_statement(stmt);
                 }
             }
-            Statement::VariableStatement(_, name, var_type, value) => {
+            Statement::VariableStatement(_, name, var_type, value, infer_type) => {
                 let name = self.read_identifier(name.as_ref());
 
-                let var_type = var_type
-                    .clone()
-                    .expect("Variable type not found")
-                    .as_ref()
-                    .to_owned();
-                self.add_local(name.clone(), self.get_val_type(&var_type));
+                let var_type = {
+                    if let Some(var_type) = var_type {
+                        get_param_type_by_named_expression(var_type.as_ref().to_owned())
+                    } else {
+                        if !infer_type {
+                            unimplemented!();
+                        } else {
+                            infer_variable_type(value, &self.variables, &self.easy_wasm.type_registry_ref())
+                        }
+                    }
+                };
+
+                let var_type = match var_type {
+                    StrongValType::Some(v) => {
+                        v
+                    }
+                    _ => {
+                        unimplemented!();
+                    }
+                };
+
+                self.add_local(name.clone(), var_type);
 
                 let wasm_var = self
                     .variables

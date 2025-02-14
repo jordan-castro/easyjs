@@ -68,13 +68,13 @@ pub const EOL: &str = "EOL";
 pub const TYPE_ASSIGNMENT: &str = "TYPE_ASSIGNMENT";
 
 // Types
-pub const INT_32_TYPE: &str = "INT_32_TYPE";
-pub const INT_64_TYPE: &str = "INT_64_TYPE";
-pub const FLOAT_32_TYPE: &str = "FLOAT_32_TYPE";
-pub const FLOAT_64_TYPE: &str = "FLOAT_64_TYPE";
-pub const BOOLEAN_TYPE: &str = "BOOLEAN_TYPE";
-pub const STRING_TYPE: &str = "STRING_TYPE";
-pub const CUSTOM_TYPE: &str = "CUSTOM_TYPE";
+// pub const INT_32_TYPE: &str = "INT_32_TYPE";
+// pub const INT_64_TYPE: &str = "INT_64_TYPE";
+// pub const FLOAT_32_TYPE: &str = "FLOAT_32_TYPE";
+// pub const FLOAT_64_TYPE: &str = "FLOAT_64_TYPE";
+// pub const BOOLEAN_TYPE: &str = "BOOLEAN_TYPE";
+// pub const STRING_TYPE: &str = "STRING_TYPE";
+// pub const CUSTOM_TYPE: &str = "CUSTOM_TYPE";
 
 // Comments
 pub const COMMENT: &str = "//";
@@ -164,11 +164,11 @@ pub fn lookup_ident(ident: &str) -> &'static str {
         "use_mod" => BUILTIN,
         "match" => MATCH,
         "with" => WITH,
-        "i32" => INT_32_TYPE,
-        "i64" => INT_64_TYPE,
-        "f32" => FLOAT_32_TYPE,
-        "f64" => FLOAT_64_TYPE,
-        "bool" => BOOLEAN_TYPE,
+        // "int" => INT_32_TYPE,
+        // "BigInt" => INT_64_TYPE,
+        // "float" => FLOAT_32_TYPE,
+        // "BigFloat" => FLOAT_64_TYPE,
+        // "bool" => BOOLEAN_TYPE,
         _ => IDENT, // Default case for unknown identifiers
     }
 }

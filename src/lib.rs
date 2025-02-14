@@ -8,6 +8,7 @@ pub mod std;
 pub mod interpreter;
 pub mod builtins;
 pub mod emitter;
+pub mod errors;
 
 use wasm_bindgen::prelude::*;
 
