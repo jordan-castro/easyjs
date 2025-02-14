@@ -8,3 +8,5 @@ target/
 /.ejc/
 
 /easyjs.wasm
+*easy_form.ej
+/easy_form.json
