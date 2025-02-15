@@ -6,6 +6,7 @@ pub struct Person[name, age] with GreetMixin {
         self.name = new_name
     }
 
+    /// gets the name.
     fn get_name(self) {
         return self.name
     }
