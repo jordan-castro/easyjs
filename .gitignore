@@ -10,3 +10,4 @@ target/
 /easyjs.wasm
 *easy_form.ej
 /easy_form.json
+/index.html
