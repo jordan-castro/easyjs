@@ -185,7 +185,9 @@ pub enum Expression {
     /// Identifier with type
     IdentifierWithType(tk::Token, String, Box<Expression>),
     /// Type expression
-    Type(tk::Token, String)
+    Type(tk::Token, String),
+    /// IIFE
+    IIFE(tk::Token, Box<Statement>),
 }
 
 impl Expression {
@@ -229,7 +231,8 @@ impl Expression {
             Expression::IsExpression(_, _, _) => "IsExpression",
             Expression::BuiltinCall(_, _) => "BuiltinCall",
             Expression::IdentifierWithType(_, _, _) => "IdentifierWithType",
-            Expression::Type(_, _) => "Type"
+            Expression::Type(_, _) => "Type",
+            Expression::IIFE(_, _) => "IIFE"
         }
     }
 

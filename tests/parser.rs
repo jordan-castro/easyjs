@@ -360,7 +360,8 @@ mod tests {
         let input = "
             x = {name: 1}
             x.name = 2
-        ".to_string();
+        "
+        .to_string();
 
         let l: lex::Lex = lex::Lex::new(input);
         let mut p = par::Parser::new(l);
@@ -372,7 +373,6 @@ mod tests {
         assert_eq!(p.errors.len(), 0);
         assert_eq!(program.statements.len(), 2);
     }
-
 
     #[test]
     fn test_struct_stmts() {
@@ -392,7 +392,8 @@ mod tests {
                 two=null
             }
 
-        ".to_string();
+        "
+        .to_string();
 
         let l: lex::Lex = lex::Lex::new(input);
         let mut p: par::Parser = par::Parser::new(l);
@@ -410,7 +411,8 @@ mod tests {
         let input = "
             x = include (\"file.ej\")
             
-        ".to_string();
+        "
+        .to_string();
         let l: lex::Lex = lex::Lex::new(input);
         let mut p: par::Parser = par::Parser::new(l);
         let program = p.parse_program();
@@ -425,12 +427,13 @@ mod tests {
     #[test]
     fn test_types() {
         let input = "
-            var x :: i32 = 1
-            fn test() :: i32 {
+            var x : int = 1
+            fn test() : int {
                 return 1
             }
-            y :: i32 = 1
-        ".to_string();
+            y : int = 1
+        "
+        .to_string();
         let l = lex::Lex::new(input);
         let mut p = par::Parser::new(l);
         let program = p.parse_program();
@@ -446,12 +449,13 @@ mod tests {
     fn test_native() {
         let input = "
             native {
-                fn add(x, y) :: i32 {
+                fn add(x, y) : int {
                     var z = x + y
                     return z
                 }
             }
-        ".to_string();
+        "
+        .to_string();
 
         let l = lex::Lex::new(input);
         let mut p = par::Parser::new(l);
@@ -462,6 +466,25 @@ mod tests {
 
         assert_eq!(p.errors.len(), 0);
         assert_eq!(program.statements.len(), 1);
+    }
 
+    #[test]
+    fn test_iife() {
+        let input = "
+        var x =fn {
+            return 1
+        }
+    "
+        .to_string();
+
+        let l = lex::Lex::new(input);
+        let mut p = par::Parser::new(l);
+        let program = p.parse_program();
+
+        println!("{:?}", p.errors);
+        println!("{:#?}", program.statements);
+
+        assert_eq!(p.errors.len(), 0);
+        assert_eq!(program.statements.len(), 1);
     }
 }
