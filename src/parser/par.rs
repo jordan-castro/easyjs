@@ -846,6 +846,11 @@ fn parse_function_literal(p: &mut Parser) -> ast::Expression {
         return parse_lambda_literal(p);
     }
 
+    if p.peek_token_is(token::L_BRACE) {
+        // this is a IIFE.
+        return parse_iife_literal(p);
+    }
+
     // ok lets make sure this is a function
     if !(p.peek_token_is(token::IDENT) || p.peek_token_is(token::NEW)) {
         p.add_error(format!("Expected a IDENT or NEW, got {} instead", p.peek_token.typ).as_str());
@@ -937,6 +942,24 @@ fn parse_lambda_literal(p: &mut Parser) -> ast::Expression {
     }
 
     ast::Expression::LambdaLiteral(token.to_owned(), Box::new(paramaters), Box::new(body))
+}
+
+fn parse_iife_literal(p: &mut Parser) -> ast::Expression {
+    p.debug_print("parse_iife_literal");
+    let token = p.c_token.clone();
+
+    if !p.expect_peek(token::L_BRACE) {
+        return ast::Expression::EmptyExpression;
+    }
+
+    // parse block
+    let block = parse_block_statement(p);
+
+    if block.is_empty() {
+        return ast::Expression::EmptyExpression;
+    }
+
+    ast::Expression::IIFE(token.to_owned(), Box::new(block))
 }
 
 fn parse_string_literal(p: &mut Parser) -> ast::Expression {

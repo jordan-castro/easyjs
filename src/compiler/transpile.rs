@@ -1012,11 +1012,6 @@ impl Transpiler {
 
                 res.push_str("[");
                 let els = elements.as_ref().to_owned();
-                // let joined_els = els
-                //     .iter()
-                //     .map(|p| self.transpile_expression(p.to_owned()))
-                //     .collect::<Vec<_>>()
-                //     .join(",");
                 res.push_str(&self.join_expressions(elements.as_ref().to_owned()));
                 res.push_str("]");
 
@@ -1081,14 +1076,14 @@ impl Transpiler {
                     self.transpile_expression(right.as_ref().to_owned())
                 )
             }
-            Expression::RangeExpression(token, start, end) => {
-                format!(
-                    "builtins.{}({},{})",
-                    builtins::INT_RANGE,
-                    self.transpile_expression(start.as_ref().to_owned()),
-                    self.transpile_expression(end.as_ref().to_owned())
-                )
-            }
+            // Expression::RangeExpression(token, start, end) => {
+            //     format!(
+            //         "builtins.{}({},{})",
+            //         builtins::INT_RANGE,
+            //         self.transpile_expression(start.as_ref().to_owned()),
+            //         self.transpile_expression(end.as_ref().to_owned())
+            //     )
+            // }
             Expression::AssignExpression(token, left, right) => {
                 let left: String = self.transpile_expression(left.as_ref().to_owned());
                 format!(
@@ -1107,43 +1102,9 @@ impl Transpiler {
                     self.transpile_expression(right.as_ref().to_owned())
                 )
             }
-            // Expression::MacroExpression(token, name, arguments) => {
-            //     let name = self.transpile_expression(name.as_ref().to_owned());
-            //     let mut parsed_args = vec![];
-
-            //     for a in arguments.as_ref().to_owned() {
-            //         parsed_args.push(self.transpile_expression(a));
-            //     }
-
-            //     let m = self.macros.get(&name);
-            //     if m.is_some() {
-            //         let m: &Macro = m.unwrap();
-            //         let code = m.compile(parsed_args);
-            //         if token.typ == token::MACRO_SYMBOL {
-            //             // let result = interpret_js(&code, &mut self.context);
-            //             if result.is_err() {
-            //                 println!("Error: {}", result.err().unwrap());
-            //                 println!("Macro in question: \n{}", code);
-            //                 "".to_string()
-            //             } else {
-            //                 result.unwrap().display().to_string()
-            //             }
-            //         } else {
-            //             code
-            //         }
-            //     } else {
-            //         "".to_string()
-            //     }
-            // }
-            // Expression::MacroDecleration(token, name, parameters, body) => {
-            //     let name_as_string = self.transpile_expression(name.as_ref().to_owned());
-            //     self.add_macro_function(
-            //         name_as_string,
-            //         parameters.as_ref().to_owned(),
-            //         body.as_ref().to_owned(),
-            //     );
-            //     "".to_string()
-            // }
+            Expression::IIFE(_, block) => {
+                format!("(() => {{\n{}\n}})()", self.transpile_stmt(block.as_ref().to_owned()).unwrap())
+            }
             Expression::AndExpression(token, left, right) => {
                 format!(
                     "{} && {}",

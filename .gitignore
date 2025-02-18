@@ -8,3 +8,4 @@ target/
 /.ejc/
 
 /easyjs.wasm
+/bin/easyjs.exe
