@@ -1,0 +1,19 @@
+class Person {
+    private var name : string
+    private var age : int
+
+    AGE_LIMIT := 120
+
+    fn init(self, name, age) {
+        self.name = name
+        self.age = age
+    }
+
+    fn get_name(self) {
+        return self.name
+    }
+
+    fn get_age(self) {
+        return self.age
+    }
+}

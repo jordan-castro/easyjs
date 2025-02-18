@@ -1,0 +1,12 @@
+is_required:bool = false
+
+var variable = fn {
+    // Here you can put logic that will be run for the creation of this varaible.
+    if is_required {
+        return 1
+    } else {
+        return 2
+    }
+}
+
+console.log(variable)
