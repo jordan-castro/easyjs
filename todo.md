@@ -19,6 +19,9 @@
   - performance (vs JavaScript, TypeScript, Dart, WASM)
 - v0.5.0 Better errors.
 - v0.5.0 Make the change to use &str as much as possible
+- v0.5.0 Add classes.
+- v0.5.0 Add rust like decleratoin var some = {};
+- v0.5.0 Allow nameless JS objects like: {x} would be the same as {x: x}
 
 ## EasyJS
 - v0.5.0 core
