@@ -11,29 +11,14 @@
 - v0.4.0 ~~Fix builtins.int_range logic.~~ (I think I'll just remove it. Only using it with for loops.)
 - v0.4.0 ~~add types~~
 - v0.4.0 ~~add ternirary statements (using ? :)~~
-- v0.4.0 add advanced macros 
-  - v0.4.0 macros that write easyJS.
-  - v0.4.0 macros that run WASM.
 - v0.6.0 Add benchmarks for:
   - compilation (vs TypeScript, Dart, Nim, other to JS options)
   - performance (vs JavaScript, TypeScript, Dart, WASM)
 - v0.5.0 Better errors.
 - v0.5.0 Make the change to use &str as much as possible
 - v0.5.0 Add classes.
-- v0.5.0 Add rust like decleratoin var some = {};
-- v0.5.0 Allow nameless JS objects like: {x} would be the same as {x: x}
-
-## EasyJS
-- v0.5.0 core
-    - http
-    - ~~json~~
-    - math
-    - random
-    - ui
-    - wasm
-    - pyscript
-
-## Macros
+- v0.5.0 ~~Add rust like decleratoin var some = {};~~
+- v0.5.0 ~~Allow nameless JS objects like: {x} would be the same as {x: x}~~
 
 ## Scripts
 - v0.4.0 ~~add to path (also update path...)~~

@@ -166,6 +166,17 @@ impl<'a> FNBuilder<'a> {
                 // call the function
                 self.add_instruction(Instruction::Call(self.easy_wasm.get_function_idx(&name)));
             }
+            Expression::AssignExpression(_, left, right) => {
+                let left = self.read_identifier(left.as_ref());
+                self.compile_expression(right.as_ref());
+
+                let var = self.get_variable(left);
+                if var.1 {
+                    self.add_instruction(Instruction::LocalSet(var.0.idx));
+                } else {
+                    self.add_instruction(Instruction::GlobalSet(var.0.idx));
+                }
+            }
             _ => {
                 self.add_instruction(make_instruction_for_value(expr));
             }

@@ -304,6 +304,14 @@ mod tests {
             ee = {
                 'hey': 'world'
             }
+
+            x = 1
+            z = 2
+            test = {
+                x,
+                'y': y,
+                z
+            }
         "
         .to_string();
 
@@ -315,7 +323,7 @@ mod tests {
         println!("{:#?}", program.statements);
 
         assert_eq!(p.errors.len(), 0);
-        assert_eq!(program.statements.len(), 3);
+        assert_eq!(program.statements.len(), 5);
     }
 
     #[test]

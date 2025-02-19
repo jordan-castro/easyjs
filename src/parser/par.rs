@@ -1037,16 +1037,31 @@ fn parse_object_literal(p: &mut Parser) -> ast::Expression {
         }
 
         let key = parse_expression(p, LOWEST);
-        if !p.expect_peek(token::COLON) {
-            return ast::Expression::EmptyExpression;
-        }
-        p.next_token();
-        let value = parse_expression(p, LOWEST);
+        // check if key : value
+        if p.peek_token_is(token::COLON) {
+            p.next_token(); // move out of key
+            p.next_token(); // move out of : and into value
+            let value = parse_expression(p, LOWEST);
 
-        if key.is_empty() || value.is_empty() {
-            return ast::Expression::EmptyExpression;
+            // check emtpy
+            if key.is_empty() || value.is_empty() {
+                p.add_error("Empty key or value in object literal".to_string().as_str());
+            }
+
+            elements.push(vec![Box::new(key), Box::new(value)]);
+        } else {
+            // this is not a key : value pair, probably just a KEY
+            // but check the key type, it must be a identifier
+            match key.clone() {
+                ast::Expression::Identifier(_, name) => {
+                    elements.push(vec![Box::new(key.clone()), Box::new(key)]);
+                }
+                _ => {
+                    p.add_error("Expected a key in object literal".to_string().as_str());
+                    return ast::Expression::EmptyExpression;
+                }
+            }
         }
-        elements.push(vec![Box::new(key), Box::new(value)]);
 
         // check for comma.
         if p.peek_token_is(token::COMMA) {
