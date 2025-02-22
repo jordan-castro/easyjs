@@ -2,12 +2,12 @@
 
 ## Compiler
 - v0.5.0 add a LSP and text highlighting
-- v0.4.0 add a minifier option.
+- v0.4.0 ~~add a minifier option.~~
 - v0.5.0 decopouling vairable decleration 
   - var x,y = array // [100,200]
   - var x,y = dictionary // {x: 10, y: 20}
 - v0.4.0 Rework imports.  
-- v0.4.0 Support UNICODE [I_THINK_THIS_ALREADY_WORKS_dog]
+- v0.4.0 ~~Support UNICODE~~
 - v0.4.0 ~~Fix builtins.int_range logic.~~ (I think I'll just remove it. Only using it with for loops.)
 - v0.4.0 ~~add types~~
 - v0.4.0 ~~add ternirary statements (using ? :)~~
@@ -19,6 +19,7 @@
 - v0.5.0 Add classes.
 - v0.5.0 ~~Add rust like decleratoin var some = {};~~
 - v0.5.0 ~~Allow nameless JS objects like: {x} would be the same as {x: x}~~
+- v0.5.0 enums
 
 ## Scripts
 - v0.4.0 ~~add to path (also update path...)~~
