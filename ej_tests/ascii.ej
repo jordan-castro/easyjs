@@ -1,3 +1,5 @@
 emoji = '\u{1b23}'
+n = "Ñ, or ñ (Spanish: eñe, [ˈeɲe]), is a letter of the modern Latin alphabet, formed by placing a tilde (also referred to as a virgulilla in Spanish, in ..."
 
 console.log(emoji)
+console.log(n)
