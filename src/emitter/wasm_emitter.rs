@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 use wasm_encoder::{
-    CodeSection, ConstExpr, ExportKind, ExportSection, Function, FunctionSection, GlobalSection,
-    GlobalType, Instruction, Module, TypeSection, ValType,
+    CodeSection, ConstExpr, DataSection, ExportKind, ExportSection, Function, FunctionSection,
+    GlobalSection, GlobalType, Instruction, MemorySection, MemoryType, Module, TypeSection,
+    ValType,
 };
 
 use crate::{
@@ -12,7 +13,11 @@ use crate::{
 use super::{
     fn_builder::FNBuilder,
     signatures::{FunctionSignature, TypeRegistry},
-    utils::{ get_param_type_by_named_expression, infer_variable_type, make_instruction_for_value, StrongValType},
+    strings::{allocate_string, get_length_string, store_string, GLOBAL_STRING_OFFSET},
+    utils::{
+        get_param_type_by_named_expression, infer_variable_type, make_instruction_for_value,
+        StrongValType,
+    },
     variables::WasmVariables,
 };
 
@@ -39,6 +44,9 @@ pub struct EasyWasm {
     /// Global section
     global_section: GlobalSection,
 
+    /// Memory section
+    memory_section: MemorySection,
+
     /// The global variables
     pub variables: WasmVariables,
 
@@ -59,9 +67,12 @@ pub fn emit_wasm(stmts: Vec<Statement>) -> Vec<u8> {
         code_section: CodeSection::new(),
         function_names: HashMap::new(),
         global_section: GlobalSection::new(),
+        memory_section: MemorySection::new(),
         variables: WasmVariables::new(),
         errors: vec![],
     };
+
+    easy_wasm.setup();
 
     // iterate over the statements and add them to the module
     for stmt in stmts {
@@ -79,6 +90,49 @@ pub fn emit_wasm(stmts: Vec<Statement>) -> Vec<u8> {
 }
 
 impl EasyWasm {
+    /// Setup the EasyWasm module.
+    ///
+    /// This includes builtin functions for strings, arrays, dictionaries, structs, classes.
+    fn setup(&mut self) {
+        // add memory (just 1 page for now)
+        self.memory_section.memory(MemoryType {
+            minimum: 1,
+            maximum: None,
+            memory64: false,
+            shared: false,
+            page_size_log2: None,
+        });
+
+        // add global variables
+        let global_variables = [GLOBAL_STRING_OFFSET];
+        for global_var in global_variables {
+            self.global_section.global(
+                GlobalType {
+                    val_type: ValType::I32,
+                    mutable: true,
+                    shared: false,
+                },
+                &ConstExpr::i32_const(global_var as i32),
+            );
+        }
+
+        // add easy_native_fns in order!
+        let easy_native_fns = [allocate_string(), store_string(), get_length_string()];
+        for fn_def in easy_native_fns {
+            // add to type registry
+            let type_index = self
+                .type_registry
+                .add(fn_def.signature.clone(), fn_def.name.clone());
+            // add to function names.
+            self.function_names
+                .insert(fn_def.name.clone(), format!("f{}", fn_def.idx));
+            // add to function section
+            self.function_section.function(type_index);
+            // add to codes section
+            self.code_section.function(&fn_def.function);
+        }
+    }
+
     fn finish(&mut self) -> Vec<u8> {
         // Type Section (Defines function signatures)
         self.type_registry.emit(&mut self.module);
@@ -87,6 +141,7 @@ impl EasyWasm {
         self.module.section(&self.function_section);
         // Table Section (For indirect function calls)
         // Memory Section (Defines memory for the module)
+        self.module.section(&self.memory_section);
         // Global Section (Declares global variables)
         self.module.section(&self.global_section);
         // Export Section (Exports functions, memory, globals, etc.)
@@ -122,7 +177,9 @@ impl EasyWasm {
                 get_param_type_by_named_expression(ty.as_ref().to_owned())
             } else {
                 if !infer_type {
-                    self.add_error(EasyError::UnsupportedType("Type not supported.".to_string()));
+                    self.add_error(EasyError::UnsupportedType(
+                        "Type not supported.".to_string(),
+                    ));
                     return;
                 } else {
                     infer_variable_type(val, &self.variables, &self.type_registry)
@@ -186,22 +243,10 @@ impl EasyWasm {
     fn add_statement(&mut self, stmt: Statement, is_public: bool) {
         match stmt.clone() {
             Statement::VariableStatement(tk, var, var_type, value, infer_type) => {
-                self.add_variable(
-                    var.as_ref(),
-                    var_type,
-                    value.as_ref(),
-                    true,
-                    infer_type
-                );
+                self.add_variable(var.as_ref(), var_type, value.as_ref(), true, infer_type);
             }
             Statement::ConstVariableStatement(_, var, ty, value, infer_type) => {
-                self.add_variable(
-                    var.as_ref(),
-                    ty,
-                    value.as_ref(),
-                    false,
-                    infer_type
-                );
+                self.add_variable(var.as_ref(), ty, value.as_ref(), false, infer_type);
             }
             Statement::ExpressionStatement(tk, expr) => match expr.as_ref().to_owned() {
                 Expression::FunctionLiteral(tk, name, params, var_type, body) => {
@@ -251,7 +296,9 @@ impl EasyWasm {
             .collect();
         let results = {
             if let Some(return_type) = return_type {
-                vec![get_param_type_by_named_expression(return_type.as_ref().to_owned())]
+                vec![get_param_type_by_named_expression(
+                    return_type.as_ref().to_owned(),
+                )]
             } else {
                 vec![]
             }
@@ -325,7 +372,8 @@ impl EasyWasm {
         for param in params {
             match param.clone() {
                 Expression::IdentifierWithType(tk, name, var_type) => {
-                    let strong_type = get_param_type_by_named_expression(var_type.as_ref().to_owned());
+                    let strong_type =
+                        get_param_type_by_named_expression(var_type.as_ref().to_owned());
                     match strong_type {
                         StrongValType::Some(ty) => {
                             fn_builder.add_param(name, ty);

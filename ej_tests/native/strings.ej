@@ -1,0 +1,5 @@
+native {
+    pub fn testing_setting_string() {
+        var test: int = "Hello world"
+    }
+}

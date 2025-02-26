@@ -36,10 +36,6 @@ impl<'a> FNBuilder<'a> {
             locals: Vec::new(),
         }
     }
-    /// Add a variable reference to the function. Locals ONLY!
-    pub fn add_variable_reference(&mut self, name: String, val_type: ValType) {
-        self.variables.add_variable(name, val_type);
-    }
 
     /// Add a parameter to the function.
     pub fn add_param(&mut self, name: String, param: ValType) {
@@ -178,7 +174,10 @@ impl<'a> FNBuilder<'a> {
                 }
             }
             _ => {
-                self.add_instruction(make_instruction_for_value(expr));
+                let instructions = make_instruction_for_value(expr);
+                for instruction in instructions {
+                    self.add_instruction(instruction);
+                }
             }
         }
     }
@@ -247,16 +246,11 @@ impl<'a> FNBuilder<'a> {
         self.add_instruction(Instruction::End);
         let mut res = Vec::new();
 
-        // Pair locals with the amount of each type.
         for local in self.locals.iter() {
-            let count = res.iter_mut().find(|(count, ty)| ty == local);
-            if let Some((count, _)) = count {
-                *count += 1;
-            } else {
-                res.push((1, *local));
-            }
+            // Instead of grouping, store locals as they are declared
+            res.push((1, *local));
         }
-
+        
         // The instructions stay as they are
         let instructions = self.instructions.clone();
 
