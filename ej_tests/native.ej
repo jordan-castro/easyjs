@@ -34,4 +34,10 @@ native {
     fn read_global_test(): int {
         return global_variable
     }
+
+    fn set_and_param(p1 : int): int {
+        var x := 2121
+
+        return x + p1
+    }
 }

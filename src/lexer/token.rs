@@ -123,7 +123,6 @@ pub const WITH: &str = "WITH";
 pub const CORE: &str = "CORE";
 pub const BASE: &str = "BASE";
 pub const JS: &str = "JS";
-pub const STRING_IMPORT: &str = "STRING_IMPORT";
 
 // Builtin methods
 pub const BUILTIN: &str = "BUILTIN";
@@ -157,7 +156,6 @@ pub fn lookup_ident(ident: &str) -> &'static str {
         "core" => CORE,
         "base" => BASE,
         "js" => JS,
-        "string" => STRING_IMPORT,
         "pub" => PUB,
         "is" => IS,
         "var" => VAR,

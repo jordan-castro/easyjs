@@ -1,5 +1,13 @@
 use std::collections::HashMap;
-use wasm_encoder::{Module, TypeSection, FunctionSection, CodeSection, Instruction, ValType};
+use wasm_encoder::{CodeSection, Function, FunctionSection, Instruction, Module, TypeSection, ValType};
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EasyNativeFN {
+    pub signature: FunctionSignature,
+    pub function: Function,
+    pub name: String,
+    pub idx: u32
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct FunctionSignature {
@@ -25,22 +33,18 @@ impl TypeRegistry {
         }
     }
 
-    /// add a signature
+    /// Add a new signature
     pub fn add(&mut self, sig: FunctionSignature, name: String) -> u32 {
-        if let Some(&idx) = self.lookup.get(&sig) {
-            idx
-        } else {
-            let idx = self.signatures.len() as u32;
-            let result_value = {
-                let results = sig.clone().results;
-                results.first().cloned()
-            };
-            self.signatures.push(sig.clone());
-            self.lookup.insert(sig, idx);
-            self.name_lookup.insert(name, idx);
-            self.type_lookup.insert(idx, result_value);
-            idx
-        }
+        let idx = self.signatures.len() as u32; // Always get a new index
+        let result_value = {
+            let results = sig.clone().results;
+            results.first().cloned()
+        };
+        self.signatures.push(sig.clone());
+        self.lookup.insert(sig, idx);  // Remove this line if you don't want deduplication
+        self.name_lookup.insert(name, idx);
+        self.type_lookup.insert(idx, result_value);
+        idx
     }
 
     /// Get the return type of a function.
