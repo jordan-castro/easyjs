@@ -6,7 +6,8 @@ pub struct EasyNativeFN {
     pub signature: FunctionSignature,
     pub function: Function,
     pub name: String,
-    pub idx: u32
+    pub idx: u32,
+    pub is_public: bool
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

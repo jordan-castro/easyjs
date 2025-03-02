@@ -1,0 +1,57 @@
+<head>
+    <script type="module">
+        // Compiled by EasyJS version 0.2.3
+        import init, { compile_easy_js } from "/easyjsc.js"
+        async function load_ej_file(file_path) {
+            return (await fetch(file_path)).text();
+        }
+        init().then(async () => {
+            const scripts = document.querySelectorAll('script[type="easyjs"]');
+            for (let script of scripts) {
+                let code = null;
+                if (script.hasAttribute('src')) {
+                    code = await load_ej_file(script.getAttribute('src'));
+                } else {
+                    code = script.textContent;
+                };
+                const cc = compile_easy_js(code);
+                const ej_el = document.createElement('script');
+                ej_el.textContent = cc;
+                if (script.hasAttribute('module')) {
+                    ej_el.type = 'module';
+                } else {
+                    ej_el.type = 'text/javascript';
+                };
+                const cloned_script = ej_el.cloneNode(true);
+                document.body.appendChild(cloned_script);
+                document.body.removeChild(script);
+            }
+        });
+    </script>
+</head>
+
+<html>
+    <body>
+        <p>easyjs works!</p>
+        <script type="easyjs">
+            document.title = "Hello world!"
+            native {
+                pub fn testing_setting_string(): string {
+                    var test: string = "Hello world"
+                    return test
+                }
+                pub fn test_add(x:int, y:int): int {
+                    return x + y
+                }
+            
+                pub fn test_r_string(name: string):string {
+                    return name
+                }
+            }
+            
+            console.log(await testing_setting_string())
+            console.log(await test_add(1,2))
+            console.log(await test_r_string("jordan")) 
+        </script>
+    </body>
+</html>

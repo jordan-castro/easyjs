@@ -26,13 +26,26 @@
 
 ## WASM
 - v0.4.0 ~~wasmer functions~~
-- v0.4.0 ~~compile wasm funct.ions AOT or JIT or don't compile and just interpret at the Rust Level.~~
+- v0.4.0 ~~compile wasm funct.ions AOT or JIT or don't compile and just interpret at the Rust Level.~~ AOT
 - v0.4.0 Additions
   - smart memory
     - strings
+      - add 2 strings together
+      - [] char at position
+      - toUpper 
+      - toLower
     - arrays
+      - push
+      - append
+      - [] object at position
+      - remove
+    - dicts
+      - key, value
+      - set, get by key
+      - dot expression
     - classes
     - structs
+    - GC
   - ~~global variables~~
   - import functions from external.
   - ~~call other functions~~
