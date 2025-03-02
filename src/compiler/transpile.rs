@@ -1,8 +1,8 @@
 // use boa_engine::{value, Context};
 use std::collections::HashMap;
 use std::fmt::format;
-use std::io::Write;
-use std::path;
+// use std::io::Write;
+// use std::path;
 
 use super::macros::Macro;
 use crate::emitter::wasm_emitter::emit_wasm;
@@ -23,6 +23,23 @@ struct Variable {
     is_mutable: bool
 }
 
+/// Used only in transpiler and type checker.
+/// Used to track native function calls.
+/// 
+/// i.e. convert native() to __easyjs_native_call("native", ["params"], ["returns"], ...args);
+struct NativeFunction {
+    params: Vec<String>,
+    returns: Vec<String>,
+    name: String
+}
+
+/// Used only in transpiler and type checker.
+/// Holds all native for project.
+struct NativeContext {
+    functions: Vec<NativeFunction>,
+    variables: Vec<String>
+}
+
 pub struct Transpiler {
     /// Stmt by Stmt
     scripts: Vec<String>,
@@ -40,7 +57,11 @@ pub struct Transpiler {
     scopes: Vec<Vec<Variable>>,
 
     /// Track all native statements
-    native_stmts: Vec<Statement>
+    native_stmts: Vec<Statement>,
+
+    /// Track native variables and functions
+    native_ctx: NativeContext
+    
 }
 
 impl Transpiler {
@@ -53,13 +74,107 @@ impl Transpiler {
             structs: vec![],
             scopes: vec![],
             structs_in_modules: vec![],
-            native_stmts: vec![]
+            native_stmts: vec![],
+            native_ctx: NativeContext { functions: vec![], variables: vec![] }
         };
 
         // add the first scope. This scope will never be popped.
         t.add_scope();
         t
     }
+
+    /// Add a statement to the native context.
+    /// 
+    /// Only adds `pub` statements.
+    /// 
+    /// pass in is_export to know if we are already inside a export statement.
+    /// Otherwise any other stmt will fail if not inside an export.
+    fn add_stmt_to_native_ctx(&mut self, stmt: &Statement, is_export: bool) {
+        match stmt {
+            Statement::ExportStatement(_, stmt) => {
+                self.add_stmt_to_native_ctx(stmt, true);
+            }
+            Statement::ExpressionStatement(_, expr) => {
+                if !is_export {
+                    return;
+                }
+
+                self.add_expr_to_native_ctx(expr.as_ref());
+            }
+            _ => {
+                return;
+            }
+        }
+    }
+
+    /// Add a expression to the native context.
+    /// 
+    /// Currently only used for functions. Could potentially be used for global varaibles too, but not ideal atm.
+    /// 
+    /// Advanced developers would not need to even use this. They could just call __easyjs_native_call directly.
+    /// 
+    /// Or __easyjs_native_instance directly.
+    fn add_expr_to_native_ctx(&mut self, expr: &Expression) {
+        match expr {
+            Expression::FunctionLiteral(_, name, params, result, _) => {
+                // find out param types (as string...)
+                let param_types = {
+                    let mut param_types = vec![];
+                    for param in params.as_ref().to_owned() {
+                        match param {
+                            Expression::IdentifierWithType(_, _, ty) => {
+                                match ty.as_ref() {
+                                    Expression::Type(_, t) => {
+                                        param_types.push(t.to_owned());
+                                    }
+                                    _ => {
+                                        unimplemented!("TODO: how is this not a type?");
+                                    }
+                                }
+                            }
+                            _ => {
+                                unimplemented!("TODO: add some kind of error for no type.");
+                            }
+                        }
+                    }
+
+                    param_types
+                };
+                // find out return types (as string...)
+                let return_types = {
+                    if let Some(result) = result {
+                        match result.as_ref() {
+                            Expression::Type(_, ty) => {
+                                ty.to_owned()
+                            }
+                            _ => {
+                                unimplemented!("TODO: add some kind of error for no type.");
+                            }
+                        }
+                    } else {
+                        unimplemented!("TODO: add some kind of error for no type.");
+                    }
+                };
+
+                let fn_name = match name.as_ref() {
+                    Expression::Identifier(_, n) => n.to_owned(),
+                    _ => {
+                        unimplemented!("TODO: add some kind of error for no fn_name.");
+                    }
+                };
+
+                // add to ctx
+                self.native_ctx.functions.push(NativeFunction {
+                    params: param_types,
+                    returns: vec![return_types],
+                    name: fn_name
+                });
+            } 
+            _ => {
+                return;
+            }
+        }
+    }  
 
     pub fn reset(&mut self) {
         self.scripts = vec![];
@@ -175,16 +290,19 @@ impl Transpiler {
     fn to_string(&self) -> String {
         let mut res = String::new();
 
-        // TODO: compile native...
-        // let compiled_native = emitter::wasm_emitter::emit_wasm(self.native_stmts.clone());
-        // res.push_str("const n_a_t_i_v_e = new WebAssembly.Instance(new WebAssembly.Module(Uint8Array.from([");
-        // for byte in compiled_native {
-        //     res.push_str(&format!("{},", byte));
-        // }
-        // res.push_str("])));\n");
+        if self.native_stmts.len() > 0 {
+            res.push_str("(async () => {\n");
+            // compiile native
+            res.push_str(&self.transpile_native_stmts());
+        }
 
         for script in self.scripts.iter() {
             res.push_str(&script);
+        }
+
+        if self.native_stmts.len() > 0 {
+            // close native and call script.
+            res.push_str("})()");
         }
 
         res
@@ -204,12 +322,41 @@ impl Transpiler {
     }
 
     fn transpile_from(&mut self, p: ast::Program) -> String {
-        for stmt in p.statements {
+        // seperate stmt types
+        let native_stmts = p.statements.iter().filter(|p| p.is_native()).collect::<Vec<_>>();
+        let statements = p.statements.iter().filter(|p| !p.is_native()).collect::<Vec<_>>();
+        
+        // compile native stmts first
+        for stmt in native_stmts {
             if stmt.is_empty() {
                 continue;
             }
 
-            let script = self.transpile_stmt(stmt);
+            // get the stmts inside of Native
+            match stmt {
+                Statement::NativeStatement(_, stmts) => {
+                    // loop through body
+                    for stmt in stmts.as_ref() {
+                        // add to native_stmts
+                        self.native_stmts.push(stmt.clone());
+
+                        // add to context
+                        self.add_stmt_to_native_ctx(stmt, false);
+                    }
+                }
+                _ => {
+                    unimplemented!("TODO: error for not being a NativeStatement");
+                }
+            }
+        }
+
+        // transpile JS statements..
+        for stmt in statements {
+            if stmt.is_empty() {
+                continue;
+            }
+
+            let script = self.transpile_stmt(stmt.to_owned());
             if let Some(script) = script {
                 // add to context
                 // let _ = interpret_js(&script, &mut self.context);
@@ -284,26 +431,129 @@ impl Transpiler {
             Statement::MatchStatement(tk, expr, conditions) => {
                 Some(self.transpile_match_stmt(tk, expr.as_ref().to_owned(), conditions.as_ref().to_owned()))
             }
-            Statement::NativeStatement(tk, stmts) => {
-                Some(self.transpile_native_stmt(stmts.as_ref().to_owned()))
-            }
-            // Statement::NativeStatement(tk, stmts) => {
-            //     // add statments
-            //     for stmt in stmts.as_ref().to_owned() {
-            //         self.native_stmts.push(stmt);
-            //     }
-            //     None
-            // }
             _ => None,
         }
     }
 
-    fn transpile_native_stmt(&mut self, stmts: Vec<Statement>) -> String {
+    fn transpile_native_stmts(&self) -> String {
         let mut res = String::new();
-        let easy_wasm = emit_wasm(stmts);
+        let easy_wasm = emit_wasm(self.native_stmts.clone());
+        // TODO: DO NOT SAVE TO FILE... This is only for testing...
         // save the wasm to a file
-        let mut file = std::fs::File::create("easyjs.wasm").unwrap();
-        file.write(&easy_wasm).unwrap();
+        // let mut file = std::fs::File::create("easyjs.wasm").unwrap();
+        // file.write(&easy_wasm).unwrap();
+
+        res.push_str("const __easyjs_native_binary = new Uint8Array([");
+        for byte in easy_wasm {
+            res.push_str(&byte.to_string());
+            res.push_str(",");
+        }
+        res.push_str("]);\n");
+
+        res.push_str("
+            const __easyjs_native = await WebAssembly.instantiate(__easyjs_native_binary.buffer);
+            const __easyjs_native_instance = __easyjs_native.instance;
+            class __EasyJSNativeInterop {
+                /**
+                 * Function for converting a string to native.
+                 */
+                static convert_string_to_native(instance, str) {
+                    // get length and bytes
+                    const strLen = str.length;
+                    const strBytes = new TextEncoder('utf-8').encode(str);
+
+                    // allocate space and get pointer
+                    const ptr = instance.exports.__str_alloc(strLen);
+
+                    // store length
+                    instance.exports.__str_store_len(ptr, strLen);
+
+                    // Write the string to memory
+                    for (let i = 0; i < strBytes.length; i++) {
+                        instance.exports.__str_store_byte(ptr + i, strBytes[i]);
+                    }
+                    return ptr;
+                }
+
+                /**
+                 * Function for reading a string from native.
+                 */
+                static read_string_from_native(instance, ptr) {
+                    const length = instance.exports.__str_len(ptr);
+
+                    const memoryBuffer = new Uint8Array(instance.exports.memory.buffer, ptr + 4, length);
+
+                    // Decode the string
+                    const decodedString = new TextDecoder('utf-8').decode(memoryBuffer);
+
+                    return decodedString;
+                }
+            }
+
+            async function __easyjs_native_call(fnName, paramTypes, returnTypes, ...args) {
+                if (!__easyjs_native_instance) {
+                    throw new Error('No instance of __easyjs_native loaded');
+                }
+
+                if (!__easyjs_native_instance.exports[fnName]) {
+                    throw new Error(`Function ${fnName} not found in __easyjs_native`);
+                }
+
+                if (paramTypes.length !== args.length) {
+                    throw new Error('Number of arguments does not match number of parameters');
+                }
+
+                // go through params and make sure args match type
+                for (let i = 0; i < args.length; i++) {
+                    const arg = args[i];
+                    const paramType = paramTypes[i];
+
+                    switch (paramType) {
+                        case 'string': {
+                        if (typeof arg !== 'string') {
+                            throw new Error(`Argument ${i} is not a string`);
+                        }
+
+                        // this is a string so we need to convert it to a native pointer.
+                        args[i] = __EasyJSNativeInterop.convert_string_to_native(__easyjs_native_instance, args[i])
+                        break;
+                        }
+                        case 'int': {
+                        if (typeof arg !== 'number' || !Number.isInteger(arg)) {
+                            throw new Error(`Argument ${i} is not an integer`);
+                        }
+                        break;
+                        }
+                        case 'float': {
+                        if (typeof arg !== 'number' || isNaN(arg)) {
+                            throw new Error(`Argument ${i} is not a valid float`);
+                        }
+                        break;
+                        }
+                    }
+                }
+
+                let result = __easyjs_native_instance.exports[fnName](...args);
+
+                // match result type
+                // TODO: support multiple return types
+                switch (returnTypes[0]) {
+                    case 'string': {
+                        // get length
+                        result = __EasyJSNativeInterop.read_string_from_native(__easyjs_native_instance, result);
+                        break;
+                    }
+                    case 'int': {
+                        break;
+                    }
+                    case 'float': {
+                        break;
+                    }
+                }
+
+                return result;
+            }\n\n
+        ");
 
         res
     }
@@ -891,13 +1141,40 @@ impl Transpiler {
                 let mut res = String::new();
 
                 let name_exp = self.transpile_expression(name.as_ref().to_owned());
-                if name_exp.chars().nth(0).unwrap().is_ascii_uppercase() {
-                    res.push_str(&name_exp);
-                } else {
-                    res.push_str(name_exp.as_str());
-                }
+                
+                // check if name_exp exists in native_ctx
+                let native_fn = self.native_ctx.functions.iter().find(|f| f.name == name_exp);
+                if native_fn.is_some() {
+                    let native_fn = native_fn.unwrap();
+                    // native call
+                    res.push_str("__easyjs_native_call(");
+                    // add name
+                    res.push_str(format!("'{}',", native_fn.name).as_str());
 
-                res.push_str("(");
+                    // add param_types
+                    res.push_str("[");
+                    for param_type in native_fn.params.iter() {
+                        res.push_str(format!("'{}'", param_type).as_str());
+                        res.push_str(",");
+                    }
+                    res.push_str("],");
+                    
+                    // add return types
+                    res.push_str("[");
+                    for return_type in native_fn.returns.iter() {
+                        res.push_str(format!("'{}'", return_type).as_str());
+                        res.push_str(",");
+                    }
+                    res.push_str("]");
+
+                    // check if we need to add a ','
+                    if arguments.as_ref().len() > 0 {
+                        res.push_str(",");
+                    }
+                } else {
+                    res.push_str(&name_exp);
+                    res.push_str("(");
+                }
 
                 // parse the args
                 let mut parsed_args = vec![];

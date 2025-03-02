@@ -1,7 +1,7 @@
 import os
 import shutil
 
-# os.system("wasm-pack build --target web")
+os.system("wasm-pack build --target web")
 
 # check for bin
 if not os.path.exists("bin"):

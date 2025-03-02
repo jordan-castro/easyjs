@@ -89,6 +89,10 @@ impl Statement {
     pub fn is_empty(&self) -> bool {
         self.eq(Statement::EmptyStatement)
     }
+
+    pub fn is_native(&self) -> bool {
+        self.variant_type() == "NativeStatement"
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -187,6 +191,8 @@ pub enum Expression {
     /// Type expression
     Type(tk::Token, String),
     /// IIFE
+    /// 
+    /// var a = fn { return 1 } // a = 1
     IIFE(tk::Token, Box<Statement>),
 }
 

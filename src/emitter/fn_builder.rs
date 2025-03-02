@@ -5,7 +5,12 @@ use wasm_encoder::{Instruction, ValType};
 use crate::parser::ast::{Expression, Statement};
 
 use super::{
-    utils::{ get_param_type_by_named_expression, get_param_type_by_string, infer_variable_type, make_instruction_for_value, StrongValType},
+    instruction_generator::set_local_string,
+    strings::ALLOCATE_STRING_IDX,
+    utils::{
+        get_param_type_by_named_expression, get_param_type_by_string, infer_variable_type,
+        make_instruction_for_value, StrongValType,
+    },
     variables::{WasmVariable, WasmVariables},
     wasm_emitter::EasyWasm,
 };
@@ -90,12 +95,14 @@ impl<'a> FNBuilder<'a> {
             Expression::Identifier(_, name) => {
                 // it's a variable...
                 self.get_variable(name.to_owned()).0.ty
-            },
+            }
             Expression::Type(_, ty) => {
                 let t = get_param_type_by_string(ty.to_owned());
                 match t {
-                    Some(v) => v,
-                    None => unimplemented!()
+                    StrongValType::Some(v) => v,
+                    StrongValType::None => unimplemented!(),
+                    StrongValType::String => ValType::I32,
+                    StrongValType::NotSupported => unimplemented!(),
                 }
             }
             _ => {
@@ -192,6 +199,7 @@ impl<'a> FNBuilder<'a> {
             }
             Statement::VariableStatement(_, name, var_type, value, infer_type) => {
                 let name = self.read_identifier(name.as_ref());
+                let mut is_string = false;
 
                 let var_type = {
                     if let Some(var_type) = var_type {
@@ -200,14 +208,20 @@ impl<'a> FNBuilder<'a> {
                         if !infer_type {
                             unimplemented!();
                         } else {
-                            infer_variable_type(value, &self.variables, &self.easy_wasm.type_registry_ref())
+                            infer_variable_type(
+                                value,
+                                &self.variables,
+                                &self.easy_wasm.type_registry_ref(),
+                            )
                         }
                     }
                 };
 
                 let var_type = match var_type {
-                    StrongValType::Some(v) => {
-                        v
+                    StrongValType::Some(v) => v,
+                    StrongValType::String => {
+                        is_string = true;
+                        ValType::I32
                     }
                     _ => {
                         unimplemented!();
@@ -221,11 +235,28 @@ impl<'a> FNBuilder<'a> {
                     .get_variable_by_name(&name)
                     .expect("Variable not found");
 
-                // Ensure the expression emits a value before storing it in the local
-                self.compile_expression(value.as_ref());
+                if !is_string {
+                    // Ensure the expression emits a value before storing it in the local
+                    self.compile_expression(value.as_ref());
 
-                // Set the local variable
-                self.add_instruction(Instruction::LocalSet(wasm_var.idx));
+                    // Set the local variable
+                    self.add_instruction(Instruction::LocalSet(wasm_var.idx));
+                } else {
+                    // a little special here...
+                    // TODO: maybe this will be used for all memory types? [strings, arrays, structs, dictionaries, etc...]
+                    match value.as_ref().to_owned() {
+                        Expression::StringLiteral(_, v) => {
+                            let instructions = set_local_string(wasm_var.idx, v);
+                            for instruction in instructions {
+                                self.add_instruction(instruction);
+                            }
+                        }
+                        _ => {
+                            unimplemented!();
+                        }
+                    }
+                    // set_local_string(wasm_var.idx, string);
+                }
             }
             Statement::ReturnStatement(_, expr) => {
                 self.compile_expression(expr.as_ref());
@@ -250,7 +281,7 @@ impl<'a> FNBuilder<'a> {
             // Instead of grouping, store locals as they are declared
             res.push((1, *local));
         }
-        
+
         // The instructions stay as they are
         let instructions = self.instructions.clone();
 

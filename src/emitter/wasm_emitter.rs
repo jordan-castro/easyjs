@@ -13,7 +13,7 @@ use crate::{
 use super::{
     fn_builder::FNBuilder,
     signatures::{FunctionSignature, TypeRegistry},
-    strings::{allocate_string, get_length_string, store_string, GLOBAL_STRING_OFFSET},
+    strings::{allocate_string, get_length_string, GLOBAL_STRING_IDX, store_string_byte, store_string_length},
     utils::{
         get_param_type_by_named_expression, infer_variable_type, make_instruction_for_value,
         StrongValType,
@@ -103,8 +103,11 @@ impl EasyWasm {
             page_size_log2: None,
         });
 
+        // export it
+        self.export_section.export("memory", ExportKind::Memory, 0);
+
         // add global variables
-        let global_variables = [GLOBAL_STRING_OFFSET];
+        let global_variables = [GLOBAL_STRING_IDX];
         for global_var in global_variables {
             self.global_section.global(
                 GlobalType {
@@ -117,7 +120,7 @@ impl EasyWasm {
         }
 
         // add easy_native_fns in order!
-        let easy_native_fns = [allocate_string(), store_string(), get_length_string()];
+        let easy_native_fns = [allocate_string(), store_string_byte(), get_length_string(), store_string_length()];
         for fn_def in easy_native_fns {
             // add to type registry
             let type_index = self
@@ -130,6 +133,11 @@ impl EasyWasm {
             self.function_section.function(type_index);
             // add to codes section
             self.code_section.function(&fn_def.function);
+
+            // if it is public, export it
+            if fn_def.is_public {
+                self.export_section.export(&fn_def.name, ExportKind::Func, fn_def.idx);
+            }
         }
     }
 
@@ -203,6 +211,11 @@ impl EasyWasm {
             }
             StrongValType::Some(t) => {
                 val_type = t;
+            }
+            StrongValType::String => {
+                // TODO:...
+                val_type = ValType::I32;
+                // unimplemented!("Strings in wasm_emitter");
             }
         }
 
@@ -310,12 +323,13 @@ impl EasyWasm {
             for param in wasm_params.iter() {
                 match param {
                     StrongValType::Some(ty) => vals.push(ty.clone()),
+                    StrongValType::String => vals.push(ValType::I32),
                     _ => {
                         self.add_error(EasyError::UnsupportedType(
                             "Type is not supported".to_string(),
                         ));
                         return;
-                        // unimplemented!();
+                        unimplemented!("Wasm paramter is not supported");
                     }
                 }
             }
@@ -326,6 +340,7 @@ impl EasyWasm {
             for param in results.iter() {
                 match param {
                     StrongValType::Some(ty) => vals.push(ty.clone()),
+                    StrongValType::String => vals.push(ValType::I32),
                     _ => {
                         self.add_error(EasyError::UnsupportedType(
                             "Type is not supported".to_string(),
@@ -378,9 +393,12 @@ impl EasyWasm {
                         StrongValType::Some(ty) => {
                             fn_builder.add_param(name, ty);
                         }
+                        StrongValType::String => {
+                            fn_builder.add_param(name, ValType::I32);
+                        }
                         _ => {
                             // we will never get here!
-                            unimplemented!();
+                            unimplemented!("Function paramater is not supported.");
                         }
                     }
                 }

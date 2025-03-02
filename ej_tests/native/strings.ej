@@ -1,5 +1,23 @@
+// This example runs in the browser.
+
 native {
-    pub fn testing_setting_string() {
-        var test: int = "Hello world"
+    pub fn testing_setting_string(): string {
+        var test: string = "Hello world"
+        return test
+    }
+    pub fn test_add(x:int, y:int): int {
+        return x + y
+    }
+
+    pub fn test_r_string(name: string):string {
+        return name
+    }
+
+    pub fn add_parens(): int {
+        return 1 + 1
     }
 }
+
+console.log(await testing_setting_string())
+console.log(await test_add(1,2))
+console.log(await test_r_string("jordan"))

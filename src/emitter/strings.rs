@@ -1,150 +1,132 @@
 use wasm_encoder::{BlockType, Function, Instruction, MemArg, TypeSection, ValType};
 
-use super::signatures::{EasyNativeFN, FunctionSignature};
+use super::{instruction_generator::{get_global, get_local, i32_store, i32_store_8, set_global, set_local_to_global}, signatures::{EasyNativeFN, FunctionSignature}};
 
-pub const GLOBAL_STRING_OFFSET: u32 = 1024;
-const GLOBAL_STRING_IDX: u32 = 0;
+pub const GLOBAL_STRING_IDX: u32 = 0;
 
 pub const ALLOCATE_STRING_IDX: u32 = 0;
-// pub const STORE_STRING_IDX: u32 = 1;
-pub const GET_STRING_LENGTH_IDX: u32 = 1;
-const GET_STRING_IDX: u32 = 2;
-const CONCAT_STRING_IDX: u32 = 3;
-const FREE_STRING_IDX: u32 = 4;
+pub const STORE_STRING_BYTE_IDX: u32 = 1;
+pub const GET_STRING_LENGTH_IDX: u32 = 2;
+pub const STORE_STRING_LENGTH_IDX: u32 = 3;
+const CONCAT_STRING_IDX: u32 = 4;
+const FREE_STRING_IDX: u32 = 5;
 
 /// Create a function for allocationg strings in memory via easyjs native.
 ///
 /// This function allocates the string in memory and returns a pointer to it.
 pub fn allocate_string() -> EasyNativeFN {
-    let locals = vec![];
-    let mut function = Function::new(locals);
+    let locals = vec![(1, ValType::I32)]; // Local variable: the ptr
+    let mut instructions = vec![];
 
-    // Get current GLOBAL_STRING_OFFSET (initial pointer)
-    function.instruction(&Instruction::GlobalGet(GLOBAL_STRING_IDX));
+    // set ptr to GLOBAL_STRING_IDX
+    instructions.append(&mut set_local_to_global(1, GLOBAL_STRING_IDX));
 
-    // Update GLOBAL_STRING_OFFSET after allocation
-    function.instruction(&Instruction::GlobalGet(GLOBAL_STRING_IDX));
-    function.instruction(&Instruction::LocalGet(0));
-    function.instruction(&Instruction::I32Add);
-    function.instruction(&Instruction::GlobalSet(GLOBAL_STRING_IDX));
+    // get length of string
+    instructions.append(&mut get_local(0));
+    // add 4 to keep string length
+    instructions.push(Instruction::I32Const(4));
+
+    // add together
+    instructions.push(Instruction::I32Add);
+
+    // add current global
+    instructions.append(&mut get_global(GLOBAL_STRING_IDX));
+    instructions.push(Instruction::I32Add);
+
+    // set global
+    instructions.append(&mut set_global(GLOBAL_STRING_IDX));
+
+    // return pointer
+    instructions.append(&mut get_local(1));
 
     // Return original pointer (before allocation)
-    function.instruction(&Instruction::End);
+    instructions.push(Instruction::End);
+
+    let mut function = Function::new(locals);
+    for instruction in instructions {
+        function.instruction(&instruction);
+    }
 
     EasyNativeFN {
         signature: FunctionSignature {
-            params: vec![ValType::I32],
+            params: vec![ValType::I32], // the size of the string
             results: vec![ValType::I32],
         },
         function,
-        name: "allocate_string".to_string(),
+        name: "__str_alloc".to_string(),
         idx: ALLOCATE_STRING_IDX,
+        is_public: true
     }
 }
 
-// /// Create a function for storing strings in memory via easyjs native.
-// pub fn store_string_byte() -> EasyNativeFN {
-//     let locals = vec![];
-//     let mut function = Function::new(locals);
-// }
+/// Create a function for storing the length of a string
+pub fn store_string_length() -> EasyNativeFN {
+    let locals = vec![];
 
-// pub fn store_string() -> EasyNativeFN {
-//     let locals = vec![(2, ValType::I32)]; // Local variables: ptr, i for loop
+    let mut instructions = vec![];
 
-//     // The length of the string
-//     let str_length_local: u32 = 0;
-//     // the bytes of the string
-//     let str_bytes: u32 = 1;
-//     // The ptr that will be set from allocate_string
-//     let ptr_local: u32 = 2;
-//     // For the loop
-//     let i_local: u32 = 3;
+    // Get position and length
+    instructions.append(&mut get_local(0));
+    instructions.append(&mut get_local(1));
 
-//     let mut function = Function::new(locals);
+    // store it
+    instructions.append(&mut i32_store(0,0,0));
 
-//     // 1. Allocate memory... (string length + data)
-//     // string length
-//     function.instruction(&Instruction::LocalGet(str_length_local));
-//     function.instruction(&Instruction::I32Const(4)); // ADD 4 bytes for a easy way to determine string length later on.
-//     function.instruction(&Instruction::I32Add);
-//     function.instruction(&Instruction::Call(ALLOCATE_STRING_IDX));
-//     // store pointer
-//     function.instruction(&Instruction::LocalSet(ptr_local));
+    instructions.push(Instruction::End);
 
-//     // 2. Store length at the start
-//     function.instruction(&Instruction::LocalGet(str_length_local));
-//     function.instruction(&Instruction::LocalGet(ptr_local));
-//     function.instruction(&Instruction::I32Store(MemArg {
-//         align: 2,
-//         offset: 0,
-//         memory_index: 0,
-//     }));
+    let mut function = Function::new(locals);
+    for instruction in instructions {
+        function.instruction(&instruction);
+    }
 
-//     // 3. loop through bytes and store them AFTER the length
-//     function.instruction(&Instruction::I32Const(0)); // i = 0
-//     function.instruction(&Instruction::LocalSet(i_local));
+    EasyNativeFN {
+        signature: FunctionSignature {
+            params: vec![ValType::I32, ValType::I32], // position in memory size should go (ptr), size
+            results: vec![]
+        },
+        function,
+        name:"__str_store_len".to_string(),
+        idx: STORE_STRING_LENGTH_IDX,
+        is_public: true
+    }
+}
 
-//     let loop_label = 0;
+/// Create a function for storing a byte in a string
+pub fn store_string_byte() -> EasyNativeFN {
+    let locals = vec![];
 
-//     function.instruction(&Instruction::Block(BlockType::Empty)); // start block
-//     function.instruction(&Instruction::Block(BlockType::Empty)); // start loop
+    let mut instructions = vec![];
 
-//     // Break condition if i >= length
-//     function.instruction(&Instruction::LocalGet(i_local)); // load i
-//     function.instruction(&Instruction::LocalGet(str_length_local)); // get length of string
-//     function.instruction(&Instruction::I32GeU);
-//     function.instruction(&Instruction::BrIf(1)); // break if i >= length
+    // Get position and byte
+    instructions.append(&mut get_local(0));
+    instructions.push(Instruction::I32Const(4)); // add 4 for length
+    instructions.push(Instruction::I32Add);
+    
+    instructions.append(&mut get_local(1));
 
-//     // store characters at index ptr + 4 + i
-//     function.instruction(&Instruction::LocalGet(ptr_local));
-//     function.instruction(&Instruction::I32Const(4));
-//     function.instruction(&Instruction::LocalGet(i_local));
-//     function.instruction(&Instruction::I32Add);
+    // store it
+    instructions.append(&mut i32_store_8(0,0,0));
 
-//     function.instruction(&Instruction::LocalGet(str_bytes)); // bytes ptr
-//     function.instruction(&Instruction::LocalGet(i_local)); // i
-//     function.instruction(&Instruction::I32Add); // bytes ptr + i
-//     function.instruction(&Instruction::I32Load8U(MemArg {
-//         align: 0,
-//         offset: 0,
-//         memory_index: 0,
-//     })); // load byte from input string
+    instructions.push(Instruction::End);
 
-//     // store the bytes
-//     function.instruction(&Instruction::I32Store8(MemArg {
-//         align: 0,
-//         offset: 0,
-//         memory_index: 0,
-//     }));
+    let mut function = Function::new(locals);
+    for instruction in instructions {
+        function.instruction(&instruction);
+    }
 
-//     // increment i
-//     function.instruction(&Instruction::LocalGet(i_local));
-//     function.instruction(&Instruction::I32Const(1));
-//     function.instruction(&Instruction::I32Add);
-//     function.instruction(&Instruction::LocalSet(i_local));
+    EasyNativeFN {
+        signature: FunctionSignature {
+            params: vec![ValType::I32, ValType::I32], // position in memory byte should go, byte
+            results: vec![]
+        },
+        function,
+        name:"__str_store_byte".to_string(),
+        idx: STORE_STRING_BYTE_IDX,
+        is_public: true
+    }
+}
 
-//     // repeat loop
-//     function.instruction(&Instruction::Br(loop_label));
-
-//     // end loop
-//     function.instruction(&Instruction::End);
-//     function.instruction(&Instruction::End); // block
-
-//     // 4. return pointer
-//     function.instruction(&Instruction::LocalGet(ptr_local));
-//     function.instruction(&Instruction::End);
-
-//     EasyNativeFN {
-//         signature: FunctionSignature {
-//             params: vec![ValType::I32, ValType::I32], // string length, string bytes
-//             results: vec![ValType::I32],              // ptr to string...
-//         },
-//         function,
-//         name: "store_string".to_string(),
-//         idx: STORE_STRING_IDX,
-//     }
-// }
-
+/// Create a function for getting the length of a string
 pub fn get_length_string() -> EasyNativeFN {
     let locals = vec![];
     let mut function = Function::new(locals);
@@ -164,11 +146,11 @@ pub fn get_length_string() -> EasyNativeFN {
             results: vec![ValType::I32], // length
         },
         function,
-        name: "get_length_string".to_string(),
+        name: "__str_len".to_string(),
         idx: GET_STRING_LENGTH_IDX,
+        is_public: true
     }
 }
 
-pub fn get_string() {}
 pub fn concat_strings() {}
 pub fn free_string() {}
