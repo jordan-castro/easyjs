@@ -1,5 +1,9 @@
 use std::collections::HashMap;
-use wasm_encoder::{CodeSection, Function, FunctionSection, Instruction, Module, TypeSection, ValType};
+use wasm_encoder::{
+    CodeSection, Function, FunctionSection, Instruction, Module, TypeSection, ValType,
+};
+
+use super::utils::StrongValType;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EasyNativeFN {
@@ -7,13 +11,15 @@ pub struct EasyNativeFN {
     pub function: Function,
     pub name: String,
     pub idx: u32,
-    pub is_public: bool
+    pub is_public: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct FunctionSignature {
     pub params: Vec<ValType>,
-    pub results: Vec<ValType>
+    pub results: Vec<ValType>,
+    pub param_strong: Vec<StrongValType>, 
+    pub results_strong: Vec<StrongValType>,
 }
 
 #[derive(Clone)]
@@ -21,7 +27,8 @@ pub struct TypeRegistry {
     signatures: Vec<FunctionSignature>,
     lookup: HashMap<FunctionSignature, u32>,
     name_lookup: HashMap<String, u32>,
-    type_lookup: HashMap<u32, Option<ValType>>
+    type_lookup: HashMap<u32, Option<ValType>>,
+    strong_type_lookup: HashMap<u32, StrongValType>,
 }
 
 impl TypeRegistry {
@@ -30,7 +37,8 @@ impl TypeRegistry {
             signatures: Vec::new(),
             lookup: HashMap::new(),
             name_lookup: HashMap::new(),
-            type_lookup: HashMap::new()
+            type_lookup: HashMap::new(),
+            strong_type_lookup: HashMap::new(),
         }
     }
 
@@ -41,10 +49,15 @@ impl TypeRegistry {
             let results = sig.clone().results;
             results.first().cloned()
         };
+        let sig_clone = sig.clone();
         self.signatures.push(sig.clone());
-        self.lookup.insert(sig, idx);  // Remove this line if you don't want deduplication
+        self.lookup.insert(sig, idx); // Remove this line if you don't want deduplication
         self.name_lookup.insert(name, idx);
         self.type_lookup.insert(idx, result_value);
+        if sig_clone.results_strong.len() > 0 {
+            self.strong_type_lookup
+                .insert(idx, sig_clone.results_strong.first().unwrap().clone());
+        }
         idx
     }
 
@@ -53,6 +66,16 @@ impl TypeRegistry {
         let idx = self.name_lookup.get(&name);
         if let Some(idx) = idx {
             *self.type_lookup.get(idx).unwrap()
+        } else {
+            None
+        }
+    }
+
+    /// Get the strong return type of a function.
+    pub fn get_strong_return_type_of(&self, name: String) -> Option<StrongValType> {
+        let idx = self.name_lookup.get(&name);
+        if let Some(idx) = idx {
+            Some(self.strong_type_lookup.get(idx).unwrap().clone())
         } else {
             None
         }

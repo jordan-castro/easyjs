@@ -1,6 +1,6 @@
 use wasm_encoder::{BlockType, Function, Instruction, MemArg, TypeSection, ValType};
 
-use super::{instruction_generator::{get_global, get_local, i32_store, i32_store_8, set_global, set_local_to_global}, signatures::{EasyNativeFN, FunctionSignature}};
+use super::{instruction_generator::{get_global, get_local, i32_store, i32_store_8, set_global, set_local_to_global}, signatures::{EasyNativeFN, FunctionSignature}, utils::StrongValType};
 
 pub const GLOBAL_STRING_IDX: u32 = 0;
 
@@ -8,7 +8,7 @@ pub const ALLOCATE_STRING_IDX: u32 = 0;
 pub const STORE_STRING_BYTE_IDX: u32 = 1;
 pub const GET_STRING_LENGTH_IDX: u32 = 2;
 pub const STORE_STRING_LENGTH_IDX: u32 = 3;
-const CONCAT_STRING_IDX: u32 = 4;
+pub const CONCAT_STRING_IDX: u32 = 4;
 const FREE_STRING_IDX: u32 = 5;
 
 /// Create a function for allocationg strings in memory via easyjs native.
@@ -51,6 +51,8 @@ pub fn allocate_string() -> EasyNativeFN {
         signature: FunctionSignature {
             params: vec![ValType::I32], // the size of the string
             results: vec![ValType::I32],
+            param_strong: vec![StrongValType::Int],
+            results_strong: vec![StrongValType::Int]
         },
         function,
         name: "__str_alloc".to_string(),
@@ -82,7 +84,9 @@ pub fn store_string_length() -> EasyNativeFN {
     EasyNativeFN {
         signature: FunctionSignature {
             params: vec![ValType::I32, ValType::I32], // position in memory size should go (ptr), size
-            results: vec![]
+            results: vec![],
+            param_strong: vec![StrongValType::Int, StrongValType::Int],
+            results_strong: vec![]
         },
         function,
         name:"__str_store_len".to_string(),
@@ -117,7 +121,9 @@ pub fn store_string_byte() -> EasyNativeFN {
     EasyNativeFN {
         signature: FunctionSignature {
             params: vec![ValType::I32, ValType::I32], // position in memory byte should go, byte
-            results: vec![]
+            results: vec![],
+            param_strong: vec![StrongValType::Int, StrongValType::Int],
+            results_strong: vec![]
         },
         function,
         name:"__str_store_byte".to_string(),
@@ -144,6 +150,8 @@ pub fn get_length_string() -> EasyNativeFN {
         signature: FunctionSignature {
             params: vec![ValType::I32],  // pointer to string
             results: vec![ValType::I32], // length
+            param_strong: vec![StrongValType::String],
+            results_strong: vec![StrongValType::Int]
         },
         function,
         name: "__str_len".to_string(),
@@ -152,5 +160,20 @@ pub fn get_length_string() -> EasyNativeFN {
     }
 }
 
-pub fn concat_strings() {}
+pub fn concat_strings() -> EasyNativeFN {
+    let locals = vec![(2, ValType::I32)]; // ptr1, ptr2
+
+    EasyNativeFN {
+        signature: FunctionSignature {
+            params: vec![ValType::I32, ValType::I32], // ptr1, ptr2
+            results: vec![ValType::I32], // ptr
+            param_strong: vec![StrongValType::String, StrongValType::String],
+            results_strong: vec![StrongValType::String]
+        },
+        function: Function::new(locals),
+        name: "__str_concat".to_string(),
+        idx: CONCAT_STRING_IDX,
+        is_public: true
+    }
+}
 pub fn free_string() {}

@@ -13,10 +13,13 @@ use crate::{
 use super::{
     fn_builder::FNBuilder,
     signatures::{FunctionSignature, TypeRegistry},
-    strings::{allocate_string, get_length_string, GLOBAL_STRING_IDX, store_string_byte, store_string_length},
+    strings::{
+        allocate_string, get_length_string, store_string_byte, store_string_length,
+        GLOBAL_STRING_IDX,
+    },
     utils::{
-        get_param_type_by_named_expression, infer_variable_type, make_instruction_for_value,
-        StrongValType,
+        get_param_type_by_named_expression, get_val_type_from_strong, infer_variable_type,
+        make_instruction_for_value, StrongValType,
     },
     variables::WasmVariables,
 };
@@ -120,7 +123,12 @@ impl EasyWasm {
         }
 
         // add easy_native_fns in order!
-        let easy_native_fns = [allocate_string(), store_string_byte(), get_length_string(), store_string_length()];
+        let easy_native_fns = [
+            allocate_string(),
+            store_string_byte(),
+            get_length_string(),
+            store_string_length(),
+        ];
         for fn_def in easy_native_fns {
             // add to type registry
             let type_index = self
@@ -136,7 +144,8 @@ impl EasyWasm {
 
             // if it is public, export it
             if fn_def.is_public {
-                self.export_section.export(&fn_def.name, ExportKind::Func, fn_def.idx);
+                self.export_section
+                    .export(&fn_def.name, ExportKind::Func, fn_def.idx);
             }
         }
     }
@@ -190,34 +199,12 @@ impl EasyWasm {
                     ));
                     return;
                 } else {
-                    infer_variable_type(val, &self.variables, &self.type_registry)
+                    infer_variable_type(val, &self.variables, &self.type_registry, None)
                 }
             }
         };
 
-        let mut val_type: ValType;
-        match ty {
-            StrongValType::None => {
-                self.add_error(EasyError::UnsupportedType(
-                    "Unknown variable type.".to_string(),
-                ));
-                return;
-            }
-            StrongValType::NotSupported => {
-                self.add_error(EasyError::UnsupportedType(
-                    "Unknown variable type.".to_string(),
-                ));
-                return;
-            }
-            StrongValType::Some(t) => {
-                val_type = t;
-            }
-            StrongValType::String => {
-                // TODO:...
-                val_type = ValType::I32;
-                // unimplemented!("Strings in wasm_emitter");
-            }
-        }
+        let val_type = get_val_type_from_strong(&ty).expect("Could not get val type.");
 
         // get var name
         let var_name = match var {
@@ -250,7 +237,7 @@ impl EasyWasm {
             },
             &const_expr,
         );
-        self.variables.add_variable(var_name.to_owned(), val_type);
+        self.variables.add_variable(var_name.to_owned(), ty.clone());
     }
 
     fn add_statement(&mut self, stmt: Statement, is_public: bool) {
@@ -318,43 +305,51 @@ impl EasyWasm {
         };
 
         // parse the strong val types
-        let parsed_wasm_params = {
-            let mut vals = vec![];
-            for param in wasm_params.iter() {
-                match param {
-                    StrongValType::Some(ty) => vals.push(ty.clone()),
-                    StrongValType::String => vals.push(ValType::I32),
-                    _ => {
-                        self.add_error(EasyError::UnsupportedType(
-                            "Type is not supported".to_string(),
-                        ));
-                        return;
-                        unimplemented!("Wasm paramter is not supported");
-                    }
-                }
-            }
-            vals
-        };
-        let parsed_results = {
-            let mut vals = vec![];
-            for param in results.iter() {
-                match param {
-                    StrongValType::Some(ty) => vals.push(ty.clone()),
-                    StrongValType::String => vals.push(ValType::I32),
-                    _ => {
-                        self.add_error(EasyError::UnsupportedType(
-                            "Type is not supported".to_string(),
-                        ));
-                        return;
-                    }
-                }
-            }
-            vals
-        };
+        // let parsed_wasm_params = {
+        //     let mut vals = vec![];
+        //     for param in wasm_params.iter() {
+        //         match param {
+        //             StrongValType::Some(ty) => vals.push(ty.clone()),
+        //             StrongValType::String => vals.push(ValType::I32),
+        //             _ => {
+        //                 self.add_error(EasyError::UnsupportedType(
+        //                     "Type is not supported".to_string(),
+        //                 ));
+        //                 return;
+        //                 unimplemented!("Wasm paramter is not supported");
+        //             }
+        //         }
+        //     }
+        //     vals
+        // };
+        // let parsed_results = {
+        //     let mut vals = vec![];
+        //     for param in results.iter() {
+        //         match param {
+        //             StrongValType::Some(ty) => vals.push(ty.clone()),
+        //             StrongValType::String => vals.push(ValType::I32),
+        //             _ => {
+        //                 self.add_error(EasyError::UnsupportedType(
+        //                     "Type is not supported".to_string(),
+        //                 ));
+        //                 return;
+        //             }
+        //         }
+        //     }
+        //     vals
+        // };
 
         let sig = FunctionSignature {
-            params: parsed_wasm_params,
-            results: parsed_results,
+            params: wasm_params
+                .iter()
+                .map(|p| get_val_type_from_strong(p).expect("Could not parse strong val type"))
+                .collect(),
+            results: results
+                .iter()
+                .map(|p| get_val_type_from_strong(p).expect("Could not parse strong val type"))
+                .collect(),
+            param_strong: wasm_params,
+            results_strong: results,
         };
 
         // function name
@@ -389,18 +384,7 @@ impl EasyWasm {
                 Expression::IdentifierWithType(tk, name, var_type) => {
                     let strong_type =
                         get_param_type_by_named_expression(var_type.as_ref().to_owned());
-                    match strong_type {
-                        StrongValType::Some(ty) => {
-                            fn_builder.add_param(name, ty);
-                        }
-                        StrongValType::String => {
-                            fn_builder.add_param(name, ValType::I32);
-                        }
-                        _ => {
-                            // we will never get here!
-                            unimplemented!("Function paramater is not supported.");
-                        }
-                    }
+                    fn_builder.add_param(name, strong_type);
                 }
                 _ => {
                     self.add_error(EasyError::Expected(format!(
