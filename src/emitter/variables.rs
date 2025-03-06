@@ -1,5 +1,7 @@
 use wasm_encoder::ValType;
 
+use super::utils::StrongValType;
+
 #[derive(Clone, Debug)]
 pub struct WasmVariable {
     /// the name of the variable
@@ -7,7 +9,7 @@ pub struct WasmVariable {
     /// The idx of the variable
     pub idx: u32,
     /// The type of the variable
-    pub ty: ValType,
+    pub ty: StrongValType,
 }
 
 #[derive(Debug)]
@@ -22,7 +24,7 @@ impl WasmVariables {
     }
 
     /// Add a new variable.
-    pub fn add_variable(&mut self, name: String, ty: ValType) -> u32 {
+    pub fn add_variable(&mut self, name: String, ty: StrongValType) -> u32 {
         // get the idx
         let idx = self.variables.len() as u32;
         self.variables.push(WasmVariable {

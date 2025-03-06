@@ -20,6 +20,8 @@
 - v0.5.0 ~~Add rust like decleratoin var some = {};~~
 - v0.5.0 ~~Allow nameless JS objects like: {x} would be the same as {x: x}~~
 - v0.5.0 enums
+- v0.5.0 type checker
+- v0.6.0 add a local JS Engine
 
 ## Scripts
 - v0.4.0 ~~add to path (also update path...)~~
@@ -53,6 +55,7 @@
   - if statements
   - ~~math statements with consts~~
 - v0.6.0 explore multi threaded wasm.
+- v0.5.0 add shared memory support
 
 ## Repl
 

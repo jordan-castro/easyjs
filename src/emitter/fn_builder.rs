@@ -5,11 +5,10 @@ use wasm_encoder::{Instruction, ValType};
 use crate::parser::ast::{Expression, Statement};
 
 use super::{
-    instruction_generator::set_local_string,
-    strings::ALLOCATE_STRING_IDX,
+    instruction_generator::{call, set_local_string},
+    strings::{ALLOCATE_STRING_IDX, CONCAT_STRING_IDX},
     utils::{
-        get_param_type_by_named_expression, get_param_type_by_string, infer_variable_type,
-        make_instruction_for_value, StrongValType,
+        get_param_type_by_named_expression, get_param_type_by_string, get_val_type_from_strong, infer_variable_type, make_instruction_for_value, StrongValType
     },
     variables::{WasmVariable, WasmVariables},
     wasm_emitter::EasyWasm,
@@ -21,7 +20,7 @@ pub struct FNBuilder<'a> {
     pub variables: WasmVariables,
 
     /// The locals
-    locals: Vec<ValType>,
+    locals: Vec<StrongValType>,
     /// The instructions
     instructions: Vec<Instruction<'a>>,
 
@@ -43,13 +42,13 @@ impl<'a> FNBuilder<'a> {
     }
 
     /// Add a parameter to the function.
-    pub fn add_param(&mut self, name: String, param: ValType) {
+    pub fn add_param(&mut self, name: String, param: StrongValType) {
         self.variables.add_variable(name, param);
     }
 
     /// Add a local to the function.
-    fn add_local(&mut self, name: String, local: ValType) {
-        self.variables.add_variable(name, local);
+    fn add_local(&mut self, name: String, local: StrongValType) {
+        self.variables.add_variable(name, local.clone());
         self.locals.push(local);
     }
 
@@ -88,27 +87,8 @@ impl<'a> FNBuilder<'a> {
         }
     }
 
-    fn get_val_type(&self, expr: &'a Expression) -> ValType {
-        match expr {
-            Expression::IntegerLiteral(_, _) => ValType::I32,
-            Expression::FloatLiteral(_, _) => ValType::F32,
-            Expression::Identifier(_, name) => {
-                // it's a variable...
-                self.get_variable(name.to_owned()).0.ty
-            }
-            Expression::Type(_, ty) => {
-                let t = get_param_type_by_string(ty.to_owned());
-                match t {
-                    StrongValType::Some(v) => v,
-                    StrongValType::None => unimplemented!(),
-                    StrongValType::String => ValType::I32,
-                    StrongValType::NotSupported => unimplemented!(),
-                }
-            }
-            _ => {
-                unimplemented!();
-            }
-        }
+    fn get_val_type(&self, expr: &'a Expression) -> StrongValType {
+        infer_variable_type(expr, &self.variables, &self.easy_wasm.type_registry_ref(), Some(&self.easy_wasm.variables))
     }
 
     /// This compiles an expression and sets instructions.
@@ -132,30 +112,34 @@ impl<'a> FNBuilder<'a> {
                 self.compile_expression(left.as_ref());
                 self.compile_expression(right.as_ref());
 
-                let ty = self.get_val_type(left.as_ref());
-
-                match (ty, op.as_str()) {
-                    (ValType::I32, "+") => self.add_instruction(Instruction::I32Add),
-                    (ValType::I32, "-") => self.add_instruction(Instruction::I32Sub),
-                    (ValType::I32, "*") => self.add_instruction(Instruction::I32Mul),
-                    (ValType::I32, "/") => self.add_instruction(Instruction::I32DivU),
-
-                    (ValType::I64, "+") => self.add_instruction(Instruction::I64Add),
-                    (ValType::I64, "-") => self.add_instruction(Instruction::I64Sub),
-                    (ValType::I64, "*") => self.add_instruction(Instruction::I64Mul),
-                    (ValType::I64, "/") => self.add_instruction(Instruction::I64DivU),
-
-                    (ValType::F32, "+") => self.add_instruction(Instruction::F32Add),
-                    (ValType::F32, "-") => self.add_instruction(Instruction::F32Sub),
-                    (ValType::F32, "*") => self.add_instruction(Instruction::F32Mul),
-                    (ValType::F32, "/") => self.add_instruction(Instruction::F32Div),
-
-                    (ValType::F64, "+") => self.add_instruction(Instruction::F64Add),
-                    (ValType::F64, "-") => self.add_instruction(Instruction::F64Sub),
-                    (ValType::F64, "*") => self.add_instruction(Instruction::F64Mul),
-                    (ValType::F64, "/") => self.add_instruction(Instruction::F64Div),
+                // Depending on the strong type and the opperation this runs differently.
+                let strong_type = self.get_val_type(left.as_ref());
+                match strong_type {
+                    (StrongValType::Int | StrongValType::Float) => {
+                        let ty = get_val_type_from_strong(&strong_type).unwrap();
+                        match (ty, op.as_str()) {
+                            (ValType::I32, "+") => self.add_instruction(Instruction::I32Add),
+                            (ValType::I32, "-") => self.add_instruction(Instruction::I32Sub),
+                            (ValType::I32, "*") => self.add_instruction(Instruction::I32Mul),
+                            (ValType::I32, "/") => self.add_instruction(Instruction::I32DivU),
+                            (ValType::F32, "+") => self.add_instruction(Instruction::F32Add),
+                            (ValType::F32, "-") => self.add_instruction(Instruction::F32Sub),
+                            (ValType::F32, "*") => self.add_instruction(Instruction::F32Mul),
+                            (ValType::F32, "/") => self.add_instruction(Instruction::F32Div),
+                            _ => unimplemented!(),
+                        }
+                    }
+                    StrongValType::Bool => {
+                        // you can't add a boolean
+                        unimplemented!("TODO: error for not being able to add a boolean");
+                        // THROW_ERROR();
+                    }
+                    StrongValType::String => {
+                        // use concat for strings
+                        self.add_instruction(call(CONCAT_STRING_IDX)[0].clone());
+                    }
                     _ => {
-                        self.add_instruction(Instruction::Nop);
+                        unimplemented!("TODO: error for unsupported type");
                     }
                 }
             }
@@ -212,19 +196,9 @@ impl<'a> FNBuilder<'a> {
                                 value,
                                 &self.variables,
                                 &self.easy_wasm.type_registry_ref(),
+                                Some(&self.easy_wasm.variables),
                             )
                         }
-                    }
-                };
-
-                let var_type = match var_type {
-                    StrongValType::Some(v) => v,
-                    StrongValType::String => {
-                        is_string = true;
-                        ValType::I32
-                    }
-                    _ => {
-                        unimplemented!();
                     }
                 };
 
@@ -279,7 +253,7 @@ impl<'a> FNBuilder<'a> {
 
         for local in self.locals.iter() {
             // Instead of grouping, store locals as they are declared
-            res.push((1, *local));
+            res.push((1, get_val_type_from_strong(local).unwrap()));
         }
 
         // The instructions stay as they are
