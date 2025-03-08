@@ -1,21 +1,114 @@
 use wasm_encoder::{Instruction, MemArg, ValType};
 
-use crate::emitter::strings::ALLOCATE_STRING_IDX;
+use crate::{emitter::strings::ALLOCATE_STRING_IDX, parser::ast::Expression};
 
 use super::strings::STORE_STRING_LENGTH_IDX;
 
 pub type EasyInstructions = Vec<Instruction<'static>>;
 
-pub fn new_ptr() -> EasyInstructions {
-    vec![Instruction::I32Const(0)]
+/// Is a function a core wasm function?
+pub fn is_wasm_core(fn_name: &str) -> bool {
+    match fn_name {
+        "__new_ptr" => true,
+        "__i32_store" => true,
+        "__i32_store_16" => true,
+        "__i32_store_8" => true,
+        "__get_local" => true,
+        "__set_local" => true,
+        "__add_i32" => true,
+        "__i32_add" => true,
+        _ => false,
+    }
 }
 
-/// Genereate instructions for allocating space for a string.
-pub fn allocate_string_space(length: i32) -> EasyInstructions {
-    vec![
-        Instruction::I32Const(length),
-        call(ALLOCATE_STRING_IDX)[0].to_owned(),
-    ]
+/// Call the core wasm function.
+pub fn call_instruction(name: &str, arguments: &Vec<Expression>) -> EasyInstructions {
+    match name {
+        "__new_ptr" => {
+            let at = match arguments[0] {
+                Expression::IntegerLiteral(_, at) => at as i32,
+                _ => panic!("Expected number as argument for __new_ptr"),
+            };
+            new_ptr(at)
+        }
+        // i32_store(align: u32, offset: u64, memory_index: u32)
+        "__i32_store" => {
+            let mut args = vec![];
+            for arg in arguments {
+                match arg {
+                    Expression::IntegerLiteral(_, value) => {
+                        args.push(*value);
+                    }
+                    _ => panic!("Expected number as argument for __i32_store"),
+                }
+            }
+
+            i32_store(args[0] as u32, args[1] as u64, args[2] as u32)
+        }
+        // i32_store_16(align: u32, offset: u64, memory_index: u32)
+        "__i32_store_16" => {
+            let mut args = vec![];
+            for arg in arguments {
+                match arg {
+                    Expression::IntegerLiteral(_, value) => {
+                        args.push(*value);
+                    }
+                    _ => panic!("Expected number as argument for __i32_store_16"),
+                }
+            }
+
+            i32_store_16(args[0] as u32, args[1] as u64, args[2] as u32)
+        }
+        // i32_store_8(align: u32, offset: u64, memory_index: u32)
+        "__i32_store_8" => {
+            let mut args = vec![];
+            for arg in arguments {
+                match arg {
+                    Expression::IntegerLiteral(_, value) => {
+                        args.push(*value);
+                    }
+                    _ => panic!("Expected number as argument for __i32_store_8"),
+                }
+            }
+
+            i32_store_8(args[0] as u32, args[1] as u64, args[2] as u32)
+        }
+        "__get_local" => {
+            let idx = match arguments[0] {
+                Expression::IntegerLiteral(_, idx) => idx as u32,
+                _ => panic!("Expected number as argument for __get_local"),
+            };
+            get_local(idx)
+        }
+        "__set_local" => {
+            let idx = match arguments[0] {
+                Expression::IntegerLiteral(_, idx) => idx as u32,
+                _ => panic!("Expected number as argument for __set_local"),
+            };
+            set_local(idx)
+        }
+        "__add_i32" => {
+            let numbers = arguments.iter().map(|arg| match arg {
+                Expression::IntegerLiteral(_, value) => *value as i32,
+                _ => panic!("Expected number as argument for __add_i32"),
+            }).collect();
+            add_i32(numbers)
+        }
+        // sometimes basic instructions need to be called
+        "__i32_add" => {
+            vec![Instruction::I32Add]
+        }
+        "__f32_add" => {
+            vec![Instruction::F32Add]
+        }
+        _ => {
+            vec![Instruction::Unreachable]
+        }
+    }
+}
+
+pub fn new_ptr(at: i32) -> EasyInstructions {
+    vec![Instruction::I32Const(at)]
 }
 
 pub fn set_local_string(idx: u32, string: String) -> EasyInstructions {
@@ -52,10 +145,6 @@ pub fn set_local_string(idx: u32, string: String) -> EasyInstructions {
     }
 
     instructions
-}
-
-pub fn allocate_space() -> EasyInstructions {
-    vec![Instruction::I32Const(0)]
 }
 
 /// Add any number of i32s together.
@@ -162,6 +251,14 @@ pub fn i32_store_16(align: u32, offset: u64, memory_index: u32) -> EasyInstructi
 
 pub fn i32_store_8(align: u32, offset: u64, memory_index: u32) -> EasyInstructions {
     vec![Instruction::I32Store8(MemArg {
+        align,
+        offset,
+        memory_index,
+    })]
+}
+
+pub fn i32_load_8u(align: u32, offset: u64, memory_index: u32) -> EasyInstructions {
+    vec![Instruction::I32Load8U(MemArg {
         align,
         offset,
         memory_index,

@@ -9,6 +9,10 @@ native {
         return x + y
     }
 
+//    pub fn test_add_multiple(x:int,y:int,z:int):int {
+//        return x + y + z
+//    }
+
     pub fn test_r_string(name: string):string {
         return name
     }
@@ -17,9 +21,16 @@ native {
         return 1 + 1
     }
 
-    pub fn add_strings():string {
-        return "hello" + " " + "world"
+    pub fn add_string_variables():string {
+        var hello : string = "Hello"
+        var world : string = " World"
+        var hello_world : string =  hello + world
+        return hello_world
     }
+
+//    pub fn add_string_literals():string {
+//        return "hello" + " world"
+//    }
 }
 
 console.log(await testing_setting_string())

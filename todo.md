@@ -22,11 +22,13 @@
 - v0.5.0 enums
 - v0.5.0 type checker
 - v0.6.0 add a local JS Engine
+- v0.5.0 optional return statements in dynamic variable creations.
 
 ## Scripts
 - v0.4.0 ~~add to path (also update path...)~~
 
 ## WASM
+- v0.4.0 use ASC
 - v0.4.0 ~~wasmer functions~~
 - v0.4.0 ~~compile wasm funct.ions AOT or JIT or don't compile and just interpret at the Rust Level.~~ AOT
 - v0.4.0 Additions
@@ -56,6 +58,7 @@
   - ~~math statements with consts~~
 - v0.6.0 explore multi threaded wasm.
 - v0.5.0 add shared memory support
+- future version (when we have a team of developers) Switch to native wasm implementation...
 
 ## Repl
 

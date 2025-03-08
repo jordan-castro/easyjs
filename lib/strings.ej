@@ -1,0 +1,7 @@
+native {
+    pub fn __get_str_len(ptr:int):int {
+        __local_get(ptr)
+        __i32_load_8u(0,0,0)
+        // automatically returned at the end
+    }
+}
