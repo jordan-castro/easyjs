@@ -13,10 +13,7 @@ use crate::{
 use super::{
     fn_builder::FNBuilder,
     signatures::{FunctionSignature, TypeRegistry},
-    strings::{
-        allocate_string, get_length_string, store_string_byte, store_string_length,
-        GLOBAL_STRING_IDX,
-    },
+    strings::{allocate_string, store_string_length},
     utils::{
         get_param_type_by_named_expression, get_val_type_from_strong, infer_variable_type,
         make_instruction_for_value, StrongValType,
@@ -110,7 +107,7 @@ impl EasyWasm {
         self.export_section.export("memory", ExportKind::Memory, 0);
 
         // add global variables
-        let global_variables = [GLOBAL_STRING_IDX];
+        let global_variables = [1024];
         for global_var in global_variables {
             self.global_section.global(
                 GlobalType {
@@ -123,12 +120,7 @@ impl EasyWasm {
         }
 
         // add easy_native_fns in order!
-        let easy_native_fns = [
-            allocate_string(),
-            store_string_byte(),
-            get_length_string(),
-            store_string_length(),
-        ];
+        let easy_native_fns = [allocate_string(), store_string_length()];
         for fn_def in easy_native_fns {
             // add to type registry
             let type_index = self

@@ -7,7 +7,6 @@ use crate::parser::ast::Expression;
 use super::{
     instruction_generator::{call, get_local, set_local},
     signatures::TypeRegistry,
-    strings::{ALLOCATE_STRING_IDX, STORE_STRING_BYTE_IDX},
     variables::WasmVariables,
 };
 

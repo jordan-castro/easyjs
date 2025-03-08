@@ -5,13 +5,9 @@ use wasm_encoder::{Instruction, ValType};
 use crate::parser::ast::{Expression, Statement};
 
 use super::{
-    instruction_generator::{call, set_local_string},
-    strings::{ALLOCATE_STRING_IDX, CONCAT_STRING_IDX},
-    utils::{
+    instruction_generator::{call, call_instruction, is_wasm_core, set_local_string}, strings::ALLOCATE_STRING_IDX, utils::{
         get_param_type_by_named_expression, get_param_type_by_string, get_val_type_from_strong, infer_variable_type, make_instruction_for_value, StrongValType
-    },
-    variables::{WasmVariable, WasmVariables},
-    wasm_emitter::EasyWasm,
+    }, variables::{WasmVariable, WasmVariables}, wasm_emitter::EasyWasm
 };
 
 /// Handle building functions in easyjs to WebAssembly.
@@ -134,10 +130,10 @@ impl<'a> FNBuilder<'a> {
                         unimplemented!("TODO: error for not being able to add a boolean");
                         // THROW_ERROR();
                     }
-                    StrongValType::String => {
-                        // use concat for strings
-                        self.add_instruction(call(CONCAT_STRING_IDX)[0].clone());
-                    }
+                    // StrongValType::String => {
+                    //     // use concat for strings
+                    //     self.add_instruction(call(CONCAT_STRING_IDX)[0].clone());
+                    // }
                     _ => {
                         unimplemented!("TODO: error for unsupported type");
                     }
@@ -145,6 +141,16 @@ impl<'a> FNBuilder<'a> {
             }
             Expression::CallExpression(_, name, args) => {
                 let name = self.read_identifier(name.as_ref());
+
+                // TODO: if the name is a native function but it exists in the code (use that instead). (Give a warning though)
+                // check name is a native library function
+                if is_wasm_core(&name) {
+                    let instructions = call_instruction(&name, args.as_ref());
+                    for instruction in instructions {
+                        self.add_instruction(instruction);
+                        return;
+                    }
+                }
 
                 // add the arguments as instructions
                 for arg in args.as_ref() {
