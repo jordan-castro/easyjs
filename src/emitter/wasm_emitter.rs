@@ -11,17 +11,60 @@ use crate::{
 };
 
 use super::{
-    fn_builder::FNBuilder,
-    signatures::{FunctionSignature, TypeRegistry},
-    strings::{allocate_string, store_string_length},
-    utils::{
-        get_param_type_by_named_expression, get_val_type_from_strong, infer_variable_type,
-        make_instruction_for_value, StrongValType,
-    },
-    variables::WasmVariables,
+    fn_builder::FNBuilder, instruction_generator::EasyInstructions, signatures::{FunctionSignature, TypeRegistry}, strings::{allocate_string, store_string_length}, utils::{
+        expression_is_ident, get_param_type_by_named_expression, get_val_type_from_strong, infer_variable_type, make_instruction_for_value, parse_strong_from_expression, StrongValType
+    }, variables::WasmVariables
 };
 
-/// EasyWasm is tasked with compiling easyjs into WebAssembly.
+/// Represents a variable.
+/// Holds a name, type, and idx.
+struct Variable {
+    pub name: String,
+    pub val_type: StrongValType,
+    pub idx: u32
+}
+
+/// Represents a function.
+/// Holds a name, type, and idx.
+struct NativeFunction {
+    pub name: String,
+    pub val_type: StrongValType,
+    pub idx: u32,
+}
+
+/// EasyWasm is tasked with compiling easyjs native code blocks into WebAssembly.
+/// Easyjs native is a bare bones language feature. Think of it as C for the web.
+/// To use easyjs native features, wrap your easyjs code in a native block like so:
+/// ```
+/// native { // native wrapper
+///     raw = @use_mod("raw") // import raw instructions
+///     
+///     fn add(a:int, b:int):int { // types are required in native blocks!
+///         return a + b
+///         
+///         // You can also use raw wasm calls.
+///         raw.local_get(raw.local_from_ident(a))
+///         raw.local_get(raw.local_from_ident(b))
+///         raw.i32_add()
+///         // this gets returned automatically
+///         raw.return_() // but you can also use raw
+///     }
+/// 
+///     // Builtin types [int, float, string, array, bool, dict, any]
+///     fn hello_world():string {
+///         return "Hello world"
+///         // Raw strings are also supported
+///         raw.set_local(0, raw.set_string_size(11))
+///         
+///         raw.const_i32(0x001) // The byte of H
+///         raw.i32_store8(0,0,0)
+///         // The rest of the string
+///         // This is done automatically by the native{} compiler.
+///         raw.get_local(0) // return the string pointer
+///     }
+/// }
+/// 
+/// ```
 pub struct EasyWasm {
     /// The wasmer module
     module: Module,
@@ -47,14 +90,17 @@ pub struct EasyWasm {
     /// Memory section
     memory_section: MemorySection,
 
-    /// The global variables
-    pub variables: WasmVariables,
+    /// Variables by scope
+    variable_scopes: Vec<Vec<Variable>>,
+    
+    /// Functions by scope
+    native_function_scopes: Vec<Vec<NativeFunction>>,
 
     /// Errors
     pub errors: Vec<EasyError>,
 }
 
-/// Emits a WebAssembly module.
+/// Emits a WebAssembly module as Bytes.
 pub fn emit_wasm(stmts: Vec<Statement>) -> Vec<u8> {
     // create a web assembly module
     let mut module = Module::new();
@@ -68,7 +114,9 @@ pub fn emit_wasm(stmts: Vec<Statement>) -> Vec<u8> {
         function_names: HashMap::new(),
         global_section: GlobalSection::new(),
         memory_section: MemorySection::new(),
-        variables: WasmVariables::new(),
+        native_function_scopes: vec![vec![]],
+        variable_scopes: vec![vec![]],
+        // variables: WasmVariables::new(),
         errors: vec![],
     };
 
@@ -76,12 +124,12 @@ pub fn emit_wasm(stmts: Vec<Statement>) -> Vec<u8> {
 
     // iterate over the statements and add them to the module
     for stmt in stmts {
-        match stmt.clone() {
+        match &stmt {
             Statement::ExportStatement(_, stmt) => {
-                easy_wasm.add_statement(stmt.as_ref().to_owned(), true);
+                easy_wasm.compile_statement(stmt.as_ref(), true);
             }
             _ => {
-                easy_wasm.add_statement(stmt.clone(), false);
+                easy_wasm.compile_statement(&stmt, false);
             }
         }
     }
@@ -90,56 +138,99 @@ pub fn emit_wasm(stmts: Vec<Statement>) -> Vec<u8> {
 }
 
 impl EasyWasm {
+    /// Add a new variable scope
+    fn new_variable_scope(&mut self) {
+        self.variable_scopes.push(vec![]);
+    }
+
+    /// Pop the most recent variable scope
+    fn pop_variable_scope(&mut self) {
+        self.variable_scopes.pop();
+    }
+
+    /// Add a new function scope
+    fn new_function_scope(&mut self) {
+        self.native_function_scopes.push(vec![]);
+    }
+
+    /// Pop the most recent function scope
+    fn pop_function_scope(&mut self) {
+        self.native_function_scopes.pop();
+    }
+
+    /// Create a new scope for both variables and functions.
+    fn new_scope(&mut self) {
+        self.new_variable_scope();
+        self.new_function_scope();
+    }
+
+    /// Pop the most recent scope for both variables and functions.
+    fn pop_scope(&mut self) {
+        self.pop_variable_scope();
+        self.pop_function_scope();
+    }
+
     /// Setup the EasyWasm module.
     ///
     /// This includes builtin functions for strings, arrays, dictionaries, structs, classes.
     fn setup(&mut self) {
-        // add memory (just 1 page for now)
-        self.memory_section.memory(MemoryType {
-            minimum: 1,
-            maximum: None,
-            memory64: false,
-            shared: false,
-            page_size_log2: None,
-        });
+        // This scope never gets popped!
+        self.new_scope();
 
-        // export it
-        self.export_section.export("memory", ExportKind::Memory, 0);
+        // TOOD: add default instructions
+        // crate::std::load_std("strings");
+        // crate::std::load_std("arrays");
+        // crate::std::load_std("dicts");
+        // crate::std::load_std("tuples");
+        // Parse default functions into instructions
+        // let mut easy_wasm = EasyWasm::new();
+
+        // // add memory (just 1 page for now)
+        // self.memory_section.memory(MemoryType {
+        //     minimum: 1,
+        //     maximum: None,
+        //     memory64: false,
+        //     shared: false,
+        //     page_size_log2: None,
+        // });
+
+        // // export it
+        // self.export_section.export("memory", ExportKind::Memory, 0);
 
         // add global variables
-        let global_variables = [1024];
-        for global_var in global_variables {
-            self.global_section.global(
-                GlobalType {
-                    val_type: ValType::I32,
-                    mutable: true,
-                    shared: false,
-                },
-                &ConstExpr::i32_const(global_var as i32),
-            );
-        }
+        // let global_variables = [1024];
+        // for global_var in global_variables {
+        //     self.global_section.global(
+        //         GlobalType {
+        //             val_type: ValType::I32,
+        //             mutable: true,
+        //             shared: false,
+        //         },
+        //         &ConstExpr::i32_const(global_var as i32),
+        //     );
+        // }
 
-        // add easy_native_fns in order!
-        let easy_native_fns = [allocate_string(), store_string_length()];
-        for fn_def in easy_native_fns {
-            // add to type registry
-            let type_index = self
-                .type_registry
-                .add(fn_def.signature.clone(), fn_def.name.clone());
-            // add to function names.
-            self.function_names
-                .insert(fn_def.name.clone(), format!("f{}", fn_def.idx));
-            // add to function section
-            self.function_section.function(type_index);
-            // add to codes section
-            self.code_section.function(&fn_def.function);
+        // // add easy_native_fns in order!
+        // let easy_native_fns = [allocate_string(), store_string_length()];
+        // for fn_def in easy_native_fns {
+        //     // add to type registry
+        //     let type_index = self
+        //         .type_registry
+        //         .add(fn_def.signature.clone(), fn_def.name.clone());
+        //     // add to function names.
+        //     self.function_names
+        //         .insert(fn_def.name.clone(), format!("f{}", fn_def.idx));
+        //     // add to function section
+        //     self.function_section.function(type_index);
+        //     // add to codes section
+        //     self.code_section.function(&fn_def.function);
 
-            // if it is public, export it
-            if fn_def.is_public {
-                self.export_section
-                    .export(&fn_def.name, ExportKind::Func, fn_def.idx);
-            }
-        }
+        //     // if it is public, export it
+        //     if fn_def.is_public {
+        //         self.export_section
+        //             .export(&fn_def.name, ExportKind::Func, fn_def.idx);
+        //     }
+        // }
     }
 
     fn finish(&mut self) -> Vec<u8> {
@@ -232,6 +323,7 @@ impl EasyWasm {
         self.variables.add_variable(var_name.to_owned(), ty.clone());
     }
 
+    /// Add a native statement.
     fn add_statement(&mut self, stmt: Statement, is_public: bool) {
         match stmt.clone() {
             Statement::VariableStatement(tk, var, var_type, value, infer_type) => {
@@ -273,6 +365,7 @@ impl EasyWasm {
         func_idx
     }
 
+    /// Add a function.
     fn add_function(
         &mut self,
         name: Expression,
@@ -295,41 +388,6 @@ impl EasyWasm {
                 vec![]
             }
         };
-
-        // parse the strong val types
-        // let parsed_wasm_params = {
-        //     let mut vals = vec![];
-        //     for param in wasm_params.iter() {
-        //         match param {
-        //             StrongValType::Some(ty) => vals.push(ty.clone()),
-        //             StrongValType::String => vals.push(ValType::I32),
-        //             _ => {
-        //                 self.add_error(EasyError::UnsupportedType(
-        //                     "Type is not supported".to_string(),
-        //                 ));
-        //                 return;
-        //                 unimplemented!("Wasm paramter is not supported");
-        //             }
-        //         }
-        //     }
-        //     vals
-        // };
-        // let parsed_results = {
-        //     let mut vals = vec![];
-        //     for param in results.iter() {
-        //         match param {
-        //             StrongValType::Some(ty) => vals.push(ty.clone()),
-        //             StrongValType::String => vals.push(ValType::I32),
-        //             _ => {
-        //                 self.add_error(EasyError::UnsupportedType(
-        //                     "Type is not supported".to_string(),
-        //                 ));
-        //                 return;
-        //             }
-        //         }
-        //     }
-        //     vals
-        // };
 
         let sig = FunctionSignature {
             params: wasm_params
@@ -397,5 +455,69 @@ impl EasyWasm {
         }
 
         self.code_section.function(&function);
+    }
+
+    /// Compile a Statement.
+    /// 
+    /// This actually appends the instructions in a logical manner.
+    fn compile_statement(&mut self, stmt: &Statement, is_public: bool) {
+        match stmt {
+            Statement::VariableStatement(_, name, val_type, value, should_infer) => {
+                self.compile_variable_stmt(name.as_ref(), val_type, value.as_ref(), should_infer);
+            }
+            _ => {}
+        }
+    }
+
+    fn compile_variable_stmt(&mut self, name: &Expression, val_type: &Option<Box<Expression>>, value: &Expression, should_infer: &bool) {
+        let value_type : StrongValType = {
+            // check infer...
+            if val_type.is_none() {
+                // check if we are dealing with a identifier
+                if !expression_is_ident(value) {
+                    // easy peasy dog
+                    parse_strong_from_expression(value)
+                } else {
+                    // Find variable in scope
+                    for scope in self.variable_scopes.iter().rev() {
+                        for variable in scope.iter() {
+                            if variable.name == name {
+                                return variable.val_type.clone();
+                            }
+                        }
+                    }
+
+                    for scope in self.native_function_scopes.iter().rev() {
+                        for function in scope.iter() {
+                            if function.name == name {
+                                return function.val_type.clone();
+                            }
+                        }
+                    }
+                }
+                // if expression_is_ident(value) {
+                //     // Look for Variables or functions in scope.
+                //     for variable in self.variable_scopes.iter().rev() {
+                //         if variable.iter().find_map(|v| v.name == value)
+                //     }
+                // }
+            } else {
+                parse_strong_from_expression(val_type.unwrap().as_ref())
+            }
+        };
+
+        if *should_infer {}
+    }
+
+    /// Compile a Expression.
+    fn compile_expression(&mut self, expr: &Expression) -> EasyInstructions {
+        match expr {
+            Expression::FunctionLiteral(_, name, params, val_type, body) => {
+
+            }   
+            _ => {}
+        }
+        
+        vec![]
     }
 }

@@ -61,7 +61,6 @@ pub struct Transpiler {
 
     /// Track native variables and functions
     native_ctx: NativeContext
-    
 }
 
 impl Transpiler {
@@ -89,6 +88,8 @@ impl Transpiler {
     /// 
     /// pass in is_export to know if we are already inside a export statement.
     /// Otherwise any other stmt will fail if not inside an export.
+    /// 
+    /// !Important: This is for converting a native function call into it's __easyjs_native_call equivalent.
     fn add_stmt_to_native_ctx(&mut self, stmt: &Statement, is_export: bool) {
         match stmt {
             Statement::ExportStatement(_, stmt) => {
@@ -209,7 +210,7 @@ impl Transpiler {
             }
 
             // check if the statement is an export
-            match stmt.clone() {
+            match &stmt {
                 // add it to a list of exported identifiers
                 Statement::ExportStatement(tk, stmt) => {
                     match stmt.as_ref().to_owned() {
@@ -287,6 +288,7 @@ impl Transpiler {
         self.scopes.pop();
     }
 
+    /// Convert transpiled JS into a string.
     fn to_string(&self) -> String {
         let mut res = String::new();
 
@@ -307,7 +309,8 @@ impl Transpiler {
 
         res
     }
-
+    
+    /// Transpile easyjs code into JS from a string input.
     pub fn transpile_from_string(&mut self, p: String) -> String {
         let l = lex::Lex::new(p);
         let mut p = par::Parser::new(l);
@@ -316,11 +319,13 @@ impl Transpiler {
         self.transpile_from(program)
     }
 
+    /// Transpile easyjs code into JS from a ast program.
     pub fn transpile(&mut self, p: ast::Program) -> String {
         let code = self.transpile_from(p);
         code
     }
 
+    /// Transpile easyjs code into JS from a ast program.
     fn transpile_from(&mut self, p: ast::Program) -> String {
         // seperate stmt types
         let native_stmts = p.statements.iter().filter(|p| p.is_native()).collect::<Vec<_>>();

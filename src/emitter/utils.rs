@@ -12,86 +12,32 @@ use super::{
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum StrongValType {
-    None,
-    Int,
-    Float,
-    Bool,
-    NotSupported,
-    String,
+    None, // i.e. any
+    Int, // i.e. i32
+    Float, // i.e. f32
+    Bool, // i.e. i32
+    NotSupported, // i.e. THROW AN ERROR
+    String, // i.e. i32 (pointer to string in memory)
 }
 
-pub fn get_param_type_by_string(string: String) -> StrongValType {
-    match string.as_str() {
+pub fn get_param_type_by_string(string: &str) -> StrongValType {
+    match string {
         "int" => StrongValType::Int,
         "bool" => StrongValType::Bool,
         "float" => StrongValType::Float,
         "string" => StrongValType::String,
-        _ => StrongValType::None,
+        _ => StrongValType::NotSupported,
     }
 }
 
 /// Get a param type by named expression
 pub fn get_param_type_by_named_expression(param: Expression) -> StrongValType {
     match param {
-        Expression::Type(tk, name) => get_param_type_by_string(name),
+        Expression::Type(tk, name) => get_param_type_by_string(&name),
         Expression::IdentifierWithType(tk, _, var_type) => {
             get_param_type_by_named_expression(var_type.as_ref().to_owned())
         }
         _ => StrongValType::NotSupported,
-    }
-}
-
-/// Make an instruction for a value.
-pub fn make_instruction_for_value(value: &Expression) -> Vec<Instruction> {
-    match value {
-        Expression::IntegerLiteral(_, v) => vec![Instruction::I32Const(*v as i32)],
-        Expression::FloatLiteral(_, v) => vec![Instruction::F32Const(*v as f32)],
-        // Expression::StringLiteral(_, v) => {
-        //     let str_length = v.len() as i32;
-        //     let str_byts = v.as_bytes();
-
-        //     let mut instructions = vec![];
-
-        //     // allocate memory for the string
-        //     instructions.push(Instruction::I32Const(str_length));
-        //     instructions.append(&mut call(ALLOCATE_STRING_IDX));
-        //     instructions.append(&mut set_local(1));
-
-        //     instructions
-        //     // let str_length = v.len() as i32;
-        //     // let str_bytes = v.as_bytes();
-
-        //     // // Step 1: Allocate memory for the string.
-        //     // let allocate_instr = vec![
-        //     //     Instruction::I32Const(str_length), // string length
-        //     //     Instruction::Call(ALLOCATE_STRING_IDX), // allocate the string
-        //     // ];
-
-        //     // // Step 2: Store string length at the start of the allocated memory.
-        //     // let store_length_instr = vec![
-        //     //     Instruction::I32Const(str_length),
-        //     //     Instruction::I32Const(4), // length + 4 bytes
-        //     //     Instruction::I32Add,
-        //     //     Instruction::I32Const(0), // offset for the length
-        //     //     Instruction::Call(STORE_STRING_IDX), // store the length
-        //     // ];
-
-        //     // // Step 3: Copy the string bytes into memory.
-        //     // let mut store_bytes_instr = Vec::new();
-        //     // for (i, &byte) in str_bytes.iter().enumerate() {
-        //     //     store_bytes_instr.push(Instruction::I32Const(i as i32 + 4)); // offset to start after length
-        //     //     store_bytes_instr.push(Instruction::I32Const(byte as i32));
-        //     //     store_bytes_instr.push(Instruction::I32Store8(MemArg {
-        //     //         align: 0,
-        //     //         offset: 0,
-        //     //         memory_index: 0,
-        //     //     }));
-        //     // }
-
-        //     // // Combine all instructions
-        //     // [allocate_instr, store_length_instr, store_bytes_instr].concat()
-        // }
-        _ => vec![Instruction::Nop],
     }
 }
 
@@ -147,5 +93,31 @@ pub fn get_val_type_from_strong(strong: &StrongValType) -> Option<ValType> {
         StrongValType::Bool => Some(ValType::I32),
         StrongValType::String => Some(ValType::I32),
         _ => None,
+    }
+}
+
+/// Find out if a expression is a Identifier
+pub fn expression_is_ident(expr: &Expression) -> bool {
+    match expr {
+        Expression::Identifier(_, _) => true,
+        _ => false
+    }
+}
+
+/// Parse StrongValType from expression.
+/// 
+/// !Important: Expression must be a Type.
+pub fn parse_strong_from_expression(expr: &Expression) -> StrongValType {
+    match expr {
+        Expression::Type(_, name) => get_param_type_by_string(name),
+        _ => StrongValType::NotSupported
+    }
+}
+
+/// Get the name of a variable from a ident expression
+pub fn get_name_from_ident(ident: &Expression) -> Result<String, &'static str> {  
+    match ident {
+        Expression::Identifier(_, name) => Ok(name.to_owned()),
+        _ => Err("Not an identifier")
     }
 }
