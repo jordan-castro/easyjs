@@ -5,6 +5,7 @@ use wasm_encoder::{
 
 use super::utils::StrongValType;
 
+/// A function that is represented only via instructions (not via easyjs code.)
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EasyNativeFN {
     pub signature: FunctionSignature,
@@ -14,16 +15,39 @@ pub struct EasyNativeFN {
     pub is_public: bool,
 }
 
+pub struct EasyNativeVar {
+    /// Name of variable
+    pub name: String,
+    /// The idx of variable
+    pub idx: u32,
+    /// Whether or not the variable is global
+    pub is_global: bool,
+    /// The value of the variable (this is only used for global variables)
+    pub value: Option<String>, // value is saved as a string
+    /// The type of the variable
+    pub val_type: StrongValType,
+}
+
+/// A signature for a function.
+/// 
+/// Think of a signature as (params, results)
+/// 
+/// When creating a signature use the FunctionSignature::create function.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct FunctionSignature {
     pub params: Vec<ValType>,
     pub results: Vec<ValType>,
     pub param_strong: Vec<StrongValType>, 
     pub results_strong: Vec<StrongValType>,
+    /// The functions (external) name...
+    pub name: String
 }
 
+/// Used to create the registry for functions.
+/// 
+/// To use call create_type_section(signatures)
 #[derive(Clone)]
-pub struct TypeRegistry {
+struct TypeRegistry {
     signatures: Vec<FunctionSignature>,
     lookup: HashMap<FunctionSignature, u32>,
     name_lookup: HashMap<String, u32>,
@@ -31,8 +55,20 @@ pub struct TypeRegistry {
     strong_type_lookup: HashMap<u32, StrongValType>,
 }
 
+/// Create the type section of our wasm module.
+pub fn create_type_section(signatures: Vec<FunctionSignature>) -> TypeSection {
+    let mut registry = TypeRegistry::new();
+
+    for (idx, sig) in signatures.iter().enumerate() {
+        registry.add(sig.clone(), format!("fn_{}", idx));
+    }
+
+    registry.emit()
+} 
+
 impl TypeRegistry {
-    pub fn new() -> Self {
+    /// Create a new registry.
+    fn new() -> Self {
         TypeRegistry {
             signatures: Vec::new(),
             lookup: HashMap::new(),
@@ -43,7 +79,7 @@ impl TypeRegistry {
     }
 
     /// Add a new signature
-    pub fn add(&mut self, sig: FunctionSignature, name: String) -> u32 {
+    fn add(&mut self, sig: FunctionSignature, name: String) -> u32 {
         let idx = self.signatures.len() as u32; // Always get a new index
         let result_value = {
             let results = sig.clone().results;
@@ -62,7 +98,7 @@ impl TypeRegistry {
     }
 
     /// Get the return type of a function.
-    pub fn get_return_type_of(&self, name: String) -> Option<ValType> {
+    fn get_return_type_of(&self, name: String) -> Option<ValType> {
         let idx = self.name_lookup.get(&name);
         if let Some(idx) = idx {
             *self.type_lookup.get(idx).unwrap()
@@ -72,7 +108,7 @@ impl TypeRegistry {
     }
 
     /// Get the strong return type of a function.
-    pub fn get_strong_return_type_of(&self, name: String) -> Option<StrongValType> {
+    fn get_strong_return_type_of(&self, name: String) -> Option<StrongValType> {
         let idx = self.name_lookup.get(&name);
         if let Some(idx) = idx {
             Some(self.strong_type_lookup.get(idx).unwrap().clone())
@@ -82,11 +118,12 @@ impl TypeRegistry {
     }
 
     /// Emits a single type section for all registered signatures.
-    pub fn emit(&self, module: &mut Module) {
+    fn emit(&self) -> TypeSection {
         let mut types = TypeSection::new();
         for sig in &self.signatures {
             types.ty().function(sig.params.clone(), sig.results.clone());
         }
-        module.section(&types);
+        types
+        // module.section(&types);
     }
 }

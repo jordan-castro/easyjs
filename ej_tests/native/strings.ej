@@ -1,6 +1,11 @@
 // This example runs in the browser.
 
 native {
+    pub fn test_set_array(): array {
+        var test: array[int] = [1,2,3,4]
+        return test
+    }
+
     pub fn testing_setting_string(): string {
         var test: string = "Hello world"
         return test

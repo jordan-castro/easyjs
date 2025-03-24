@@ -23,6 +23,7 @@
 - v0.5.0 type checker
 - v0.6.0 add a local JS Engine
 - v0.5.0 optional return statements in dynamic variable creations.
+- v0.5.0 Remove consts (use macro instead @const(name, value))
 
 ## Scripts
 - v0.4.0 ~~add to path (also update path...)~~
@@ -43,19 +44,21 @@
       - append
       - [] object at position
       - remove
-    - dicts
-      - key, value
-      - set, get by key
-      - dot expression
-    - classes
-    - structs
-    - GC
   - ~~global variables~~
   - import functions from external.
   - ~~call other functions~~
   - loops
   - if statements
   - ~~math statements with consts~~
+- v0.5.0
+  - dicts
+    - key, value
+    - set, get by key
+    - dot expression
+  - classes
+  - structs
+- v0.6.0 
+  - GC (Nah, handle your memory... it's not that hard...)
 - v0.6.0 explore multi threaded wasm.
 - v0.5.0 add shared memory support
 - future version (when we have a team of developers) Switch to native wasm implementation...

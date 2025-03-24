@@ -8,7 +8,7 @@ pub enum NodeType {
 #[derive(Clone, Debug)]
 pub enum Statement {
     EmptyStatement,                                                 // there was an issue
-    VariableStatement(tk::Token, Box<Expression>, Option<Box<Expression>>, Box<Expression>, bool), // variable = expression
+    VariableStatement(tk::Token, Box<Expression>, Option<Box<Expression>>, Box<Expression>, bool), // variable = expression (bool = should_infer)
     ReturnStatement(tk::Token, Box<Expression>),                    // return expression
     /// use prefix:path
     UseStatement(tk::Token, Box<Expression>, Box<Expression>),

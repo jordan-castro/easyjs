@@ -1,7 +1,10 @@
+// This module is used to help emit WASM module from Native code.
+// It is used by native.rs
+
 pub mod wasm_emitter;
-mod signatures;
+pub mod signatures;
 mod fn_builder;
-mod utils;
+pub mod utils;
 mod variables;
 mod strings;
-mod instruction_generator;
+pub mod instruction_generator;
