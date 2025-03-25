@@ -6,8 +6,8 @@ use crate::parser::ast::{Expression, Statement};
 
 use super::{
     instruction_generator::{call, call_instruction, is_wasm_core, set_local_string}, strings::ALLOCATE_STRING_IDX, utils::{
-        get_param_type_by_named_expression, get_param_type_by_string, get_val_type_from_strong, infer_variable_type, make_instruction_for_value, StrongValType
-    }, variables::{WasmVariable, WasmVariables}, wasm_emitter::EasyWasm
+        get_param_type_by_named_expression, get_param_type_by_string, get_val_type_from_strong, StrongValType
+    }, variables::{WasmVariable, WasmVariables}
 };
 
 /// Handle building functions in easyjs to WebAssembly.

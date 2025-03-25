@@ -39,8 +39,6 @@ pub struct FunctionSignature {
     pub results: Vec<ValType>,
     pub param_strong: Vec<StrongValType>, 
     pub results_strong: Vec<StrongValType>,
-    /// The functions (external) name...
-    pub name: String
 }
 
 /// Used to create the registry for functions.

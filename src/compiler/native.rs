@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    emitter::{instruction_generator::EasyInstructions, signatures::{EasyNativeVar, FunctionSignature}, utils::{get_param_type_by_string, StrongValType}},
+    emitter::{instruction_generator::EasyInstructions, signatures::{EasyNativeFN, EasyNativeVar, FunctionSignature}, utils::{expression_is_ident, get_param_type_by_string, StrongValType}},
     parser::ast::{Expression, Statement},
 };
 
@@ -39,15 +39,16 @@ use crate::{
 /// }
 ///
 /// ```
-pub fn compile_native(stmts: &Vec<&Statement>) -> Vec<u8> {
+pub fn compile_native(stmts: &Vec<Statement>) -> Vec<u8> {
     vec![]
 }
 
 /// The native context used by the compiler. Keeps track of Functions/Variables/Structs/etc.
 struct NativeContext {
-    /// A map of function signatures (by idx.)
-    /// To get a function by name, loop through this map.
-    function_signatures: HashMap<i64, FunctionSignature>,
+    /// A vector of functions.
+    /// 
+    /// To access each one loop through the vector.
+    functions: Vec<EasyNativeFN>,
 
     /// Scoped variables.
     ///
@@ -56,16 +57,19 @@ struct NativeContext {
 
     /// Whether or not this context is valid.
     /// False when we have an error, invalid statements, unsopported, etc...
-    pub not_valid_reason: Option<String>,
+    errors: Vec<String>,
 
+    /// Is the context currently global.
+    is_currently_global: bool
 }
 
 impl NativeContext {
     fn new() -> Self {
         NativeContext {
-            function_signatures: HashMap::new(),
+            functions: Vec::new(),
             variable_scope: vec![vec![]],
-            not_valid_reason: None
+            errors: Vec::new(),
+            is_currently_global: true
         }
     }
 
@@ -74,13 +78,47 @@ impl NativeContext {
         match stmt {
             Statement::VariableStatement(_, name, val_type, value, should_infer) => {
                 // Pseudo code
-                // let var_name = self.compile_raw_expression(name);
-                // let var_value = self.get_value_from_expression(value);
+                let var_name = self.compile_raw_expression(name);
+                // let mut val_value 
+                // let var_value = {
+                //     if !*should_infer {
+                //         self.get_val_type_from_expression(&value)
+                //     } else {
+                //         for scope in self.variable_scope.iter().rev() {
+                //             for variable in scope.iter() {
+                //                 if variable.name == var_name {
+                //                     return variable.val_type.clone();
+                //                 }
+                //             }
+                //         }
+                //         for function in self.functions.iter() {
+                //             if function.name == var_name {
+                //                 return function.signature.results_strong[0].clone();
+                //             }
+                //         }
+                //         StrongValType::None
+                //     }
+                // };
+                // When we infer we need to check if the value is a identifier or not.
+
+                // if *should_infer {
+                //     if expression_is_ident(value) {
+                //         // Look for Variables or functions in scope.
+                //         // for scope in self.variable_scope.iter().rev() {
+                //         //     // for variable in scope {
+                //         //     //     if variable.name == var_name {
+                //         //     //         // we got the variable
+                                    
+                //         //     //     }
+                //         //     // }
+                //         // }
+                //     }
+                // }
                 // if should_infer {} for i in variables {} or for i in fn {}
             }
             _ => {
                 // This stmt is not supported in native blocks (yet)
-                self.not_valid_reason = Some("Unsupported statement".to_string());
+                self.add_error("Unsupported statement");
             }
         }
     }
@@ -89,7 +127,11 @@ impl NativeContext {
     /// 
     /// This returns a list of Instructions that are then used for compilation.
     fn compile_expression(&mut self, expr: &Expression) -> EasyInstructions {
-        vec![]
+        match expr {
+            _ => {
+                vec![]
+            }
+        }
     }
 
     /// Compile the raw expression into a String
@@ -114,7 +156,7 @@ impl NativeContext {
             }
             _ => {
                 // add error
-                self.not_valid_reason = Some("Can not compile raw expression".to_string());
+                self.add_error("Can not compile raw expression");
                 String::new()
             }
         }
@@ -127,34 +169,41 @@ impl NativeContext {
     /// - literals
     /// - function calls (the return type)
     /// - function calls (the arguments with types)
-    fn get_value_from_expression(&mut self, expr: &Expression) -> StrongValType {
+    fn get_val_type_from_expression(&mut self, expr: &Expression) -> StrongValType {
         match expr {
             Expression::Identifier(_, name) => {
                 let res = get_param_type_by_string(name);
                 if res == StrongValType::NotSupported {
-                    self.not_valid_reason = Some("Can not get value from expression".to_string());
+                    self.add_error("Can not get value from expression");
                     StrongValType::NotSupported
                 } else {
                     res
                 }
             }
             Expression::IdentifierWithType(_, name, val_type) => {
-                self.get_value_from_expression(val_type.as_ref())
+                self.get_val_type_from_expression(val_type.as_ref())
             }
             Expression::FunctionLiteral(_, _, _, val_type, _) => {
+                // There is no way to infer the return type of a function (not yet)
                 if val_type.is_none() {
-                    self.not_valid_reason = Some("Can not get value from expression".to_string());
+                    self.add_error("Can not get value from expression.");
+                    // self.not_valid_reason = Some("Can not get value from expression".to_string());
                     StrongValType::NotSupported
                 }
                 else {
-                    self.get_value_from_expression(val_type.clone().unwrap().as_ref())
+                    self.get_val_type_from_expression(val_type.clone().unwrap().as_ref())
                 }
             }
             _ => {
                 // add error
-                self.not_valid_reason = Some("Can not get value from expression".to_string());
+                self.add_error("Can not get value from expression");
                 StrongValType::NotSupported
             }
         }
+    }
+
+    /// Add a error
+    fn add_error(&mut self, error: &str) {
+        self.errors.push(error.to_string());
     }
 }
