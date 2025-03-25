@@ -5,7 +5,7 @@ use std::fmt::format;
 // use std::path;
 
 use super::macros::Macro;
-use crate::emitter::wasm_emitter::emit_wasm;
+use super::native::compile_native;
 use crate::{builtins, emitter};
 // use crate::interpreter::{interpret_js, is_javascript_var_defined};
 use crate::lexer::lex::{self, ALLOWED_IN_IDENT};
@@ -442,9 +442,8 @@ impl Transpiler {
 
     fn transpile_native_stmts(&self) -> String {
         let mut res = String::new();
-        let easy_wasm = emit_wasm(self.native_stmts.clone());
-        // TODO: DO NOT SAVE TO FILE... This is only for testing...
-        // save the wasm to a file
+        let easy_wasm = compile_native(&self.native_stmts);
+        // TODO: save the wasm to a file (optional)
         // let mut file = std::fs::File::create("easyjs.wasm").unwrap();
         // file.write(&easy_wasm).unwrap();
 

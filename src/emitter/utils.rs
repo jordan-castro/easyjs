@@ -4,12 +4,6 @@ use wasm_encoder::{Instruction, MemArg, ValType};
 
 use crate::parser::ast::Expression;
 
-use super::{
-    instruction_generator::{call, get_local, set_local},
-    signatures::TypeRegistry,
-    variables::WasmVariables,
-};
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum StrongValType {
     None, // i.e. any
@@ -38,50 +32,6 @@ pub fn get_param_type_by_named_expression(param: Expression) -> StrongValType {
             get_param_type_by_named_expression(var_type.as_ref().to_owned())
         }
         _ => StrongValType::NotSupported,
-    }
-}
-
-/// Infer variable type
-pub fn infer_variable_type(
-    value: &Expression,
-    scoped_variables: &WasmVariables,
-    scoped_type_registry: &TypeRegistry,
-    global_variables: Option<&WasmVariables>,
-) -> StrongValType {
-    match value {
-        Expression::IntegerLiteral(_, _) => StrongValType::Int,
-        Expression::FloatLiteral(_, _) => StrongValType::Float,
-        Expression::StringLiteral(_, _) => StrongValType::String,
-        Expression::Identifier(_, name) => {
-            // possible varaible?
-            let var = scoped_variables.get_variable_by_name(name);
-            if let Some(var) = var {
-                var.ty
-            } else {
-                // check scoped_functions
-                let func = scoped_type_registry.get_strong_return_type_of(name.to_owned());
-                if let Some(func) = func {
-                    func
-                } else {
-                    // check global too
-                    if global_variables.is_none() {
-                        StrongValType::None
-                    } else {
-                        let var = global_variables.unwrap().get_variable_by_name(name);
-                        if let Some(var) = var {
-                            var.ty
-                        } else {
-                            StrongValType::None
-                        }
-                    }
-                }
-            }
-        }
-        Expression::CallExpression(_, name, _) => {
-            return infer_variable_type(name.as_ref(), scoped_variables, scoped_type_registry, global_variables);
-        }
-        Expression::Boolean(_, _) => StrongValType::Bool,
-        _ => StrongValType::None,
     }
 }
 
