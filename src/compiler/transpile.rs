@@ -1,6 +1,7 @@
 // use boa_engine::{value, Context};
 use std::collections::HashMap;
 use std::fmt::format;
+use std::io::Write;
 // use std::io::Write;
 // use std::path;
 
@@ -289,7 +290,7 @@ impl Transpiler {
     }
 
     /// Convert transpiled JS into a string.
-    fn to_string(&self) -> String {
+    fn to_string(&mut self) -> String {
         let mut res = String::new();
 
         if self.native_stmts.len() > 0 {
@@ -440,12 +441,19 @@ impl Transpiler {
         }
     }
 
-    fn transpile_native_stmts(&self) -> String {
+    fn transpile_native_stmts(&mut self) -> String {
         let mut res = String::new();
         let easy_wasm = compile_native(&self.native_stmts);
+        if easy_wasm.is_err() {
+            println!("Error: {}", easy_wasm.err().unwrap());
+            // TODO: add error
+            return res;
+        }
+        // It is ok now!
+        let easy_wasm = easy_wasm.unwrap();
         // TODO: save the wasm to a file (optional)
-        // let mut file = std::fs::File::create("easyjs.wasm").unwrap();
-        // file.write(&easy_wasm).unwrap();
+        let mut file = std::fs::File::create("easyjs.wasm").unwrap();
+        file.write(&easy_wasm).unwrap();
 
         res.push_str("const __easyjs_native_binary = new Uint8Array([");
         for byte in easy_wasm {
@@ -494,7 +502,7 @@ impl Transpiler {
                 }
             }
 
-            async function __easyjs_native_call(fnName, paramTypes, returnTypes, ...args) {
+            function __easyjs_native_call(fnName, paramTypes, returnTypes, ...args) {
                 if (!__easyjs_native_instance) {
                     throw new Error('No instance of __easyjs_native loaded');
                 }

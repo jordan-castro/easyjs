@@ -1,0 +1,12 @@
+native {
+    pub fn add(n1: int, n2: int):int {
+        return n1 + n2
+    }
+
+    pub fn add_call(n1: int, n2:int):int {
+        return add(n1, n2)
+    }
+}
+
+x = add_call(1,2)
+console.log(x)

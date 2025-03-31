@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use wasm_encoder::{
-    CodeSection, Function, FunctionSection, Instruction, Module, TypeSection, ValType,
+    CodeSection, ConstExpr, Function, FunctionSection, Instruction, Module, TypeSection, ValType
 };
 
 use super::utils::StrongValType;
@@ -15,6 +15,9 @@ pub struct EasyNativeFN {
     pub is_public: bool,
 }
 
+/// Context for a native variable.
+/// 
+/// The value is for global variables only.
 pub struct EasyNativeVar {
     /// Name of variable
     pub name: String,
@@ -23,9 +26,11 @@ pub struct EasyNativeVar {
     /// Whether or not the variable is global
     pub is_global: bool,
     /// The value of the variable (this is only used for global variables)
-    pub value: Option<String>, // value is saved as a string
+    pub value: ConstExpr, 
     /// The type of the variable
     pub val_type: StrongValType,
+    /// Is the variable mutable?
+    pub is_mut: bool
 }
 
 /// A signature for a function.
@@ -54,11 +59,12 @@ struct TypeRegistry {
 }
 
 /// Create the type section of our wasm module.
-pub fn create_type_section(signatures: Vec<FunctionSignature>) -> TypeSection {
+pub fn create_type_section(signatures: Vec<FunctionSignature>, function_section: &mut FunctionSection) -> TypeSection {
     let mut registry = TypeRegistry::new();
 
     for (idx, sig) in signatures.iter().enumerate() {
-        registry.add(sig.clone(), format!("fn_{}", idx));
+        let type_idx = registry.add(sig.clone(), format!("fn_{}", idx));
+        function_section.function(type_idx);
     }
 
     registry.emit()
