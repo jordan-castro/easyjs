@@ -78,21 +78,21 @@ In this approach our wasm runtime will take care of transcribing it in REALTIME.
 
 **Fibonacci**
 ```rust
-fn fibonacci(n) { // <-- easyJS is dynamically typed. 
+fn fibonacci(n):int { // <-- easyJS is optionally typed. 
     if n == 0 {
         return 0 // <-- no semicolons.
     } elif n == 1 {
         return 1
     } else {
-        fibonacci(n - 1) + fibonacci(n - 2)
+        fibonacci(n - 1) + fibonacci(n - 2) // when typed you can default the last statement to being returned.
     }
 }
 ```
 VS the JavaScript equivalent
 ```javascript
-function fibonacci(n) {
+function fibonacci(n) { // no types (what??)
     if (n === 0) {
-        return 0;
+        return 0; // always need return
     } else if (n === 1) {
         return 1;
     } else {
@@ -104,6 +104,8 @@ function fibonacci(n) {
 **Manipulating the DOM**
 ```rust
 document.title = "Hello World!" // <-- No semicolons
+
+// I know this is not much but easyjs will have a dedicated dom api in version 1.0.0
 ```
 VS the JavaScript equivalent
 ```javascript
@@ -114,17 +116,19 @@ That's a pretty basic example, but you can already tell it is a little more read
 
 **Making a GET request**
 ```js
-use core:http // <-- import the easyjs http library
 
-get_response = http.get("https://jsonplaceholder.typicode.com/posts/1") // <-- Call the http.get method
-get_response.if { // <-- Conditional on object type.
-    .status_code == 200 { // <-- if get_response.status_code == 200 (you also can use .ok which does the same thing)
-        console.log(.json())
+async { // optionally wrap in a async block if you want to use await
+    get_response = await fetch("https://jsonplaceholder.typicode.com/posts/1")
+    if get_response.status_code == 200 {
+        @print(get_response.json()) // a builtin macro
     } else {
-        throw(NetworkError) // <-- You can also use a general Error(msg)
+        // a javascript inliner
+        // this is useful because not all of JS is currently supported (like exceptions...)
+        javascript {
+            throw new Error("Network response was not ok");
+        }
     }
 }
-
 ```
 VS the JavaScript equivalent
 ```javascript
@@ -144,35 +148,35 @@ fetch('https://jsonplaceholder.typicode.com/posts/1')
 ```
 **Classes and objects**
 ```rust
-struct Person {
-    name : string // <-- Optional typing
-    age : int // <-- instead of float
-    diary : array[string] // <-- an array of strings.
+// easyjs does not currently support classes. Only data structs.
+// classes will be added by v1.0.0
 
-    fn new(name, age, diary) {  // <-- You can also use `construct`
-        self.name = name // use self instead of `this`
-        self.age = age
-        self.diary = diary
+// [name,age] are values that are passed into the constructor.
+pub struct Person[name, age] with GreetMixin {
+    var has_job = true
+    species = "HomoSapien"
+
+    fn set_name(self, new_name) {
+        self.name = new_name
     }
 
-    fn say_greeting() {
-        console.log("Hello, my name is $name") // <-- Example of string interpolation. No need for ``
+    /// gets the name. // <-- doc comments with '///'
+    fn get_name(self) {
+        return self.name
     }
 
-    !fn read_diary() { // <-- add a '!' to make a struct function private.
-        for item in diary { // <-- compiles into a 'of', if you are looing to use a 'in' use for i, item in diary
-            console.log(item)
-        }
+    // this is a static method because it does not have self as a paramater.
+    fn static_method() {
+        console.log("This is a static method")
     }
 }
 
-// You also have the option of a methodless struct for holding data
-struct PersonData {
-    name : string
-    age = 0 // either needs to have a type or a value...
-    diary = []
+// A mixin is just another struct
+struct GreetMixin {
+    fn say_hi(self) {
+        console.log('Hello, my name is ${self.name}')
+    }
 }
-
 // To instantiate a Person
 person = Person("Jordan", 22, ["Dear Diary", "I love Julia!", "I also love EasyJS!"])
 
@@ -181,35 +185,27 @@ person_data = PersonData("Evelyn", 19, ["Dear Diary", "I saw that Jordan loves a
 ```
 VS the JavaScript equivalent
 ```javascript
-class Person {
-    name = "" // default values are instantiated.
-    age = 0
-    diary = []
-
-    constructor(name, age, diary) {
-        this.name = name;   // Name of the person
-        this.age = age;     // Age of the person
-        this.diary = diary; // List of strings for the diary
+function Person(name, age) {
+    Person.species = 'HomoSapien';
+    Person.static_method = function () {
+        console.log('This is a static method');
+    };
+    return Object.assign({
+        name, age, has_job: true, set_name: function (new_name) {
+            this.name = new_name;
+        },
+        get_name: function () {
+            return this.name;
+        },
     }
-
-    // Public method to say a greeting
-    sayGreeting() {
-        console.log(`Hello, my name is ${this.name}`);
-    }
-
-    // Private method to read the diary
-    #readDiary() {
-        for (let item of this.diary) {
-            console.log(item);
-        }
-    }
+        , GreetMixin(),);
 }
-
-// A object in JS
-function PersonData(name, age, diary) {
-    this.name = name;
-    this.age = age;
-    this.diary = diary;
+function GreetMixin() {
+    return {
+        say_hi: function () {
+            console.log(`Hello, my name is ${self.name}`);
+        },
+    }
 }
 
 // To instantiate a Person
@@ -224,27 +220,53 @@ const personData = new PersonData("Evelyn", 19, ["Dear Diary", "..."])
 var hello = "hello" // this compiles into let hello = "hello"
 world = "world" // this compiles into const world = "world"
 
+// Why does const not need to have a `const` keyword? Because I don't like it.
 
+// easyjs optional typing
+var helloTyped : string = "hello"
+helloTyped = 1 // this will error during compilation
 ```
 VS the JavaScript equivalent
 ```javascript
-const constVar = "some data"     // JS equivalent
 let variable = "other data"      // JS equivalent
-                                 // no typed option...
-var variable = "a global string" // global variable equivalent
+const constVar = "some data"     // JS equivalent
+
+// no typed equivalent.
 ```
+**Native (wasm)**
+easyjs supports a builtin wasm compiler named `easyjs native`. To use the wasm compiler wrap your code in a `native` block.
+```rust
+native {
+    // native functions need to be typed.
+    // paramaters need to be typed but function returns do not need to be typed.
+    // if they are not typed though, you loose some wasm features.
+    pub fn add(n1:int, n2:int):int {
+        n1 + n2
+    }
+
+    // untyped version
+    pub fn add_untyped(n1:int, n2:int) {
+        return n1 + n2 // basically you would need to write out return specifically.
+    }
+}
+
+// then to call the built function
+result = add(1,2)
+result_typed = add_untyped(1,2)
+```
+Yes it is that easy!
 
 ## I think the main thing is
-I'm building EasyJS to run wherever JavaScript runs, this is because it compiles into js. That means you could in theory use it with node, bun, deno, on the browser, apps, ect. The whole idea is to make an easier, modern, intuitive language that replaces nasty JS.
+I'm building easyjs to run wherever JavaScript runs, this is because it compiles into js. That means you could in theory use it with node, bun, deno, on the browser, apps, ect. The whole idea is to make an easier, modern, intuitive language that can replace JS.
 
 ## What's wrong with JS?
 A lot of things, but to get started the main things which every JS developer will mention
- hard to read syntax, easily error prone, no types, and strange behavior. EasyJs is focused on fixing 3 of these headaches.
+ hard to read syntax, easily error prone, no types, and strange behavior. easyjs is focused on fixing 3 of these headaches.
  1. Easy to read and modern syntax.
  2. Catches errors before it hits the runtime.
  3. Optional typing.
 
 ## How I see this going
-I see EasyJS being used in place of JS/TS in a lot of places. It will be easier and faster to use the intuitve syntax of EasyJS to write
+I see easyjs being used in place of JS/TS in a lot of places. It will be easier and faster to use the intuitve syntax of EasyJS to write
 frontend libraries, machine learning, and complex algorithms. Because EasyJS is esentially Vanilla JS at the end of the day, it can be 
 incorporated easily with frontend JS. EasyJS can very well be used for whole web applications as well.
