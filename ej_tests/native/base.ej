@@ -1,5 +1,5 @@
 native {
-    pub fn add(n1: int, n2: int):int {
+    pub fn add(n1: int, n2: float):int {
         return n1 + n2
     }
 
@@ -8,5 +8,5 @@ native {
     }
 }
 
-x = add_call(1,2)
+x = add(1,2.0)
 console.log(x)

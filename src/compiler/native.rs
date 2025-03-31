@@ -349,12 +349,12 @@ impl NativeContext {
 
                 // if left is int and right is float: use f32Add
                 // hierarchy: f64 > f32 > i64 > i32
-                let instruction_type = match (left_type, right_type) {
+                let instruction_type = match (&left_type, &right_type) {
                     (StrongValType::Int, StrongValType::Int) => "int",
                     (StrongValType::Int, StrongValType::Float) => "f32",
                     (StrongValType::Float, StrongValType::Int) => "f32",
                     (_, _) => {
-                        self.add_error("native, Unsupported operation");
+                        self.add_error(format!("native, Unsupported operation: {:#?} {} {:#?}", left_type, op, right_type).as_str());
                         return vec![];
                     }
                 };
