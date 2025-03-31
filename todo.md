@@ -29,6 +29,7 @@
 - v0.4.0 ~~add to path (also update path...)~~
 
 ## WASM
+- v0.5.0 always infer variables i.e. remove the need for `:=` 
 - v0.4.0 use ASC
 - v0.4.0 ~~wasmer functions~~
 - v0.4.0 ~~compile wasm funct.ions AOT or JIT or don't compile and just interpret at the Rust Level.~~ AOT

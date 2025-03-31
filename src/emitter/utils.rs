@@ -42,6 +42,7 @@ pub fn get_val_type_from_strong(strong: &StrongValType) -> Option<ValType> {
         StrongValType::Float => Some(ValType::F32),
         StrongValType::Bool => Some(ValType::I32),
         StrongValType::String => Some(ValType::I32),
+        // TODO: Implement StrongValType::None
         _ => None,
     }
 }
