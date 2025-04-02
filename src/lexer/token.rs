@@ -87,7 +87,7 @@ pub const R_BRACE: &str = "}";
 pub const L_BRACKET: &str = "[";
 pub const R_BRACKET: &str = "]";
 
-// pub const MACRO_SYMBOL: &str = "MACRO_SYMBOL";
+pub const MACRO_SYMBOL: &str = "MACRO_SYMBOL";
 // pub const DECORATOR: &str = "DECORATOR";
 
 // Keywords
@@ -111,7 +111,7 @@ pub const NOT: &str = "NOT";
 pub const FROM: &str = "FROM";
 pub const SELF: &str = "SELF";
 pub const NATIVE: &str = "NATIVE";
-// pub const MACRO: &str = "MACRO";
+pub const MACRO: &str = "MACRO";
 pub const NEW: &str = "NEW";
 pub const IS: &str = "IS";
 pub const VAR: &str = "VAR";
@@ -149,7 +149,7 @@ pub fn lookup_ident(ident: &str) -> &'static str {
         "from" => FROM,
         "self" => SELF,
         "native" => NATIVE,
-        // "macro" => MACRO,
+        "macro" => MACRO,
         "and" => AND_SYMBOL,
         "or" => OR_SYMBOL,
         "new" => NEW,

@@ -193,7 +193,6 @@ impl Transpiler {
     }
 
     /// Transpile a module.
-    #[deprecated(since = "0.4.0", note = "easyjs supports ES6 modules now, this is no longer needed.")]
     pub fn transpile_module(p : ast::Program) -> String {
         let mut t = Transpiler::new();
 
@@ -1442,14 +1441,36 @@ impl Transpiler {
                         let param = &params[0];
                         let result = builtins::include(&self.transpile_expression(param.to_owned()));
                         
-                        // let structs = &module_t.structs;
-                        // update our transpilers structs context only.
-                        // self.structs_in_modules.append(&mut structs);
                         result
                     }
                     _ => {
                         "".to_string()
                     }
+                }
+            }
+            Expression::MacroDecleration(_, name, paramaters, body) => {
+                let macro_name = self.transpile_expression(name.as_ref().to_owned());
+                let macro_params = paramaters.as_ref().to_owned();
+                let macro_body = body.as_ref().to_owned();
+                self.add_macro_function(macro_name, macro_params, macro_body);
+                String::from("")
+            }
+            Expression::MacroExpression(_, name, arguments) => {
+                let macro_name = self.transpile_expression(name.as_ref().to_owned());
+                let macro_arguments = arguments.as_ref().to_owned();
+
+                // check if macro args are empty
+                if macro_arguments.len() == 0 {
+                    if let Some(mac) = self.macros.get(&macro_name) {
+                        return mac.compile(vec![]);
+                    }
+                }
+                let macro_arguments = macro_arguments.iter().map(|p| self.transpile_expression(p.to_owned())).collect::<Vec<String>>();
+                
+                if let Some(mac) = self.macros.get(&macro_name) {
+                    mac.compile(macro_arguments)
+                } else {
+                    String::from("")
                 }
             }
             _ => String::from(""),
@@ -1464,6 +1485,7 @@ impl Transpiler {
             .join(",")
     }
 
+    /// Add a macro function to later be used when calling.
     fn add_macro_function(&mut self, name: String, params: Vec<Expression>, body: Statement) {
         let pms = self.join_expressions(params.to_owned());
         let mut parsed_args = vec![];

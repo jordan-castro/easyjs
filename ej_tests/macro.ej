@@ -1,5 +1,33 @@
 // print macro test
-import "std"
-x = 0..10
+macro print(message) {
+    console.log(message)
+}
 
-$boa_last(x)
+@print("test")
+
+macro get_last(array) {
+    array[array.length - 1]
+}
+
+array = [0,1,1,1,2]
+@print(@get_last(array))
+
+macro empty_macro() {
+    console.log('empty')
+}
+
+@empty_macro()
+
+macro within(test) {
+    @print(test)
+}
+
+@within('te')
+
+macro js_macro(error) {
+    javascript {
+        throw new Error(error);
+    }
+}
+
+@js_macro('what the heck')
