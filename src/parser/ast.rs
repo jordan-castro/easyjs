@@ -151,15 +151,15 @@ pub enum Expression {
     NotExpression(tk::Token, Box<Expression>),
     /// left as right
     AsExpression(tk::Token, Box<Expression>, Box<Expression>),
-    // /// Macro ($, ident, arguments, body)
-    // MacroExpression(tk::Token, Box<Expression>, Box<Vec<Expression>>),
-    // /// Declaring the macro ($, ident, arguments, body as BlockStatment)
-    // MacroDecleration(
-    //     tk::Token,
-    //     Box<Expression>,
-    //     Box<Vec<Expression>>,
-    //     Box<Statement>,
-    // ),
+    /// Macro (@, ident, arguments, body)
+    MacroExpression(tk::Token, Box<Expression>, Box<Vec<Expression>>),
+    /// Declaring the macro (@, ident, arguments, body as BlockStatment)
+    MacroDecleration(
+        tk::Token,
+        Box<Expression>,
+        Box<Vec<Expression>>,
+        Box<Statement>,
+    ),
     /// And expression
     AndExpression(
         tk::Token,
@@ -225,8 +225,8 @@ impl Expression {
             Expression::AssignExpression(_, _, _) => "AssignExpression",
             Expression::NotExpression(_, _) => "NotExpression",
             Expression::AsExpression(_, _, _) => "AsExpression",
-            // Expression::MacroExpression(_, _, _) => "MacroExpression",
-            // Expression::MacroDecleration(_, _, _, _) => "MacroDecleration",
+            Expression::MacroExpression(_, _, _) => "MacroExpression",
+            Expression::MacroDecleration(_, _, _, _) => "MacroDecleration",
             Expression::AndExpression(_, _, _) => "AndExpression",
             Expression::OrExpression(_, _, _) => "OrExpression",
             Expression::NullExpression(_, _, _) => "NullExpression",
