@@ -368,7 +368,7 @@ fn parse_statement(parser: &mut Parser) -> ast::Statement {
         token::USE => parse_use_statement(parser),
         token::JAVASCRIPT => ast::Statement::JavaScriptStatement(
             parser.c_token.to_owned(),
-            parser.c_token.to_owned().literal,
+            parser.c_token.to_owned().literal[1..parser.c_token.to_owned().literal.len() - 1].to_string(),
         ),
         token::FOR => parse_for_statement(parser),
         token::STRUCT => parse_struct_statement(parser),
