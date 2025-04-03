@@ -228,6 +228,9 @@ impl Transpiler {
                                 Expression::Identifier(_, name) => {
                                     exported_names.push(name);
                                 }
+                                Expression::FunctionLiteral(_, name, _, _, _) => {
+                                    exported_names.push(t.transpile_expression(name.as_ref().to_owned()));
+                                }
                                 // TODO: continue module work
                                 // Expression::
                                 _ => {}
