@@ -6,7 +6,6 @@
   - compilation (vs TypeScript, Dart, Nim, other to JS options)
   - performance (vs JavaScript, TypeScript, Dart, WASM)
 - v0.5.0 Better errors.
-- v0.5.0 Make the change to use &str as much as possible
 - v0.5.0 Add classes.
 - v0.5.0 enums
 - v0.5.0 type checker
