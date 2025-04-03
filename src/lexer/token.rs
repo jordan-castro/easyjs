@@ -119,11 +119,6 @@ pub const PUB: &str = "PUB";
 pub const MATCH: &str = "MATCH";
 pub const WITH: &str = "WITH";
 
-// Import prefixes
-pub const CORE: &str = "CORE";
-pub const BASE: &str = "BASE";
-pub const JS: &str = "JS";
-
 // Builtin methods
 pub const BUILTIN: &str = "BUILTIN";
 
@@ -153,9 +148,6 @@ pub fn lookup_ident(ident: &str) -> &'static str {
         "and" => AND_SYMBOL,
         "or" => OR_SYMBOL,
         "new" => NEW,
-        "core" => CORE,
-        "base" => BASE,
-        "js" => JS,
         "pub" => PUB,
         "is" => IS,
         "var" => VAR,

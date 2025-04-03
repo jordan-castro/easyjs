@@ -1,7 +1,6 @@
 # TODO
 
 ## Compiler
-- v0.5.0 add a LSP and text highlighting
 - v0.6.0 Add benchmarks for:
   - compilation (vs TypeScript, Dart, Nim, other to JS options)
   - performance (vs JavaScript, TypeScript, Dart, WASM)
@@ -12,9 +11,9 @@
 - v0.6.0 add a local JS Engine
 - v0.5.0 optional return statements in dynamic variable creations.
 - v0.5.0 Remove consts (use macro instead @const(name, value))
-- v0.5.0 Fix issue with javascript token in macros.
+~~- v0.5.0 Fix issue with javascript token in macros.
   - also fix throwing issue.
-
+~~
 ## Scripts
 - v0.4.0 ~~add to path (also update path...)~~
 
@@ -64,5 +63,7 @@
   - Github repo
   - personal email
   - twitter
-  - discord?
-- v0.4.0 Add codemirror to web editor
+- v0.5.0 add examples 
+  - native
+  - fn variables
+  - macros advanced.
