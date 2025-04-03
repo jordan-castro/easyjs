@@ -21,3 +21,8 @@ macro expect(method, error_msg) {
         }
     }
 }
+
+// Decouple 2 objects. 1 of identifiers, and 1 of matching length/key of values.
+macro decouple(idents, values) {
+    var idents = values
+}

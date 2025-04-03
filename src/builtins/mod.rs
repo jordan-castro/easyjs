@@ -9,7 +9,7 @@ pub const INT_RANGE: &str = "int_range";
 ///     file module...
 /// }
 /// 
-pub fn include(file_path_param: &str) -> String {
+pub fn include(file_path_param: &str, transpiler: &mut Transpiler) -> String {
     // parse the file path
     let binding = file_path_param.replace("'", "").replace("\"", "");
 
@@ -37,6 +37,8 @@ pub fn include(file_path_param: &str) -> String {
     let mut parser = par::Parser::new(lexer);
     // parse the program
     let program = parser.parse_program();
+    let module_transpiler = Transpiler::new();
+    let result = transpiler.transpile_module(program);
 
-    Transpiler::transpile_module(program)
+    result
 }

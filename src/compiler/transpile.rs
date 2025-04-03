@@ -193,7 +193,7 @@ impl Transpiler {
     }
 
     /// Transpile a module.
-    pub fn transpile_module(p : ast::Program) -> String {
+    pub fn transpile_module(&mut self, p : ast::Program) -> String {
         let mut t = Transpiler::new();
 
         let mut res = String::new();
@@ -274,6 +274,8 @@ impl Transpiler {
 
         // close the module
         res.push_str("})();\n");
+
+        self.macros.extend(t.macros);
 
         res
     }
@@ -1439,7 +1441,7 @@ impl Transpiler {
                     "use_mod" => {
                         // get the first param
                         let param = &params[0];
-                        let result = builtins::include(&self.transpile_expression(param.to_owned()));
+                        let result = builtins::include(&self.transpile_expression(param.to_owned()), self);
                         
                         result
                     }

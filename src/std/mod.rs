@@ -90,7 +90,34 @@ dom = {
         document.body.removeChild(node)
     }
 }"##;
+const ERRORS: &str = r##"// throw errors like a badass
+
+macro throw(msg) {
+    javascript {
+        throw new Error(msg);
+    }
+}
+
+"##;
 const HTTP: &str = r##""##;
+const MALLOC: &str = r##"native {
+    pub fn malloc(size:int):int {
+        var ptr : int = 0
+        __set_local_to_global(0, 0)
+
+        // TODO: allow this!
+        HEAP += ptr + 4 + size
+
+        __get_global(0)
+        __get_local(0)
+        __i32_const(4)
+        __i32_add()
+        __set_global(0)
+
+        return ptr
+    }
+
+}"##;
 const MATH: &str = r##"pub fn radians(degrees) {
     javascript{
         return degrees * (Math.PI / 180);
@@ -156,6 +183,25 @@ macro expect(method, error_msg) {
         } catch (e) {
             error_msg;
         }
+    }
+}
+
+// Decouple 2 objects. 1 of identifiers, and 1 of matching length/key of values.
+macro decouple(idents, values) {
+    var idents = values
+}
+"##;
+const STRINGS: &str = r##"native {
+    pub fn __get_str_len(ptr:int):int {
+        EJ_local_get(EJ_local_from_ident(ptr))
+        __i32_load_8u(0,0,0)
+        // automatically returned at the end
+    }
+
+    // concat 2 strings together, returns a new pointer!
+    pub fn __concat(ptr1:int, ptr2:int):int {
+        var string1_len = __get_str_len(ptr1)
+        var string2_len = __get_str_len(ptr2)
     }
 }"##;
 const TYPES: &str = r##"/// A controlled Integer value.
@@ -244,10 +290,13 @@ match name {
 "builtins" => BUILTINS,
 "date" => DATE,
 "dom" => DOM,
+"errors" => ERRORS,
 "http" => HTTP,
+"malloc" => MALLOC,
 "math" => MATH,
 "random" => RANDOM,
 "std" => STD,
+"strings" => STRINGS,
 "types" => TYPES,
 "ui" => UI,
 "wasm" => WASM,
