@@ -1,12 +1,28 @@
 is_required:bool = false
 
-var variable = fn {
+variable = fn {
     // Here you can put logic that will be run for the creation of this varaible.
     if is_required {
-        return 1
+        1
     } else {
-        return 2
+        2
     }
+}
+
+match_var = fn {
+    match is_required {
+        true: {
+            1
+        }
+        false: {
+            2
+        }
+    }
+}
+
+final_return = fn {
+    // some logic
+    1 + 1
 }
 
 console.log(variable)

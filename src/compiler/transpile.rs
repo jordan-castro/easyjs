@@ -7,6 +7,7 @@ use std::io::Write;
 
 use super::macros::Macro;
 use super::native::compile_native;
+use crate::lexer::token::STRING;
 use crate::{builtins, emitter};
 // use crate::interpreter::{interpret_js, is_javascript_var_defined};
 use crate::lexer::lex::{self, ALLOWED_IN_IDENT};
@@ -19,26 +20,26 @@ use super::import::{get_js_module_name, import, ImportType};
 
 /// Variable data. (used mostly for scoping)
 struct Variable {
-    name: String, 
+    name: String,
     /// Is mutable
-    is_mutable: bool
+    is_mutable: bool,
 }
 
 /// Used only in transpiler and type checker.
 /// Used to track native function calls.
-/// 
+///
 /// i.e. convert native() to __easyjs_native_call("native", ["params"], ["returns"], ...args);
 struct NativeFunction {
     params: Vec<String>,
     returns: Vec<String>,
-    name: String
+    name: String,
 }
 
 /// Used only in transpiler and type checker.
 /// Holds all native for project.
 struct NativeContext {
     functions: Vec<NativeFunction>,
-    variables: Vec<String>
+    variables: Vec<String>,
 }
 
 pub struct Transpiler {
@@ -61,7 +62,7 @@ pub struct Transpiler {
     native_stmts: Vec<Statement>,
 
     /// Track native variables and functions
-    native_ctx: NativeContext
+    native_ctx: NativeContext,
 }
 
 impl Transpiler {
@@ -75,7 +76,10 @@ impl Transpiler {
             scopes: vec![],
             structs_in_modules: vec![],
             native_stmts: vec![],
-            native_ctx: NativeContext { functions: vec![], variables: vec![] }
+            native_ctx: NativeContext {
+                functions: vec![],
+                variables: vec![],
+            },
         };
 
         // add the first scope. This scope will never be popped.
@@ -84,12 +88,12 @@ impl Transpiler {
     }
 
     /// Add a statement to the native context.
-    /// 
+    ///
     /// Only adds `pub` statements.
-    /// 
+    ///
     /// pass in is_export to know if we are already inside a export statement.
     /// Otherwise any other stmt will fail if not inside an export.
-    /// 
+    ///
     /// !Important: This is for converting a native function call into it's __easyjs_native_call equivalent.
     fn add_stmt_to_native_ctx(&mut self, stmt: &Statement, is_export: bool) {
         match stmt {
@@ -110,11 +114,11 @@ impl Transpiler {
     }
 
     /// Add a expression to the native context.
-    /// 
+    ///
     /// Currently only used for functions. Could potentially be used for global varaibles too, but not ideal atm.
-    /// 
+    ///
     /// Advanced developers would not need to even use this. They could just call __easyjs_native_call directly.
-    /// 
+    ///
     /// Or __easyjs_native_instance directly.
     fn add_expr_to_native_ctx(&mut self, expr: &Expression) {
         match expr {
@@ -124,16 +128,14 @@ impl Transpiler {
                     let mut param_types = vec![];
                     for param in params.as_ref().to_owned() {
                         match param {
-                            Expression::IdentifierWithType(_, _, ty) => {
-                                match ty.as_ref() {
-                                    Expression::Type(_, t) => {
-                                        param_types.push(t.to_owned());
-                                    }
-                                    _ => {
-                                        unimplemented!("TODO: how is this not a type?");
-                                    }
+                            Expression::IdentifierWithType(_, _, ty) => match ty.as_ref() {
+                                Expression::Type(_, t) => {
+                                    param_types.push(t.to_owned());
                                 }
-                            }
+                                _ => {
+                                    unimplemented!("TODO: how is this not a type?");
+                                }
+                            },
                             _ => {
                                 unimplemented!("TODO: add some kind of error for no type.");
                             }
@@ -146,9 +148,7 @@ impl Transpiler {
                 let return_types = {
                     if let Some(result) = result {
                         match result.as_ref() {
-                            Expression::Type(_, ty) => {
-                                ty.to_owned()
-                            }
+                            Expression::Type(_, ty) => ty.to_owned(),
                             _ => {
                                 unimplemented!("TODO: add some kind of error for no type.");
                             }
@@ -169,14 +169,14 @@ impl Transpiler {
                 self.native_ctx.functions.push(NativeFunction {
                     params: param_types,
                     returns: vec![return_types],
-                    name: fn_name
+                    name: fn_name,
                 });
-            } 
+            }
             _ => {
                 return;
             }
         }
-    }  
+    }
 
     pub fn reset(&mut self) {
         self.scripts = vec![];
@@ -193,7 +193,7 @@ impl Transpiler {
     }
 
     /// Transpile a module.
-    pub fn transpile_module(&mut self, p : ast::Program) -> String {
+    pub fn transpile_module(&mut self, p: ast::Program) -> String {
         let mut t = Transpiler::new();
 
         let mut res = String::new();
@@ -229,7 +229,8 @@ impl Transpiler {
                                     exported_names.push(name);
                                 }
                                 Expression::FunctionLiteral(_, name, _, _, _) => {
-                                    exported_names.push(t.transpile_expression(name.as_ref().to_owned()));
+                                    exported_names
+                                        .push(t.transpile_expression(name.as_ref().to_owned()));
                                 }
                                 // TODO: continue module work
                                 // Expression::
@@ -245,10 +246,10 @@ impl Transpiler {
                     //     let name = name.split(" ").collect::<Vec<_>>()[1].to_string();
                     //     exported_names.push(name);
                     // }
-                },
+                }
                 _ => {}
             }
-            
+
             if !export_name.is_empty() {
                 exported_names.push(export_name);
             }
@@ -314,7 +315,7 @@ impl Transpiler {
 
         res
     }
-    
+
     /// Transpile easyjs code into JS from a string input.
     pub fn transpile_from_string(&mut self, p: String) -> String {
         let l = lex::Lex::new(p);
@@ -333,9 +334,17 @@ impl Transpiler {
     /// Transpile easyjs code into JS from a ast program.
     fn transpile_from(&mut self, p: ast::Program) -> String {
         // seperate stmt types
-        let native_stmts = p.statements.iter().filter(|p| p.is_native()).collect::<Vec<_>>();
-        let statements = p.statements.iter().filter(|p| !p.is_native()).collect::<Vec<_>>();
-        
+        let native_stmts = p
+            .statements
+            .iter()
+            .filter(|p| p.is_native())
+            .collect::<Vec<_>>();
+        let statements = p
+            .statements
+            .iter()
+            .filter(|p| !p.is_native())
+            .collect::<Vec<_>>();
+
         // compile native stmts first
         for stmt in native_stmts {
             if stmt.is_empty() {
@@ -378,11 +387,9 @@ impl Transpiler {
 
     fn transpile_stmt(&mut self, stmt: ast::Statement) -> Option<String> {
         match stmt {
-            ast::Statement::VariableStatement(token, name, _, value, _) => Some(self.transpile_var_stmt(
-                token,
-                name.as_ref().to_owned(),
-                value.as_ref().to_owned(),
-            )),
+            ast::Statement::VariableStatement(token, name, _, value, _) => Some(
+                self.transpile_var_stmt(token, name.as_ref().to_owned(), value.as_ref().to_owned()),
+            ),
             ast::Statement::ReturnStatement(token, expression) => {
                 Some(self.transpile_return_stmt(token, expression.as_ref().to_owned()))
             }
@@ -420,15 +427,20 @@ impl Transpiler {
             ast::Statement::JavaScriptStatement(token, js) => {
                 Some(self.transpile_javascript_stmt(token, js))
             }
-            ast::Statement::StructStatement(token, name, constructor_vars, mixins, vars, methods) => {
-                Some(self.transpile_struct_stmt(
-                    name.as_ref().to_owned(),
-                    constructor_vars,
-                    mixins,
-                    vars.as_ref().to_owned(),
-                    methods.as_ref().to_owned(),
-                ))
-            }
+            ast::Statement::StructStatement(
+                token,
+                name,
+                constructor_vars,
+                mixins,
+                vars,
+                methods,
+            ) => Some(self.transpile_struct_stmt(
+                name.as_ref().to_owned(),
+                constructor_vars,
+                mixins,
+                vars.as_ref().to_owned(),
+                methods.as_ref().to_owned(),
+            )),
             Statement::ExportStatement(token, stmt) => {
                 Some(self.transpile_export_stmt(token, stmt.as_ref().to_owned()))
             }
@@ -438,9 +450,11 @@ impl Transpiler {
             Statement::DocCommentStatement(tk, comments) => {
                 Some(self.transpile_doc_comment_stmt(tk, comments))
             }
-            Statement::MatchStatement(tk, expr, conditions) => {
-                Some(self.transpile_match_stmt(tk, expr.as_ref().to_owned(), conditions.as_ref().to_owned()))
-            }
+            Statement::MatchStatement(tk, expr, conditions) => Some(self.transpile_match_stmt(
+                tk,
+                expr.as_ref().to_owned(),
+                conditions.as_ref().to_owned(),
+            )),
             _ => None,
         }
     }
@@ -574,7 +588,12 @@ impl Transpiler {
         res
     }
 
-    fn transpile_match_stmt(&mut self, token: token::Token, expr: Expression, conditions: Vec<(Expression, Statement)>) -> String {
+    fn transpile_match_stmt(
+        &mut self,
+        token: token::Token,
+        expr: Expression,
+        conditions: Vec<(Expression, Statement)>,
+    ) -> String {
         let mut res = String::new();
         res.push_str("switch ");
         // transpile expr
@@ -586,8 +605,14 @@ impl Transpiler {
             let formatted_condition = self.transpile_expression(condition);
             if formatted_condition == "_" {
                 has_default = true;
-                
-                res.push_str(format!("default: \n\t{} \n\t break;\n", self.transpile_stmt(stmt).unwrap()).as_str());
+
+                res.push_str(
+                    format!(
+                        "default: \n\t{} \n\t break;\n",
+                        self.transpile_stmt(stmt).unwrap()
+                    )
+                    .as_str(),
+                );
 
                 continue;
             }
@@ -955,7 +980,7 @@ impl Transpiler {
                 parsed_mixins.push(mixin_name);
             }
         }
-        
+
         res.push_str("function ");
         let struct_name = self.transpile_expression(name);
         self.structs.push(struct_name.clone());
@@ -963,7 +988,7 @@ impl Transpiler {
         res.push_str("(");
 
         let mut struct_vars = vec![];
-        // add construcot variables        
+        // add construcot variables
         if let Some(vars) = constructor_vars {
             let vars = vars.as_ref().to_owned();
             for i in 0..vars.len() {
@@ -977,7 +1002,7 @@ impl Transpiler {
                 }
             }
         }
-        
+
         // close constructor
         res.push_str(") {\n");
 
@@ -991,7 +1016,7 @@ impl Transpiler {
 
                 //     res.push_str(format!("{}.{} = {};\n", struct_name, name, value).as_str());
                 // }
-                ast::Statement::VariableStatement(_, name, _,value, _) => {
+                ast::Statement::VariableStatement(_, name, _, value, _) => {
                     let name = self.transpile_expression(name.as_ref().to_owned());
                     let value = self.transpile_expression(value.as_ref().to_owned());
 
@@ -1008,15 +1033,25 @@ impl Transpiler {
         for method in methods {
             let mut result = String::new();
             let cleaned_method_is_static = self.get_struct_method_function_exp(method);
-                match cleaned_method_is_static.0.clone() {
-                    Expression::FunctionLiteral(_, name, params,_, body) => {
-                      result = (self.transpile_struct_method(&struct_name, cleaned_method_is_static.0, false, cleaned_method_is_static.1));
-                    }
-                    Expression::AsyncExpression(_, function) => {
-                        result = (self.transpile_struct_method(&struct_name, cleaned_method_is_static.0, true, cleaned_method_is_static.1));
-                    }
-                    _ => {}
+            match cleaned_method_is_static.0.clone() {
+                Expression::FunctionLiteral(_, name, params, _, body) => {
+                    result = (self.transpile_struct_method(
+                        &struct_name,
+                        cleaned_method_is_static.0,
+                        false,
+                        cleaned_method_is_static.1,
+                    ));
                 }
+                Expression::AsyncExpression(_, function) => {
+                    result = (self.transpile_struct_method(
+                        &struct_name,
+                        cleaned_method_is_static.0,
+                        true,
+                        cleaned_method_is_static.1,
+                    ));
+                }
+                _ => {}
+            }
             if cleaned_method_is_static.1 {
                 res.push_str(&result);
             } else {
@@ -1047,7 +1082,7 @@ impl Transpiler {
         }
         // close struct
         res.push_str("}\n");
-        
+
         if parsed_mixins.len() > 0 {
             res.push_str(", ");
             for mixin in parsed_mixins {
@@ -1056,7 +1091,7 @@ impl Transpiler {
             }
             res.push_str(");\n");
         }
-        
+
         // close the functoin
         res.push_str("}\n");
         // }\n
@@ -1140,7 +1175,7 @@ impl Transpiler {
 
                 res
             }
-            Expression::FunctionLiteral(token, name, paramters,_, body) => {
+            Expression::FunctionLiteral(token, name, paramters, _, body) => {
                 let mut res = String::new();
 
                 res.push_str("function ");
@@ -1175,9 +1210,13 @@ impl Transpiler {
                 let mut res = String::new();
 
                 let name_exp = self.transpile_expression(name.as_ref().to_owned());
-                
+
                 // check if name_exp exists in native_ctx
-                let native_fn = self.native_ctx.functions.iter().find(|f| f.name == name_exp);
+                let native_fn = self
+                    .native_ctx
+                    .functions
+                    .iter()
+                    .find(|f| f.name == name_exp);
                 if native_fn.is_some() {
                     let native_fn = native_fn.unwrap();
                     // native call
@@ -1192,7 +1231,7 @@ impl Transpiler {
                         res.push_str(",");
                     }
                     res.push_str("],");
-                    
+
                     // add return types
                     res.push_str("[");
                     for return_type in native_fn.returns.iter() {
@@ -1414,7 +1453,24 @@ impl Transpiler {
                 )
             }
             Expression::IIFE(_, block) => {
-                format!("(() => {{\n{}\n}})()", self.transpile_stmt(block.as_ref().to_owned()).unwrap())
+                let mut stmts_respons = vec![];
+
+                match block.as_ref() {
+                    Statement::BlockStatement(_, stmts) => {
+                        for stmt in stmts.as_ref().to_owned() {
+                            let parsed_stmt = self.transpile_stmt(stmt.to_owned()).unwrap().clone();
+
+                            stmts_respons.push(parsed_stmt);
+                        }
+                    }
+                    _ => {
+                        // some issue
+                        panic!("A none block statement for a IIFE. This should never happen.");
+                    }
+                }
+
+                String::new()
+                // format!("(() => {{\n{}\n}})()", self.transpile_stmt(block.as_ref().to_owned()).unwrap())
             }
             Expression::AndExpression(token, left, right) => {
                 format!(
@@ -1462,13 +1518,12 @@ impl Transpiler {
                     "use_mod" => {
                         // get the first param
                         let param = &params[0];
-                        let result = builtins::include(&self.transpile_expression(param.to_owned()), self);
-                        
+                        let result =
+                            builtins::include(&self.transpile_expression(param.to_owned()), self);
+
                         result
                     }
-                    _ => {
-                        "".to_string()
-                    }
+                    _ => "".to_string(),
                 }
             }
             Expression::MacroDecleration(_, name, paramaters, body) => {
@@ -1488,8 +1543,11 @@ impl Transpiler {
                         return mac.compile(vec![]);
                     }
                 }
-                let macro_arguments: Vec<String> = macro_arguments.iter().map(|p| self.transpile_expression(p.to_owned())).collect::<Vec<String>>();
-                
+                let macro_arguments: Vec<String> = macro_arguments
+                    .iter()
+                    .map(|p| self.transpile_expression(p.to_owned()))
+                    .collect::<Vec<String>>();
+
                 if let Some(mac) = self.macros.get(&macro_name) {
                     mac.compile(macro_arguments)
                 } else {
@@ -1520,12 +1578,20 @@ impl Transpiler {
         let body = self.transpile_stmt(body).expect("No body error?");
 
         // add the body up to the last ';\n'
-        self.macros
-            .insert(name.to_owned(), Macro::new(name, parsed_args, body[0..body.len() - 2].to_string()));
+        self.macros.insert(
+            name.to_owned(),
+            Macro::new(name, parsed_args, body[0..body.len() - 2].to_string()),
+        );
     }
 
     /// Transpile a struct method
-    fn transpile_struct_method(&mut self, struct_name: &str, method: ast::Expression, is_async: bool, is_static : bool) -> String {
+    fn transpile_struct_method(
+        &mut self,
+        struct_name: &str,
+        method: ast::Expression,
+        is_async: bool,
+        is_static: bool,
+    ) -> String {
         let mut res = String::new();
         match method {
             Expression::FunctionLiteral(_, name, params, _, body) => {
@@ -1551,7 +1617,7 @@ impl Transpiler {
                 } else {
                     res.push_str(format!("{}: ", &name).as_str());
                 }
-                
+
                 if is_async {
                     res.push_str(" async ");
                 }
@@ -1633,6 +1699,83 @@ impl Transpiler {
             _ => {}
         }
         (method, false)
+    }
+
+    fn transpile_iife_expression(&mut self, e: Expression, is_final: bool) -> String {}
+
+    /// Transpile a IIFE Expression.
+    fn transpile_iife(&mut self, body: Statement) -> String {
+        let mut result = String::new();
+
+        match body {
+            Statement::BlockStatement(_, stmts) => {
+                for i in 0..stmts.len() {
+                    let stmt = &stmts[i];
+                    let is_final = i == stmts.len() - 1;
+                    match stmt {
+                        Statement::ExpressionStatement(_, expr) => {
+                            result.push_str(
+                                &self.transpile_iife_expression(expr.as_ref().to_owned(), is_final),
+                            );
+                        }
+                        Statement::ReturnStatement(_, expr) => {
+                            result.push_str(&self.transpile_stmt(stmt.clone()).unwrap());
+                        }
+                        Statement::MatchStatement(_, condition, branches) => {
+                            result.push_str("switch ");
+                            result.push_str(format!("({}) {{\n", self.transpile_expression(condition.as_ref().to_owned())).as_str());
+                            // result.push_str()
+                        }
+                        _ => {
+                            if is_final {
+                                result.push_str("return ");
+                            }
+                            result.push_str(
+                                &self.transpile_stmt(stmt.clone()).expect("No body found"),
+                            );
+                            // result.push_str(";");
+                        }
+                    }
+                }
+            }
+            _ => {
+                panic!("How did we get here in a IIFE?")
+            }
+        }
+
+        result
+
+        // let transpile_block = |block: Statement| -> String {
+        //     match block {
+        //         Statement::BlockStatement(_, stmts) => {
+        //             let mut res = String::new();
+        //             for i in 0..stmts.len() {
+        //                 let stmt = &stmts[i];
+        //                 if i == stmts.len() - 1 {
+        //                     match stmt {
+        //                         Statement::ReturnStatement(_, expr) => {
+        //                             res.push_str("return ");
+        //                             res.push_str(&self.transpile_expression(expr.as_ref().to_owned()));
+        //                         }
+        //                         Statement::ExpressionStatement(_, expr) => {
+        //                             match expr.as_ref() {
+        //                                 Expression::IfExpression(_, condition, body, alternative, alternative_body) => {
+
+        //                                 }
+        //                             }
+        //                         }
+        //                     }
+        //                 }
+        //             }
+        //             res
+        //         }
+        //         _ => {
+        //             panic!("Why does a IIFE have a internal block?")
+        //         }
+        //     }
+        // };
+
+        // let transpile_if = fn (e: ast::Expression) -> String {};
     }
 }
 
