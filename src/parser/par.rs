@@ -356,10 +356,11 @@ impl Parser {
 /// Parse a statement, returns EmptyStatement on error.
 fn parse_statement(parser: &mut Parser) -> ast::Statement {
     let stmt = match parser.c_token.typ.as_str() {
-        token::VAR => parse_var_statement(parser),
+        // token::VAR => parse_var_statement(parser),
         token::IDENT => {
             if parser.peek_token_is(token::ASSIGN) || parser.peek_token_is(token::COLON) || parser.peek_token_is(token::TYPE_ASSIGNMENT) {
-                parse_const_var_statement(parser)
+                parse_var_statement(parser)
+                // parse_const_var_statement(parser)
             } else {
                 parse_expression_statement(parser)
             }
@@ -493,11 +494,8 @@ fn parse_async_block_statement(p: &mut Parser) -> ast::Statement {
 
 fn parse_var_statement(p: &mut Parser) -> ast::Statement {
     p.debug_print("parse_var_statement");
-    let token = p.c_token.clone(); // var
+    let token = p.c_token.clone(); // identifier
 
-    if !p.expect_peek(token::IDENT) {
-        return ast::empty_statement();
-    }
     let name = parse_identifier(p, false);
 
     let mut var_type: Option<Box<ast::Expression>> = None;
@@ -519,35 +517,35 @@ fn parse_var_statement(p: &mut Parser) -> ast::Statement {
     ast::Statement::VariableStatement(token, Box::new(name), var_type, Box::new(value), infer_type)
 }
 
-fn parse_const_var_statement(p: &mut Parser) -> ast::Statement {
-    p.debug_print("parse_const_var_statement");
-    let token = p.c_token.clone();
+// fn parse_const_var_statement(p: &mut Parser) -> ast::Statement {
+//     p.debug_print("parse_const_var_statement");
+//     let token = p.c_token.clone();
 
-    let mut var_type: Option<Box<ast::Expression>> = None;
-    // check for type
-    if p.peek_token_is(token::COLON) {
-        var_type = Some(Box::new(parse_type(p)));
-    }
+//     let mut var_type: Option<Box<ast::Expression>> = None;
+//     // check for type
+//     if p.peek_token_is(token::COLON) {
+//         var_type = Some(Box::new(parse_type(p)));
+//     }
 
-    if !p.peek_token_is(token::ASSIGN) && !p.peek_token_is(token::TYPE_ASSIGNMENT) {
-        p.add_error(format!("Expected {} or {} but got {} instead.", token::ASSIGN, token::TYPE_ASSIGNMENT, p.peek_token.literal).as_str());
-        return ast::Statement::EmptyStatement;
-    } 
-    let infer_type = p.peek_token_is(token::TYPE_ASSIGNMENT);
-    p.next_token();
+//     if !p.peek_token_is(token::ASSIGN) && !p.peek_token_is(token::TYPE_ASSIGNMENT) {
+//         p.add_error(format!("Expected {} or {} but got {} instead.", token::ASSIGN, token::TYPE_ASSIGNMENT, p.peek_token.literal).as_str());
+//         return ast::Statement::EmptyStatement;
+//     } 
+//     let infer_type = p.peek_token_is(token::TYPE_ASSIGNMENT);
+//     p.next_token();
 
-    let name = ast::Expression::Identifier(token.to_owned(), token.to_owned().literal);
+//     let name = ast::Expression::Identifier(token.to_owned(), token.to_owned().literal);
 
-    p.next_token();
+//     p.next_token();
 
-    let value = parse_expression(p, LOWEST);
+//     let value = parse_expression(p, LOWEST);
 
-    if value.is_empty() {
-        return ast::Statement::EmptyStatement;
-    }
+//     if value.is_empty() {
+//         return ast::Statement::EmptyStatement;
+//     }
 
-    ast::Statement::ConstVariableStatement(token, Box::new(name), var_type, Box::new(value), infer_type)
-}
+//     ast::Statement::ConstVariableStatement(token, Box::new(name), var_type, Box::new(value), infer_type)
+// }
 
 fn parse_return_statement(p: &mut Parser) -> ast::Statement {
     p.debug_print("parse_return_statement");
@@ -1421,18 +1419,12 @@ fn parse_struct_statement(p: &mut Parser) -> ast::Statement {
     }
 
     // Check if we have a list of variables
-    if p.peek_token_is(token::IDENT) || p.peek_token_is(token::VAR) {
+    if p.peek_token_is(token::IDENT) {
         p.next_token();
         loop {
             let stmt = parse_statement(p);
             // only allow variable stmts for the moment.
             if !stmt.eq(ast::Statement::VariableStatement(
-                token::EMPTY_TOKEN,
-                ast::empty_box_exp(),
-                None,
-                ast::empty_box_exp(),
-                false
-            )) && !stmt.eq(ast::Statement::ConstVariableStatement(
                 token::EMPTY_TOKEN,
                 ast::empty_box_exp(),
                 None,

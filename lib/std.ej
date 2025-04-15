@@ -12,12 +12,21 @@ macro first(array) {
     array[0]
 }
 
-macro expect(method, error_msg) {
-    javascript{
+macro throw(error_msg) {
+    javascript {
+        throw new Error(error_msg);
+    }
+}
+
+// Try to do an operation.
+macro try(method, throw) {
+    javascript {
         try {
             method();
         } catch (e) {
-            error_msg;
+            if (throw == true) {
+                throw e;
+            }
         }
     }
 }
@@ -25,4 +34,17 @@ macro expect(method, error_msg) {
 // Decouple 2 objects. 1 of identifiers, and 1 of matching length/key of values.
 macro decouple(idents, values) {
     var idents = values
+}
+
+// declare a constant variable 
+macro const(ident, value) {
+    javascript {
+        const ident = value;
+    }
+}
+
+macro enum(name, options) {
+    javascript {
+        enum name { (for i in options) i }
+    }
 }

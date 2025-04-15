@@ -217,9 +217,9 @@ impl Transpiler {
                         Statement::VariableStatement(_, name, _, _, _) => {
                             export_name = t.transpile_expression(name.as_ref().to_owned());
                         }
-                        Statement::ConstVariableStatement(_, name, _, _, _) => {
-                            export_name = t.transpile_expression(name.as_ref().to_owned());
-                        }
+                        // Statement::ConstVariableStatement(_, name, _, _, _) => {
+                        //     export_name = t.transpile_expression(name.as_ref().to_owned());
+                        // }
                         Statement::StructStatement(_, name, _, _, _, _) => {
                             export_name = t.transpile_expression(name.as_ref().to_owned());
                         }
@@ -405,13 +405,13 @@ impl Transpiler {
             ast::Statement::BlockStatement(token, stmts) => {
                 Some(self.transpile_block_stmt(token, stmts.as_ref().to_owned()))
             }
-            ast::Statement::ConstVariableStatement(token, name, _, value, _) => {
-                Some(self.transpile_const_var_stmt(
-                    token,
-                    name.as_ref().to_owned(),
-                    value.as_ref().to_owned(),
-                ))
-            }
+            // ast::Statement::ConstVariableStatement(token, name, _, value, _) => {
+            //     Some(self.transpile_const_var_stmt(
+            //         token,
+            //         name.as_ref().to_owned(),
+            //         value.as_ref().to_owned(),
+            //     ))
+            // }
             ast::Statement::ForStatement(token, condition, body) => Some(self.transpile_for_stmt(
                 token,
                 condition.as_ref().to_owned(),
@@ -645,15 +645,33 @@ impl Transpiler {
     ) -> String {
         let name_string = self.transpile_expression(name.clone());
 
-        self.scopes.last_mut().unwrap().push(Variable {
-            name: name_string.clone(),
-            is_mutable: true
-        });
-        format!(
-            "let {} = {};\n",
-            name_string,
-            self.transpile_expression(value)
-        )
+        // check if this already exists in scope
+        let mut found = false;
+        for var in self.scopes.iter().rev() {
+            for v in var.iter() {
+                if v.name == name_string {
+                    found = true;
+                    break;
+                }
+            }
+            if found {
+                break;
+            }
+        }
+
+        if !found {
+            self.scopes.last_mut().unwrap().push(Variable {
+                name: name_string.clone(),
+                is_mutable: true,
+            });
+            format!(
+                "let {} = {};\n",
+                name_string,
+                self.transpile_expression(value)
+            )
+        } else {
+            format!("{} = {};\n", name_string, self.transpile_expression(value))
+        }
     }
 
     fn transpile_return_stmt(
@@ -676,36 +694,36 @@ impl Transpiler {
         response
     }
 
-    fn transpile_const_var_stmt(
-        &mut self,
-        token: token::Token,
-        name: ast::Expression,
-        value: ast::Expression,
-    ) -> String {
-        let left = self.transpile_expression(name.clone());
-        let value = self.transpile_expression(value);
+    // fn transpile_const_var_stmt(
+    //     &mut self,
+    //     token: token::Token,
+    //     name: ast::Expression,
+    //     value: ast::Expression,
+    // ) -> String {
+    //     let left = self.transpile_expression(name.clone());
+    //     let value = self.transpile_expression(value);
 
-        // search for the variable in scope.
-        let mut found = false;
-        for scope in self.scopes.iter() {
-            for v in scope.iter() {
-                if v.name == left {
-                    found = true;
-                    break;
-                }
-            }
-        }
+    //     // search for the variable in scope.
+    //     let mut found = false;
+    //     for scope in self.scopes.iter() {
+    //         for v in scope.iter() {
+    //             if v.name == left {
+    //                 found = true;
+    //                 break;
+    //             }
+    //         }
+    //     }
 
-        if found {
-            format!("{} = {};\n", &left, &value)
-        } else {
-            self.scopes.last_mut().unwrap().push(Variable {
-                name: left.clone(),
-                is_mutable: false
-            });
-            format!("const {} = {};\n", &left, &value)
-        }
-    }
+    //     if found {
+    //         format!("{} = {};\n", &left, &value)
+    //     } else {
+    //         self.scopes.last_mut().unwrap().push(Variable {
+    //             name: left.clone(),
+    //             is_mutable: false
+    //         });
+    //         format!("const {} = {};\n", &left, &value)
+    //     }
+    // }
 
     fn get_module_n_path(&mut self, exp: Expression) -> (String, String) {
         match exp.to_owned() {
@@ -967,12 +985,12 @@ impl Transpiler {
         // static variables are added now while struct variables are added at the end.
         for var in variables {
             match var {
-                ast::Statement::ConstVariableStatement(_, name, _, value, _) => {
-                    let name = self.transpile_expression(name.as_ref().to_owned());
-                    let value = self.transpile_expression(value.as_ref().to_owned());
+                // ast::Statement::ConstVariableStatement(_, name, _, value, _) => {
+                //     let name = self.transpile_expression(name.as_ref().to_owned());
+                //     let value = self.transpile_expression(value.as_ref().to_owned());
 
-                    res.push_str(format!("{}.{} = {};\n", struct_name, name, value).as_str());
-                }
+                //     res.push_str(format!("{}.{} = {};\n", struct_name, name, value).as_str());
+                // }
                 ast::Statement::VariableStatement(_, name, _,value, _) => {
                     let name = self.transpile_expression(name.as_ref().to_owned());
                     let value = self.transpile_expression(value.as_ref().to_owned());
@@ -1454,7 +1472,7 @@ impl Transpiler {
                 }
             }
             Expression::MacroDecleration(_, name, paramaters, body) => {
-                let macro_name = self.transpile_expression(name.as_ref().to_owned());
+                let macro_name: String = self.transpile_expression(name.as_ref().to_owned());
                 let macro_params = paramaters.as_ref().to_owned();
                 let macro_body = body.as_ref().to_owned();
                 self.add_macro_function(macro_name, macro_params, macro_body);
@@ -1470,7 +1488,7 @@ impl Transpiler {
                         return mac.compile(vec![]);
                     }
                 }
-                let macro_arguments = macro_arguments.iter().map(|p| self.transpile_expression(p.to_owned())).collect::<Vec<String>>();
+                let macro_arguments: Vec<String> = macro_arguments.iter().map(|p| self.transpile_expression(p.to_owned())).collect::<Vec<String>>();
                 
                 if let Some(mac) = self.macros.get(&macro_name) {
                     mac.compile(macro_arguments)
