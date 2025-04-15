@@ -208,9 +208,9 @@ impl NativeContext {
             Statement::VariableStatement(_, name, val_type, value, _) => {
                 self.compile_variable_stmt(name, value, true);
             }
-            Statement::ConstVariableStatement(_, name, val_type, value, _) => {
-                self.compile_variable_stmt(name, value, false);
-            }
+            // Statement::ConstVariableStatement(_, name, val_type, value, _) => {
+            //     self.compile_variable_stmt(name, value, false);
+            // }
             Statement::ExpressionStatement(_, expr) => {
                 // add instructinos to current function
                 let instructions = self.compile_expression(expr);

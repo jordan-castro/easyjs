@@ -114,7 +114,7 @@ pub const NATIVE: &str = "NATIVE";
 pub const MACRO: &str = "MACRO";
 pub const NEW: &str = "NEW";
 pub const IS: &str = "IS";
-pub const VAR: &str = "VAR";
+// pub const VAR: &str = "VAR";
 pub const PUB: &str = "PUB";
 pub const MATCH: &str = "MATCH";
 pub const WITH: &str = "WITH";
@@ -150,7 +150,7 @@ pub fn lookup_ident(ident: &str) -> &'static str {
         "new" => NEW,
         "pub" => PUB,
         "is" => IS,
-        "var" => VAR,
+        // "var" => VAR,
         "use_mod" => BUILTIN,
         "match" => MATCH,
         "with" => WITH,
