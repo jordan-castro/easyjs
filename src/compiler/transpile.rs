@@ -1744,38 +1744,6 @@ impl Transpiler {
         }
 
         result
-
-        // let transpile_block = |block: Statement| -> String {
-        //     match block {
-        //         Statement::BlockStatement(_, stmts) => {
-        //             let mut res = String::new();
-        //             for i in 0..stmts.len() {
-        //                 let stmt = &stmts[i];
-        //                 if i == stmts.len() - 1 {
-        //                     match stmt {
-        //                         Statement::ReturnStatement(_, expr) => {
-        //                             res.push_str("return ");
-        //                             res.push_str(&self.transpile_expression(expr.as_ref().to_owned()));
-        //                         }
-        //                         Statement::ExpressionStatement(_, expr) => {
-        //                             match expr.as_ref() {
-        //                                 Expression::IfExpression(_, condition, body, alternative, alternative_body) => {
-
-        //                                 }
-        //                             }
-        //                         }
-        //                     }
-        //                 }
-        //             }
-        //             res
-        //         }
-        //         _ => {
-        //             panic!("Why does a IIFE have a internal block?")
-        //         }
-        //     }
-        // };
-
-        // let transpile_if = fn (e: ast::Expression) -> String {};
     }
 }
 
