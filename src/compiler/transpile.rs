@@ -16,7 +16,7 @@ use crate::parser::{ast, par};
 use crate::utils::js_helpers::is_javascript_keyword;
 use crate::{lexer::token, utils::h::hash_string};
 
-use super::import::{get_js_module_name, import, ImportType};
+use super::import::import_file;
 
 /// Variable data. (used mostly for scoping)
 struct Variable {
@@ -63,6 +63,9 @@ pub struct Transpiler {
 
     /// Track native variables and functions
     native_ctx: NativeContext,
+
+    /// Should our tarnspiler take iife into consideration?
+    inside_iife: bool,
 }
 
 impl Transpiler {
@@ -80,6 +83,7 @@ impl Transpiler {
                 functions: vec![],
                 variables: vec![],
             },
+            inside_iife: false,
         };
 
         // add the first scope. This scope will never be popped.
@@ -182,106 +186,99 @@ impl Transpiler {
         self.scripts = vec![];
     }
 
-    /// Add a module to the current scope.
-    ///
-    /// `module: Transpiler` the modules transpiler.
-    #[deprecated(since = "0.2.1", note = "use `transpile_module` instead")]
-    pub fn add_module(&mut self, module: &mut Transpiler) {
-        // self.functions.append(&mut module.functions);
-        // self.variables.append(&mut module.variables);
-        self.structs.append(&mut module.structs);
-    }
-
     /// Transpile a module.
     pub fn transpile_module(&mut self, p: ast::Program) -> String {
-        let mut t = Transpiler::new();
+        "".to_string()
+        // self.transpile_from(p)
+        // let mut t = Transpiler::new();
 
-        let mut res = String::new();
+        // let js = t.transpile_from(p);
+        // let mut res = String::new();
 
-        res.push_str("(function() {\n");
+        // res.push_str("(function() {\n");
 
-        // exported identifiers
-        let mut exported_names = vec![];
+        // // exported identifiers
+        // let mut exported_names = vec![];
 
-        for stmt in p.statements {
-            let mut export_name = String::new();
-            if stmt.is_empty() {
-                continue;
-            }
+        // for stmt in p.statements {
+        //     let mut export_name = String::new();
+        //     if stmt.is_empty() {
+        //         continue;
+        //     }
 
-            // check if the statement is an export
-            match &stmt {
-                // add it to a list of exported identifiers
-                Statement::ExportStatement(tk, stmt) => {
-                    match stmt.as_ref().to_owned() {
-                        Statement::VariableStatement(_, name, _, _, _) => {
-                            export_name = t.transpile_expression(name.as_ref().to_owned());
-                        }
-                        // Statement::ConstVariableStatement(_, name, _, _, _) => {
-                        //     export_name = t.transpile_expression(name.as_ref().to_owned());
-                        // }
-                        Statement::StructStatement(_, name, _, _, _, _) => {
-                            export_name = t.transpile_expression(name.as_ref().to_owned());
-                        }
-                        Statement::ExpressionStatement(_, expression) => {
-                            match expression.as_ref().to_owned() {
-                                Expression::Identifier(_, name) => {
-                                    exported_names.push(name);
-                                }
-                                Expression::FunctionLiteral(_, name, _, _, _) => {
-                                    exported_names
-                                        .push(t.transpile_expression(name.as_ref().to_owned()));
-                                }
-                                // TODO: continue module work
-                                // Expression::
-                                _ => {}
-                            }
-                        }
-                        _ => {}
-                    }
-                    // let name = t.transpile_stmt(stmt.as_ref().to_owned());
+        //     // check if the statement is an export
+        //     match &stmt {
+        //         // add it to a list of exported identifiers
+        //         Statement::ExportStatement(tk, stmt) => {
+        //             match stmt.as_ref().to_owned() {
+        //                 Statement::VariableStatement(_, name, _, _, _) => {
+        //                     export_name = t.transpile_expression(name.as_ref().to_owned());
+        //                 }
+        //                 // Statement::ConstVariableStatement(_, name, _, _, _) => {
+        //                 //     export_name = t.transpile_expression(name.as_ref().to_owned());
+        //                 // }
+        //                 Statement::StructStatement(_, name, _, _, _, _) => {
+        //                     export_name = t.transpile_expression(name.as_ref().to_owned());
+        //                 }
+        //                 Statement::ExpressionStatement(_, expression) => {
+        //                     match expression.as_ref().to_owned() {
+        //                         Expression::Identifier(_, name) => {
+        //                             exported_names.push(name);
+        //                         }
+        //                         Expression::FunctionLiteral(_, name, _, _, _) => {
+        //                             exported_names
+        //                                 .push(t.transpile_expression(name.as_ref().to_owned()));
+        //                         }
+        //                         // TODO: continue module work
+        //                         // Expression::
+        //                         _ => {}
+        //                     }
+        //                 }
+        //                 _ => {}
+        //             }
+        //             // let name = t.transpile_stmt(stmt.as_ref().to_owned());
 
-                    // if let Some(name) = name {
-                    //     // name is between the decleration and the identifier
-                    //     let name = name.split(" ").collect::<Vec<_>>()[1].to_string();
-                    //     exported_names.push(name);
-                    // }
-                }
-                _ => {}
-            }
+        //             // if let Some(name) = name {
+        //             //     // name is between the decleration and the identifier
+        //             //     let name = name.split(" ").collect::<Vec<_>>()[1].to_string();
+        //             //     exported_names.push(name);
+        //             // }
+        //         }
+        //         _ => {}
+        //     }
 
-            if !export_name.is_empty() {
-                exported_names.push(export_name);
-            }
+        //     if !export_name.is_empty() {
+        //         exported_names.push(export_name);
+        //     }
 
-            // transpile the statement
-            let script = t.transpile_stmt(stmt);
-            if let Some(script) = script {
-                // check if script starts with "export"
-                if script.starts_with("export") {
-                    // remove the beginning of the script
-                    let script = script.split(" ").collect::<Vec<_>>()[1..].join(" ");
-                    res.push_str(&script);
-                } else {
-                    res.push_str(&script);
-                }
-                res.push_str("\n");
-            }
-        }
+        //     // transpile the statement
+        //     let script = t.transpile_stmt(stmt);
+        //     if let Some(script) = script {
+        //         // check if script starts with "export"
+        //         if script.starts_with("export") {
+        //             // remove the beginning of the script
+        //             let script = script.split(" ").collect::<Vec<_>>()[1..].join(" ");
+        //             res.push_str(&script);
+        //         } else {
+        //             res.push_str(&script);
+        //         }
+        //         res.push_str("\n");
+        //     }
+        // }
 
-        // return all exported values...
-        res.push_str("return {");
-        for name in exported_names {
-            res.push_str(format!("{},", name).as_str());
-        }
-        res.push_str("};\n");
+        // // return all exported values...
+        // res.push_str("return {");
+        // for name in exported_names {
+        //     res.push_str(format!("{},", name).as_str());
+        // }
+        // res.push_str("};\n");
 
-        // close the module
-        res.push_str("})();\n");
+        // // close the module
+        // res.push_str("})();\n");
 
-        self.macros.extend(t.macros);
+        // self.macros.extend(t.macros);
 
-        res
+        // js
     }
 
     /// Add a new scope
@@ -393,18 +390,8 @@ impl Transpiler {
             ast::Statement::ReturnStatement(token, expression) => {
                 Some(self.transpile_return_stmt(token, expression.as_ref().to_owned()))
             }
-            ast::Statement::UseStatement(token, prefix, path) => Some(self.transpile_use_stmt(
-                token,
-                prefix.as_ref().to_owned(),
-                path.as_ref().to_owned(),
-            )),
-            ast::Statement::UseFromStatement(token, specs, prefix, path) => {
-                Some(self.transpile_use_from_stmt(
-                    token,
-                    specs.as_ref().to_owned(),
-                    prefix.as_ref().to_owned(),
-                    path.as_ref().to_owned(),
-                ))
+            ast::Statement::ImportStatement(token, file_path) => {
+                Some(self.transpile_import_stmt(&file_path))
             }
             ast::Statement::ExpressionStatement(token, expression) => {
                 Some(self.transpile_expression_stmt(token, expression.as_ref().to_owned()))
@@ -412,13 +399,6 @@ impl Transpiler {
             ast::Statement::BlockStatement(token, stmts) => {
                 Some(self.transpile_block_stmt(token, stmts.as_ref().to_owned()))
             }
-            // ast::Statement::ConstVariableStatement(token, name, _, value, _) => {
-            //     Some(self.transpile_const_var_stmt(
-            //         token,
-            //         name.as_ref().to_owned(),
-            //         value.as_ref().to_owned(),
-            //     ))
-            // }
             ast::Statement::ForStatement(token, condition, body) => Some(self.transpile_for_stmt(
                 token,
                 condition.as_ref().to_owned(),
@@ -457,6 +437,26 @@ impl Transpiler {
             )),
             _ => None,
         }
+    }
+
+    fn transpile_import_stmt(&mut self, file_path: &str) -> String {
+        let contents = import_file(file_path);
+        if contents == "".to_string() {
+            return "".to_string();
+        }
+
+        let lexer = lex::Lex::new_with_file(contents, file_path.to_owned());
+        let mut parser = par::Parser::new(lexer);
+        let program = parser.parse_program();
+
+        if parser.errors.len() > 0 {
+            for e in parser.errors {
+                println!("{}", e);
+            }
+            return "".to_string();
+        }
+
+        self.transpile(program)
     }
 
     fn transpile_native_stmts(&mut self) -> String {
@@ -749,131 +749,6 @@ impl Transpiler {
     //         format!("const {} = {};\n", &left, &value)
     //     }
     // }
-
-    fn get_module_n_path(&mut self, exp: Expression) -> (String, String) {
-        match exp.to_owned() {
-            ast::Expression::Identifier(_token, path) => {
-                let module_name = get_js_module_name(path.split(".").last().unwrap());
-                let path_to_use = path;
-                (module_name, path_to_use)
-            }
-            ast::Expression::AsExpression(_tk, left, right) => {
-                let module_name = self.transpile_expression(right.as_ref().to_owned());
-                let path_to_use = self.transpile_expression(left.as_ref().to_owned());
-                (module_name, path_to_use)
-            }
-            ast::Expression::StringLiteral(_tk, lit) => {
-                let module_name = get_js_module_name(&lit);
-                let path_to_use = lit;
-                (module_name, path_to_use)
-            }
-            ast::Expression::DotExpression(_tk, left, right) => {
-                let full_path = self.transpile_expression(exp.to_owned());
-                let module_name = get_js_module_name(&full_path);
-                let path_to_use = full_path;
-                (module_name, path_to_use)
-            }
-            _ => {
-                panic!(
-                    "Path must be of type (Identifier, AsExpression, StringLiteral, DotExpression)"
-                );
-            }
-        }
-    }
-
-    fn transpile_use_stmt(
-        &mut self,
-        token: token::Token,
-        prefix: Expression,
-        path: Expression,
-    ) -> String {
-        let mut res = String::new();
-        let mut import_type = ImportType::Base;
-
-        // check prefix value.
-        match prefix {
-            ast::Expression::Identifier(_token, prefix) => {
-                if prefix == "core" {
-                    import_type = ImportType::Core;
-                } else if prefix == "base" {
-                    import_type = ImportType::Base;
-                } else if prefix == "js" {
-                    import_type = ImportType::JS;
-                } else if prefix == "string" {
-                    import_type = ImportType::String;
-                }
-            }
-            _ => {
-                panic!("Prefix must be of type Identifier");
-            }
-        }
-
-        res.push_str("import ");
-        let (module_name, path_to_use) = self.get_module_n_path(path);
-
-        // match import type
-        let path_to_use = import(path_to_use.as_str(), import_type, self);
-
-        res.push_str(" * as ");
-        res.push_str(&module_name);
-        res.push_str(" from '");
-        res.push_str(&path_to_use);
-        res.push_str("';\n");
-
-        res
-    }
-
-    fn transpile_use_from_stmt(
-        &mut self,
-        token: token::Token,
-        specs: Vec<Expression>,
-        prefix: Expression,
-        path: Expression,
-    ) -> String {
-        let mut res = String::new();
-        let mut import_type = ImportType::Base;
-
-        match prefix {
-            ast::Expression::Identifier(_token, prefix) => {
-                if prefix == "core" {
-                    import_type = ImportType::Core;
-                } else if prefix == "base" {
-                    import_type = ImportType::Base;
-                // } else if prefix == "js" {
-                //     import_type = ImportType::JS;
-                } else if prefix == "string" {
-                    import_type = ImportType::String;
-                }
-            }
-            _ => {
-                panic!("Prefix must be of type Identifier");
-            }
-        }
-
-        res.push_str("import {");
-        for spec in specs {
-            match spec {
-                ast::Expression::Identifier(_token, name) => {
-                    res.push_str(&name);
-                    res.push_str(", ");
-                }
-                _ => {
-                    panic!("Spec must be of type Identifier");
-                }
-            }
-        }
-        res.push_str("}");
-
-        let (_, path_to_use) = self.get_module_n_path(path);
-
-        let path_to_use = import(path_to_use.as_str(), import_type, self);
-
-        res.push_str(" from '");
-        res.push_str(&path_to_use);
-        res.push_str("';\n");
-
-        res
-    }
 
     fn transpile_javascript_stmt(&mut self, token: token::Token, js: String) -> String {
         format!("{}", js)
@@ -1453,24 +1328,10 @@ impl Transpiler {
                 )
             }
             Expression::IIFE(_, block) => {
-                let mut stmts_respons = vec![];
-
-                match block.as_ref() {
-                    Statement::BlockStatement(_, stmts) => {
-                        for stmt in stmts.as_ref().to_owned() {
-                            let parsed_stmt = self.transpile_stmt(stmt.to_owned()).unwrap().clone();
-
-                            stmts_respons.push(parsed_stmt);
-                        }
-                    }
-                    _ => {
-                        // some issue
-                        panic!("A none block statement for a IIFE. This should never happen.");
-                    }
-                }
-
-                String::new()
-                // format!("(() => {{\n{}\n}})()", self.transpile_stmt(block.as_ref().to_owned()).unwrap())
+                format!(
+                    "(() => {{\n{}\n}})()",
+                    self.transpile_stmt(block.as_ref().to_owned()).unwrap()
+                )
             }
             Expression::AndExpression(token, left, right) => {
                 format!(
@@ -1699,51 +1560,6 @@ impl Transpiler {
             _ => {}
         }
         (method, false)
-    }
-
-    fn transpile_iife_expression(&mut self, e: Expression, is_final: bool) -> String {}
-
-    /// Transpile a IIFE Expression.
-    fn transpile_iife(&mut self, body: Statement) -> String {
-        let mut result = String::new();
-
-        match body {
-            Statement::BlockStatement(_, stmts) => {
-                for i in 0..stmts.len() {
-                    let stmt = &stmts[i];
-                    let is_final = i == stmts.len() - 1;
-                    match stmt {
-                        Statement::ExpressionStatement(_, expr) => {
-                            result.push_str(
-                                &self.transpile_iife_expression(expr.as_ref().to_owned(), is_final),
-                            );
-                        }
-                        Statement::ReturnStatement(_, expr) => {
-                            result.push_str(&self.transpile_stmt(stmt.clone()).unwrap());
-                        }
-                        Statement::MatchStatement(_, condition, branches) => {
-                            result.push_str("switch ");
-                            result.push_str(format!("({}) {{\n", self.transpile_expression(condition.as_ref().to_owned())).as_str());
-                            // result.push_str()
-                        }
-                        _ => {
-                            if is_final {
-                                result.push_str("return ");
-                            }
-                            result.push_str(
-                                &self.transpile_stmt(stmt.clone()).expect("No body found"),
-                            );
-                            // result.push_str(";");
-                        }
-                    }
-                }
-            }
-            _ => {
-                panic!("How did we get here in a IIFE?")
-            }
-        }
-
-        result
     }
 }
 

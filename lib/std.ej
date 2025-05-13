@@ -43,8 +43,6 @@ macro const(ident, value) {
     }
 }
 
-macro enum(name, options) {
-    javascript {
-        enum name { (for i in options) i }
-    }
+macro run_function(fun) {
+    fun()
 }

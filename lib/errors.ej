@@ -1,9 +1,0 @@
-// throw errors like a badass
-
-macro throw(msg) {
-    javascript {
-        console.log(msg);
-    }
-}
-
-@throw('test')

@@ -1,59 +1,58 @@
-pub fn int_range(start, end) {
-    var res = []
-    // the .. works because this is a for loop...
-    for i in start..end {
-        res.push(i)
-    }
-
-    return res
-}
-
-pub fn sleep(ms) {
-    javascript{
+macro sleep(_ms) {
+    @const(func), fn(ms) {
         return new Promise(resolve => setTimeout(resolve, ms))
+    })
+
+    await func(_ms)
+}
+
+// Creates a range
+macro range(kwargs) {
+    @run_function(fn() {
+        start = kwargs.start
+        end = kwargs.end
+        step = kwargs.step ?? 1
+
+        javascript{
+            return Array(Math.ceil((end - start) / step)).fill(start).map((x,y) => x + y * step)
+        }
+    })
+}
+
+// Flatten a list in JS.
+macro flatten(list) {
+    javascript {
+        [...new Set(list)];
     }
 }
 
-/// Creates a range
-pub fn range(kwargs) {
-    start = kwargs.start
-    end = kwargs.end
-    step = kwargs.step ?? 1
+// Capitalize a string
+macro capitalize(str) {
+    "${str.charAt(0).toUpperCase()}${str.slice(1)}"
+}
 
-    javascript{
-        return Array(Math.ceil((end - start) / step)).fill(start).map((x,y) => x + y * step)
+// Merge 2 arrays
+macro merge(arr1, arr2, flatten) {
+    narr = [].concat(arr1, arr2)
+
+    fn {
+        if flatten == true {
+            return flat(narr)
+        }
+
+        return narr
     }
 }
 
-/// Flatten a list in JS.
-pub fn flat(list) {
-    javascript{
-        return [...new Set(list)];
+// Reverse a string
+macro reverse_string(str) {
+    fn {
+        return str.split("").reverse().join("")
     }
 }
-
-/// Capitalize a string
-pub fn capitalize(str) {
-    return "${str.charAt(0).toUpperCase()}${str.slice(1)}"
-}
-
-/// Merge 2 arrays
-pub fn merge(arr1, arr2, flatten) {
-    var narr = [].concat(arr1, arr2)
-
-    if flatten == true {
-        return flat(narr)
-    }
-
-    return narr
-}
-
-/// Reverse a string
-pub reverse_string = fn(str) {return str.split("").reverse().join("")} 
-
-/// Get the EasyJS ASCII
-pub fn easyjs_ascii() {
-    return "    ___       ___       ___       ___            ___       ___   
+// Get the EasyJS ASCII
+macro easyjs_ascii() {
+    "    ___       ___       ___       ___            ___       ___   
    /\\  \\     /\\  \\     /\\  \\     /\\__\\          /\\  \\     /\\  \\  
   /::\\  \\   /::\\  \\   /::\\  \\   |::L__L        _\\:\\  \\   /::\\  \\ 
  /::\\:\\__\\ /::\\:\\__\\ /\\:\\:\\__\\  |:::\\__\\      /\\/::\\__\\ /\\:\\:\\__\\
