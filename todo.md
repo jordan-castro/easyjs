@@ -3,10 +3,12 @@
 ## Compiler
 - v0.6.0 Add benchmarks for:
   - compilation (vs TypeScript, Dart, Nim, other to JS options)
-- v0.5.0 enums
+  - wasm compilation (vs TypeScript, Dart, Nim, other to WASM options)
+  - ease of use (vs TypeScript, Dart, etc)
+- v0.5.0 ~~enums~~
 - v0.5.0 type checker
 - v0.5.0 optional return statements in dynamic variable creations.
-- v1.0.0 easyjs std in macros. Loaded at compiletime.
+- v1.0.0 ~~easyjs std in macros. Loaded at compiletime.~~
 - v0.6.0 Add namespaces and just include with import 'file.ej' y ya. No as.
 
 ## Scripts

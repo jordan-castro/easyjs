@@ -119,6 +119,7 @@ pub const PUB: &str = "PUB";
 pub const MATCH: &str = "MATCH";
 pub const WITH: &str = "WITH";
 pub const IMPORT: &str = "IMPORT";
+pub const ENUM: &str = "ENUM";
 
 // Builtin methods
 pub const BUILTIN: &str = "BUILTIN";
@@ -142,6 +143,7 @@ pub fn lookup_ident(ident: &str) -> &'static str {
         "async" => ASYNC,
         "await" => AWAIT,
         "not" => NOT,
+        "enum" => ENUM,
         // "from" => FROM,
         "self" => SELF,
         "native" => NATIVE,
