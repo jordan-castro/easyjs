@@ -188,97 +188,13 @@ impl Transpiler {
 
     /// Transpile a module.
     pub fn transpile_module(&mut self, p: ast::Program) -> String {
-        "".to_string()
-        // self.transpile_from(p)
-        // let mut t = Transpiler::new();
-
-        // let js = t.transpile_from(p);
-        // let mut res = String::new();
-
-        // res.push_str("(function() {\n");
-
-        // // exported identifiers
-        // let mut exported_names = vec![];
-
-        // for stmt in p.statements {
-        //     let mut export_name = String::new();
-        //     if stmt.is_empty() {
-        //         continue;
-        //     }
-
-        //     // check if the statement is an export
-        //     match &stmt {
-        //         // add it to a list of exported identifiers
-        //         Statement::ExportStatement(tk, stmt) => {
-        //             match stmt.as_ref().to_owned() {
-        //                 Statement::VariableStatement(_, name, _, _, _) => {
-        //                     export_name = t.transpile_expression(name.as_ref().to_owned());
-        //                 }
-        //                 // Statement::ConstVariableStatement(_, name, _, _, _) => {
-        //                 //     export_name = t.transpile_expression(name.as_ref().to_owned());
-        //                 // }
-        //                 Statement::StructStatement(_, name, _, _, _, _) => {
-        //                     export_name = t.transpile_expression(name.as_ref().to_owned());
-        //                 }
-        //                 Statement::ExpressionStatement(_, expression) => {
-        //                     match expression.as_ref().to_owned() {
-        //                         Expression::Identifier(_, name) => {
-        //                             exported_names.push(name);
-        //                         }
-        //                         Expression::FunctionLiteral(_, name, _, _, _) => {
-        //                             exported_names
-        //                                 .push(t.transpile_expression(name.as_ref().to_owned()));
-        //                         }
-        //                         // TODO: continue module work
-        //                         // Expression::
-        //                         _ => {}
-        //                     }
-        //                 }
-        //                 _ => {}
-        //             }
-        //             // let name = t.transpile_stmt(stmt.as_ref().to_owned());
-
-        //             // if let Some(name) = name {
-        //             //     // name is between the decleration and the identifier
-        //             //     let name = name.split(" ").collect::<Vec<_>>()[1].to_string();
-        //             //     exported_names.push(name);
-        //             // }
-        //         }
-        //         _ => {}
-        //     }
-
-        //     if !export_name.is_empty() {
-        //         exported_names.push(export_name);
-        //     }
-
-        //     // transpile the statement
-        //     let script = t.transpile_stmt(stmt);
-        //     if let Some(script) = script {
-        //         // check if script starts with "export"
-        //         if script.starts_with("export") {
-        //             // remove the beginning of the script
-        //             let script = script.split(" ").collect::<Vec<_>>()[1..].join(" ");
-        //             res.push_str(&script);
-        //         } else {
-        //             res.push_str(&script);
-        //         }
-        //         res.push_str("\n");
-        //     }
-        // }
-
-        // // return all exported values...
-        // res.push_str("return {");
-        // for name in exported_names {
-        //     res.push_str(format!("{},", name).as_str());
-        // }
-        // res.push_str("};\n");
-
-        // // close the module
-        // res.push_str("})();\n");
-
-        // self.macros.extend(t.macros);
-
-        // js
+        let mut t = Transpiler::new();
+        let js = t.transpile(p);
+        self.native_ctx.functions.append(&mut t.native_ctx.functions);
+        self.native_ctx.variables.append(&mut t.native_ctx.variables);
+        self.native_stmts.append(&mut t.native_stmts);
+        self.macros.extend(t.macros);
+        js
     }
 
     /// Add a new scope
@@ -435,8 +351,35 @@ impl Transpiler {
                 expr.as_ref().to_owned(),
                 conditions.as_ref().to_owned(),
             )),
+            Statement::EnumStatement(tk, name, options) => {
+                Some(self.transpile_enum_stmt(&name, options.as_ref()))
+            }
             _ => None,
         }
+    }
+
+    fn transpile_enum_stmt(&mut self, name: &str, options: &Vec<Expression>) -> String {
+        let mut result = String::new();
+
+        if options.len() == 0 {
+            return "".to_string();
+        }
+
+        result.push_str(format!("const {} = ", name).as_str());        
+        // result.push_str("enum ");
+        result.push_str(" {");
+
+        for i in 0..options.len() {
+            let option = options.get(i).expect("");
+            result.push_str(&self.transpile_expression(option.to_owned()));
+            result.push_str(format!(": {}", i).as_str());
+            if i < options.len() {
+                result.push_str(",");
+            }
+        }
+
+        result.push_str("}");
+        result
     }
 
     fn transpile_import_stmt(&mut self, file_path: &str) -> String {
@@ -456,7 +399,7 @@ impl Transpiler {
             return "".to_string();
         }
 
-        self.transpile(program)
+        self.transpile_module(program)
     }
 
     fn transpile_native_stmts(&mut self) -> String {

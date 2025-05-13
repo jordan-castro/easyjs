@@ -54,7 +54,10 @@ pub enum Statement {
     MatchStatement(tk::Token, Box<Expression>, Box<Vec<(Expression, Statement)>>),
 
     /// A native statement
-    NativeStatement(tk::Token, Box<Vec<Statement>>)
+    NativeStatement(tk::Token, Box<Vec<Statement>>),
+    
+    /// A enum statement
+    EnumStatement(tk::Token, String, Box<Vec<Expression>>),
 }
 
 impl Statement {
@@ -66,7 +69,6 @@ impl Statement {
             Statement::ExpressionStatement(_, _) => "ExpressionStatement",
             Statement::ImportStatement(_, _) => "ImportStatement",
             Statement::BlockStatement(_, _) => "BlockStatement",
-            // Statement::ConstVariableStatement(_, _, _, _, _) => "ConstVarStatement",
             Statement::ForStatement(_, _, _) => "ForStatement",
             Statement::JavaScriptStatement(_, _) => "JavaScriptStatement",
             Statement::StructStatement(_, _, _, _, _, _) => "StructStatement",
@@ -75,6 +77,7 @@ impl Statement {
             Statement::DocCommentStatement(_, _) => "DocCommentStatement",
             Statement::MatchStatement(_, _, _) => "MatchStatement",
             Statement::NativeStatement(_, _) => "NativeStatement",
+            Statement::EnumStatement(_, _, _) => "EnumStatement",
         }.to_string()
     }
 

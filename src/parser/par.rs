@@ -379,6 +379,7 @@ fn parse_statement(parser: &mut Parser) -> ast::Statement {
         token::DOC_COMMENT => parse_doc_comment_statement(parser),
         token::MATCH => parse_match_statement(parser),
         token::NATIVE => parse_native_statement(parser),
+        token::ENUM => parse_enum_statement(parser),
         _ => parse_expression_statement(parser),
     };
 
@@ -388,6 +389,35 @@ fn parse_statement(parser: &mut Parser) -> ast::Statement {
     }
 
     stmt
+}
+
+fn parse_enum_statement(p: &mut Parser) -> ast::Statement {
+    p.debug_print("parse_enum_statement");
+    let token = p.c_token.clone();
+    if !p.expect_peek(token::IDENT) {
+        return ast::empty_statement();
+    }
+    let name = p.c_token.literal.clone();
+
+    let mut options = vec![];
+    if !p.expect_peek(token::L_BRACE) {
+        return ast::empty_statement();
+    }
+
+    while !p.peek_token_is(token::R_BRACE) {
+        p.next_token();
+        let expression = parse_expression(p, LOWEST);
+        options.push(expression);
+        if p.peek_token_is(token::COMMA) {
+            p.next_token();
+        }
+    }
+
+    if !p.expect_peek(token::R_BRACE) {
+        return ast::empty_statement();
+    }
+
+    ast::Statement::EnumStatement(token, name, Box::new(options))
 }
 
 fn parse_import_statement(p: &mut Parser) -> ast::Statement {
