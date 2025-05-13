@@ -367,7 +367,7 @@ impl Transpiler {
 
         result.push_str(format!("const {} = ", name).as_str());        
         // result.push_str("enum ");
-        result.push_str(" {");
+        result.push_str(" Object.freeze({");
 
         for i in 0..options.len() {
             let option = options.get(i).expect("");
@@ -378,7 +378,7 @@ impl Transpiler {
             }
         }
 
-        result.push_str("}");
+        result.push_str("});\n");
         result
     }
 

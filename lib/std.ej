@@ -1,20 +1,20 @@
 // Get the last element of an array
 macro last(array) {
-    array[array.length - 1]
+    #array[#array.length - 1]
 }
 
 macro print(msg) {
-    console.log(msg)
+    console.log(#msg)
 }
 
 // Get the first element of an array
 macro first(array) {
-    array[0]
+    #array[0]
 }
 
 macro throw(error_msg) {
     javascript {
-        throw new Error(error_msg);
+        throw new Error(#error_msg);
     }
 }
 
@@ -22,9 +22,9 @@ macro throw(error_msg) {
 macro try(method, throw) {
     javascript {
         try {
-            method();
+            #method();
         } catch (e) {
-            if (throw == true) {
+            if (#throw == true) {
                 throw e;
             }
         }
@@ -33,16 +33,98 @@ macro try(method, throw) {
 
 // Decouple 2 objects. 1 of identifiers, and 1 of matching length/key of values.
 macro decouple(idents, values) {
-    var idents = values
+    #idents = #values
 }
 
 // declare a constant variable 
 macro const(ident, value) {
     javascript {
-        const ident = value;
+        const #ident = #value;
     }
 }
 
 macro run_function(fun) {
-    fun()
+    #fun()
+}
+
+macro sleep(ms) {
+    @const(func, fn(ms) {
+        javascript{
+            return new Promise(resolve => setTimeout(resolve, ms))
+        }
+    })
+
+    await func(#ms)
+}
+
+// Creates a range
+macro range(kwargs) {
+    @run_function(fn() {
+        start = #kwargs.start
+        end = #kwargs.end
+        step = #kwargs.step ?? 1
+
+        javascript{
+            return Array(Math.ceil((end - start) / step)).fill(start).map((x,y) => x + y * step)
+        }
+    })
+}
+
+// Flatten a list in JS.
+macro flatten(list) {
+    javascript {
+        [...new Set(#list)];
+    }
+}
+
+// Capitalize a string
+macro capitalize(str) {
+    "${#str.charAt(0).toUpperCase()}${#str.slice(1)}"
+}
+
+// Merge 2 arrays
+macro merge(arr1, arr2, flatten) {
+    narr = [].concat(#arr1, #arr2)
+
+    fn {
+        if #flatten == true {
+            return flat(narr)
+        }
+
+        return narr
+    }
+}
+
+// Reverse a string
+macro reverse_string(str) {
+    fn {
+        return #str.split("").reverse().join("")
+    }
+}
+
+// Get the EasyJS ASCII
+macro easyjs_ascii() {
+    "    ___       ___       ___       ___            ___       ___   
+   /\\  \\     /\\  \\     /\\  \\     /\\__\\          /\\  \\     /\\  \\  
+  /::\\  \\   /::\\  \\   /::\\  \\   |::L__L        _\\:\\  \\   /::\\  \\ 
+ /::\\:\\__\\ /::\\:\\__\\ /\\:\\:\\__\\  |:::\\__\\      /\\/::\\__\\ /\\:\\:\\__\\
+ \\:\\:\\/  / \\/\\::/  / \\:\\:\\/__/  /:;;/__/      \\::/\\/__/ \\:\\:\\/__/
+  \\:\\/  /    /:/  /   \\::/  /   \\/__/          \\/__/     \\::/  / 
+   \\/__/     \\/__/     \\/__/                              \\/__/  "
+}
+
+// add a to_string method for a enum
+macro add_to_string_to_enum(enum_name) {
+    /// Convert #enum_name to a String representation.
+    fn #enum_name_to_string(val) {
+        keys = Object.keys(#enum_name)
+        for key in keys {
+            if #enum_name[key] == val {
+                return key
+            }
+        }
+
+        // Was not found
+        return null
+    }
 }
