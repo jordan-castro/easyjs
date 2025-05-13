@@ -7,12 +7,13 @@
 - v0.5.0 type checker
 - v0.5.0 optional return statements in dynamic variable creations.
 - v1.0.0 easyjs std in macros. Loaded at compiletime.
+- v0.6.0 Add namespaces and just include with import 'file.ej' y ya. No as.
 
 ## Scripts
 - v0.4.0 ~~add to path (also update path...)~~
 
-<!-- ## WASM -->
-<!-- - v0.4.0 Additions
+## WASM
+- v0.4.0 Additions
   - smart memory
     - strings
       - add 2 strings together
@@ -37,7 +38,7 @@
 - v0.6.0 
   - GC (Nah, handle your memory... it's not that hard...)
 - v0.6.0 explore multi threaded wasm.
-- v0.5.0 add shared memory support -->
+- v0.5.0 add shared memory support
 
 ## Website
 - v0.4.0 Links

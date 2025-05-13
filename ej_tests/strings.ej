@@ -1,12 +1,10 @@
-var x = '
+n = '
 this
 is 
 a 
 test'
 
-console.log(x)
-
-var y = "
+n1 = "
 this
 is
 A
@@ -14,4 +12,3 @@ nother
 
 thest
 "
-console.log(y)

@@ -1,2 +1,5 @@
-structs = use_mod('ej_tests/structs.ej')
+import 'ej_tests/strings.ej'
+import 'std'
 
+@print(n)
+@print(n1) 

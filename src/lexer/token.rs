@@ -92,7 +92,7 @@ pub const MACRO_SYMBOL: &str = "MACRO_SYMBOL";
 
 // Keywords
 pub const FUNCTION: &str = "FUNCTION";
-pub const USE: &str = "USE";
+// pub const USE: &str = "USE";
 pub const STRUCT: &str = "STRUCT";
 pub const TRUE: &str = "TRUE";
 pub const FALSE: &str = "FALSE";
@@ -108,7 +108,7 @@ pub const OF: &str = "OF";
 pub const ASYNC: &str = "ASYNC";
 pub const AWAIT: &str = "AWAIT";
 pub const NOT: &str = "NOT";
-pub const FROM: &str = "FROM";
+// pub const FROM: &str = "FROM";
 pub const SELF: &str = "SELF";
 pub const NATIVE: &str = "NATIVE";
 pub const MACRO: &str = "MACRO";
@@ -118,6 +118,7 @@ pub const IS: &str = "IS";
 pub const PUB: &str = "PUB";
 pub const MATCH: &str = "MATCH";
 pub const WITH: &str = "WITH";
+pub const IMPORT: &str = "IMPORT";
 
 // Builtin methods
 pub const BUILTIN: &str = "BUILTIN";
@@ -141,7 +142,7 @@ pub fn lookup_ident(ident: &str) -> &'static str {
         "async" => ASYNC,
         "await" => AWAIT,
         "not" => NOT,
-        "from" => FROM,
+        // "from" => FROM,
         "self" => SELF,
         "native" => NATIVE,
         "macro" => MACRO,
@@ -150,8 +151,9 @@ pub fn lookup_ident(ident: &str) -> &'static str {
         "new" => NEW,
         "pub" => PUB,
         "is" => IS,
+        "import" => IMPORT,
         // "var" => VAR,
-        "use_mod" => BUILTIN,
+        // "use_mod" => BUILTIN,
         "match" => MATCH,
         "with" => WITH,
         // "int" => INT_32_TYPE,

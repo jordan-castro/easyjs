@@ -366,7 +366,8 @@ fn parse_statement(parser: &mut Parser) -> ast::Statement {
             }
         }
         token::RETURN => parse_return_statement(parser),
-        token::USE => parse_use_statement(parser),
+        token::IMPORT => parse_import_statement(parser),
+        // token::USE => parse_use_statement(parser),
         token::JAVASCRIPT => ast::Statement::JavaScriptStatement(
             parser.c_token.to_owned(),
             parser.c_token.to_owned().literal[1..parser.c_token.to_owned().literal.len() - 1].to_string(),
@@ -387,6 +388,16 @@ fn parse_statement(parser: &mut Parser) -> ast::Statement {
     }
 
     stmt
+}
+
+fn parse_import_statement(p: &mut Parser) -> ast::Statement {
+    p.debug_print("parse_import_statement");
+    let token = p.c_token.clone();
+    if !p.expect_peek(token::STRING) {
+        return ast::empty_statement();
+    }
+
+    ast::Statement::ImportStatement(token, p.c_token.literal.clone())
 }
 
 fn parse_native_statement(p: &mut Parser) -> ast::Statement {
@@ -570,57 +581,6 @@ fn parse_expression_statement(p: &mut Parser) -> ast::Statement {
     ast::Statement::ExpressionStatement(token, Box::new(expression))
 }
 
-fn parse_use_statement(p: &mut Parser) -> ast::Statement {
-    p.debug_print("parse_use_statement");
-    let token = p.c_token.clone(); // use
-
-    let mut is_use_from = false;
-    let mut import_args = vec![];
-
-    // check if this is a use_from.
-    if p.peek_token_is(token::L_BRACE) {
-        p.next_token(); // consume {
-        p.next_token(); // get to the args...
-                        // get the expressions here...
-        is_use_from = true;
-        import_args.push(parse_expression(p, LOWEST));
-        while p.peek_token_is(token::COMMA) {
-            p.next_token(); // consume the ,
-            p.next_token(); // expression
-            import_args.push(parse_expression(p, LOWEST));
-        }
-        if !p.expect_peek(token::R_BRACE) {
-            return ast::empty_statement();
-        }
-
-        // expect the from token
-        if !p.expect_peek(token::FROM) {
-            return ast::empty_statement();
-        }
-    }
-    p.next_token();
-
-    // get the prefix:path
-    let prefix = parse_identifier(p, false);
-
-    if !p.expect_peek(token::COLON) {
-        return ast::empty_statement();
-    }
-    p.next_token();
-
-    let path = parse_expression(p, LOWEST);
-
-    if is_use_from {
-        return ast::Statement::UseFromStatement(
-            token,
-            Box::new(import_args),
-            Box::new(prefix),
-            Box::new(path),
-        );
-    }
-
-    ast::Statement::UseStatement(token, Box::new(prefix), Box::new(path))
-}
 
 fn parse_block_statement(p: &mut Parser) -> ast::Statement {
     p.debug_print("parse_block_statement");

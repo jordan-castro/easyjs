@@ -10,10 +10,7 @@ pub enum Statement {
     EmptyStatement,                                                 // there was an issue
     VariableStatement(tk::Token, Box<Expression>, Option<Box<Expression>>, Box<Expression>, bool), // variable = expression (bool = should_infer)
     ReturnStatement(tk::Token, Box<Expression>),                    // return expression
-    /// use prefix:path
-    UseStatement(tk::Token, Box<Expression>, Box<Expression>),
-    /// use {container optional(as something)} from prefix:path
-    UseFromStatement(tk::Token, Box<Vec<Expression>>, Box<Expression>, Box<Expression>),
+    ImportStatement(tk::Token, String), // import 'path.ej' (or) import 'path'
     ExpressionStatement(tk::Token, Box<Expression>), // token expression
     BlockStatement(tk::Token, Box<Vec<Statement>>),  // { statements }
     // token identifier = value
@@ -66,9 +63,8 @@ impl Statement {
             Statement::EmptyStatement => "EmptyStatement",
             Statement::VariableStatement(_, _, _, _, _) => "VariableStatement",
             Statement::ReturnStatement(_, _) => "ReturnStatement",
-            Statement::UseStatement(_, _, _) => "UseStatement",
-            Statement::UseFromStatement(_, _, _, _) => "UseFromStatement",
             Statement::ExpressionStatement(_, _) => "ExpressionStatement",
+            Statement::ImportStatement(_, _) => "ImportStatement",
             Statement::BlockStatement(_, _) => "BlockStatement",
             // Statement::ConstVariableStatement(_, _, _, _, _) => "ConstVarStatement",
             Statement::ForStatement(_, _, _) => "ForStatement",

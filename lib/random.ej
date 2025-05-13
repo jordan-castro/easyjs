@@ -1,32 +1,32 @@
 // EasyJS implementation of random.uniform from Python.
-pub fn uniform(a,b) {
-    return Math.random() * (b - a + 1) + a
+macro uniform(a,b) {
+    Math.random() * (b - a + 1) + a
 }
 
-pub fn choice(array) {
+macro choice(array) {
     array[Math.floor(Math.random() * array.length)]
 }
 
-pub fn normal(mean, std_dev) {
+macro normal(mean, std_dev) {
     u1 = Math.random()
     u2 = Math.random()
     z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2) // Box-Muller transform
-    return z0 * std_dev + mean
+    z0 * std_dev + mean
 }
 
-/// Shuffle an array randomly.
-pub fn shuffle(arr) {
-    return arr.slice().sort(fn() {
+// Shuffle an array randomly.
+macro shuffle(arr) {
+    arr.slice().sort(fn() {
         return Math.random() - 0.5
     })
 }
 
-/// Get a random number from min max
-pub random_number = fn(min, max) {return Math.floor(Math.random() * (max - min + 1) + min)}
+// Get a random number from min max
+macro random_number(min, max) {Math.floor(Math.random() * (max - min + 1) + min)}
 
-/// Get a random hex color
-pub random_hex_color = fn() {return "#${Math.random().toString(16).slice(2, 8).padEnd(6, '0')}"}
+// Get a random hex color
+macro random_hex_color() { "#${Math.random().toString(16).slice(2, 8).padEnd(6, '0')}"}
 
-/// Get a Random boolean
-pub random_bool = fn() {return Math.random() >= 0.5}
+// Get a Random boolean
+macro random_bool() { Math.random() >= 0.5}
 
