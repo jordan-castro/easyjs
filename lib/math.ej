@@ -1,10 +1,10 @@
 macro radians(degrees) {
     javascript{
-        degrees * (Math.PI / 180);
+        #degrees * (Math.PI / 180);
     }
 }
 
 // Calculate the percentage in EasyJS.
 macro calculate_percent(value,total) {
-    Math.round((value / total) * 100)
+    Math.round((#value / #total) * 100)
 }

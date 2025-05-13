@@ -17,7 +17,7 @@ pub struct Lex {
 }
 
 /// Allowed chars in ident (other than letters of course)
-pub const ALLOWED_IN_IDENT: &str = "0123456789_";
+pub const ALLOWED_IN_IDENT: &str = "0123456789_#";
 
 impl Lex {
     /// Create a new Lex instance.
@@ -337,7 +337,7 @@ impl Lex {
             '@' => token::new_token(token::MACRO_SYMBOL, &self.current_char_str()),
             _ => {
                 // check for identifier
-                if self.current_char.is_alphabetic() || self.current_char == '_' {
+                if self.current_char.is_alphabetic() || self.current_char == '_' || self.current_char == '#' {
                     let literal = &self.read_identifier();
 
                     // probably a identifier

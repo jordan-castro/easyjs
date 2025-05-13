@@ -1,14 +1,14 @@
 // Get the days between 2 dates
 macro days_between_dates(d1, d2) { 
-    Math.ceil(Math.abs(d1 - d2) / (1000 * 60 * 60 * 24)) 
+    Math.ceil(Math.abs(#d1 - #d2) / (1000 * 60 * 60 * 24)) 
 }
 
 // Get the weekday of a date.
 macro get_week_day(d) { 
-    d.toLocaleString('en-US', {weekday: 'long'}) 
+    #d.toLocaleString('en-US', {weekday: 'long'}) 
 }
 
 // Is a date a weekend?
 macro is_weekend(d) {
-    [5,6].indexOf(d.getDay()) != -1
+    [5,6].indexOf(#d.getDay()) != -1
 }
