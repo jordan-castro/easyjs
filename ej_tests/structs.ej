@@ -1,12 +1,9 @@
-pub struct Person[name, age] with GreetMixin {
-    var has_job = true
-    species = "HomoSapien"
-
+struct Person[name, age] with GreetMixin {
     fn set_name(self, new_name) {
         self.name = new_name
     }
 
-    /// gets the name.
+    // gets the name.
     fn get_name(self) {
         return self.name
     }
@@ -18,6 +15,6 @@ pub struct Person[name, age] with GreetMixin {
 
 struct GreetMixin {
     fn say_hi(self) {
-        console.log('Hello, my name is ${this.name}')
+        console.log('Hello, my name is ${self.name}')
     }
 }

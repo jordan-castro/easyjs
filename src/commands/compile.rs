@@ -39,11 +39,6 @@ pub fn compile_main(input: String, file_name: &str) -> String {
     compile(input, true, file_name).expect("Could not compile").0
 }
 
-/// Compile a imported easyjs module.
-pub fn compile_module(input: String, module_name:&str) -> (String, Transpiler) {
-    compile(input, false, module_name).expect("Could not compile")
-}
-
 /// Compile for repl
 pub fn compile_for_repl(input: String) -> String {
     compile(input, false, "").expect("Could not compile0").0

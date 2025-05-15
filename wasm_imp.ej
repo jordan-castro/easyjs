@@ -13,7 +13,7 @@ init().then(async fn() {
     scripts = document.querySelectorAll('script[type="easyjs"]')
 
     for script in scripts {
-        var code = null
+        code = null
         // check if script has a src.
         if script.hasAttribute("src") {
             // load EJ file content

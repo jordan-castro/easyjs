@@ -5,7 +5,7 @@
   - compilation (vs TypeScript, Dart, Nim, other to JS options)
   - wasm compilation (vs TypeScript, Dart, Nim, other to WASM options)
   - ease of use (vs TypeScript, Dart, etc)
-- v0.5.0 stype checker
+- v0.5.0 type checker
 - v0.5.0 optional return statements in dynamic variable creations.
 - v0.7.0 default function parameters.
 - v0.7.0 Do named paramaters better. instead of wrapping with {} actually get the position and place it correctly! 

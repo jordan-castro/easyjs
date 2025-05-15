@@ -204,6 +204,16 @@ macro add_to_string_to_enum(enum_name) {
         // Was not found
         return null
     }
+}
+
+// Call Object.keys on a object
+macro keys(object) {
+    Object.keys(#object)
+}
+
+// Call Object.freeze on a object
+macro freeze(object) {
+    Object.freeze(#object)
 }"##;
 const STRINGS: &str = r##"native {
     pub fn __get_str_len(ptr:int):int {
