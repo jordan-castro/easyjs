@@ -1,9 +1,8 @@
-// use boa_engine::{value, Context};
 use std::collections::HashMap;
 use std::fmt::format;
 use std::io::Write;
-// use std::io::Write;
-// use std::path;
+
+use regex::Regex;
 
 use super::macros::Macro;
 use super::native::compile_native;
@@ -190,8 +189,12 @@ impl Transpiler {
     pub fn transpile_module(&mut self, p: ast::Program) -> String {
         let mut t = Transpiler::new();
         let js = t.transpile(p);
-        self.native_ctx.functions.append(&mut t.native_ctx.functions);
-        self.native_ctx.variables.append(&mut t.native_ctx.variables);
+        self.native_ctx
+            .functions
+            .append(&mut t.native_ctx.functions);
+        self.native_ctx
+            .variables
+            .append(&mut t.native_ctx.variables);
         self.native_stmts.append(&mut t.native_stmts);
         self.macros.extend(t.macros);
         js
@@ -365,7 +368,7 @@ impl Transpiler {
             return "".to_string();
         }
 
-        result.push_str(format!("const {} = ", name).as_str());        
+        result.push_str(format!("const {} = ", name).as_str());
         // result.push_str("enum ");
         result.push_str(" Object.freeze({");
 
@@ -929,15 +932,31 @@ impl Transpiler {
                         "\'"
                     };
 
-                let str_value = string_interpolation(&value);
                 // supporting string $ interpolation.
                 // 1. check if string contains $
                 // 2. get the positions of all $
                 // 3. if any of the positions is followed by a {, then ignore it because this should be interpreted by itself.
                 // 4. for all other positions, get the start and end position of the identifier using lex::ALLOWED_IN_IDENT.contains(char)
                 // 5. once we have the start and end position of the identifier, add ${} around the identifier
+                let mut str_value = string_interpolation(&value);
 
-                // let quote_type = token.literal.chars().nth(0).unwrap();
+                if quote_type == "`" {
+                    // extract expressions
+                    let re = Regex::new(r"\$\{([^}]*)\}").unwrap();
+                    let expressions: Vec<String> = re
+                        .captures_iter(&str_value)
+                        .map(|cap| cap[1].to_string())
+                        .collect();
+
+                    let mut internal_t = Transpiler::new();
+                    for expression in expressions {
+                        let mut response = internal_t.transpile_from_string(expression.clone());
+
+                        response = response[0..response.len() - 2].to_string(); 
+                        str_value = str_value.replace(format!("${{{}}}", expression).as_str(), format!("${{{}}}", response).as_str());
+                    }
+                }
+
                 format!("{}{}{}", quote_type, str_value, quote_type)
             }
             Expression::PrefixExpression(token, op, value) => {
