@@ -948,11 +948,13 @@ impl Transpiler {
                         .map(|cap| cap[1].to_string())
                         .collect();
 
-                    let mut internal_t = Transpiler::new();
                     for expression in expressions {
+                        let mut internal_t = Transpiler::new();
                         let mut response = internal_t.transpile_from_string(expression.clone());
-
-                        response = response[0..response.len() - 2].to_string(); 
+                        response = response.trim().to_string();
+                        if response.ends_with(";") {
+                            response = response.strip_suffix(';').unwrap().to_string();
+                        }
                         str_value = str_value.replace(format!("${{{}}}", expression).as_str(), format!("${{{}}}", response).as_str());
                     }
                 }

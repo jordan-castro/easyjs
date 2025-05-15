@@ -15,8 +15,9 @@ pub fn read_file(file_path: &str) -> String {
 }
 
 /// This is what is used in WASM and for URL files in general.
-pub fn read_file_from_web(filr_uri: &str) -> String {
-    String::new()
+pub fn read_file_from_web(file_uri: &str) -> String {
+    let response = reqwest::blocking::get(file_uri).expect("Could not get file");
+    response.text().expect("Could not read to string")
 }
 
 /// Write a file

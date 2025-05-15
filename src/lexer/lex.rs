@@ -187,6 +187,7 @@ impl Lex {
         // move pass the javascript and the first {
         self.read_char(); // javascript
         self.read_char(); // {
+        self.read_char(); // consume the {
 
         let mut braces = 1;
 
@@ -206,6 +207,7 @@ impl Lex {
         }
 
         javascript
+        // javascript.trim()[1..javascript.trim().len()].to_string()
     }
 
     /// Get the current char as a &str
