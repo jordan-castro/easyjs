@@ -6,7 +6,7 @@ import platform
 import shutil
 
 
-is_debug = True
+is_debug = False
 
 if len(sys.argv) < 2:
     False
@@ -16,6 +16,7 @@ if len(sys.argv) < 2:
 ext = ".exe" if platform.system() == "Windows" else ""
 
 path_to_binary = f"target/{"debug" if is_debug else "release"}/easyjs{ext}"
+print(path_to_binary)
 
 if not os.path.exists(path_to_binary):
     print(f"Could not find {path_to_binary}")

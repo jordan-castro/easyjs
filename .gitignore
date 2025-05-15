@@ -8,10 +8,8 @@ target/
 /.ejc/
 
 /easyjs.wasm
-<<<<<<< HEAD
-/bin/easyjs.exe
-=======
 *easy_form.ej
 /easy_form.json
 /index.html
->>>>>>> f4da59c1f58b02d2df65cc7c0956445ea746b918
+
+bin/

@@ -3,8 +3,7 @@ use std::fs::read_dir;
 
 use easyjsc::{
     commands::{
-        compile::compile_main,
-        repl::start_repl,
+        compile::compile_main, install::install, repl::start_repl
     },
     repl::runtime::run_file,
     utils::{self},
@@ -49,6 +48,10 @@ enum Commands {
         /// Minify the output
         #[arg(short, long, action)]
         minify: bool,
+
+        /// New file name
+        #[arg(short, long, default_value = None)]
+        output: Option<String>
     },
     /// Run a EasyJS file/project
     Run {
@@ -58,7 +61,17 @@ enum Commands {
         /// The runtime to use.
         #[arg(short, long, default_value = "node")]
         runtime: String,
+
+        /// Trailing arguments
+        #[arg(trailing_var_arg = true)]
+        #[arg(num_args=0..)]
+        args: Vec<String>
     },
+    /// Install a easyjs package
+    Install {
+        /// The path to the .js file
+        path_to_js_file: String
+    }
 }
 
 fn main() {
@@ -72,6 +85,7 @@ fn main() {
             file,
             pretty,
             minify,
+            output
         } => {
             // Get path.
             let ej_code_bytes: Vec<u8> = std::fs::read(&file).expect("Failed to read file.");
@@ -90,7 +104,13 @@ fn main() {
                 js_code = js_minify(&js_code).to_string();
             }
 
-            let out_file = file.replace(".ej", &extension);
+            let out_file = {
+                if let Some(output) = output {
+                    output
+                } else {
+                    file.replace(".ej", &extension)
+                }
+            };
             let out_file = out_file
                 .replace("\\", "/")
                 .split("/")
@@ -102,8 +122,11 @@ fn main() {
             // write to file
             std::fs::write(out_file, js_code).expect("Filed to write file.");
         }
-        Commands::Run { file, runtime } => {
-            run_file(&runtime, &file);
+        Commands::Run { file, runtime , args} => {
+            run_file(&runtime, &file, args);
+        }
+        Commands::Install { path_to_js_file } => {
+            install(path_to_js_file);
         }
     }
 }

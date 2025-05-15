@@ -79,9 +79,10 @@ impl Runtime {
 }
 
 /// run a ej file.
-pub fn run_file(runtime: &str, path: &str) {
+pub fn run_file(runtime: &str, path: &str, arguments: Vec<String>) {
     let input = std::fs::read_to_string(path).expect("FAILED TO READ FILE");
     let js_content = compile::compile_main(input, path);
+    let js_content = format!("const EASYJS_RUNTIME='{}';\n{}", runtime, js_content);
 
     let js_file_path = format!("{}.js", utils::h::generate_hash(path));
 
@@ -92,6 +93,7 @@ pub fn run_file(runtime: &str, path: &str) {
         "node" => {
             let mut child = Command::new("node")
                 .arg(&js_file_path)
+                .args(arguments)
                 .spawn()
                 .expect("FAILED TO RUN NODE");
             child.wait().expect("FAILED TO WAIT ON NODE");
@@ -100,6 +102,7 @@ pub fn run_file(runtime: &str, path: &str) {
         "deno" => {
             let mut child = Command::new("deno")
                 .arg(&js_file_path)
+                .args(arguments)
                 .spawn()
                 .expect("FAILED TO RUN DENO");
             child.wait().expect("FAILED TO WAIT ON DENO");
@@ -108,6 +111,7 @@ pub fn run_file(runtime: &str, path: &str) {
         "bun" => {
             let mut child = Command::new("bun")
                 .arg(&js_file_path)
+                .args(arguments)
                 .spawn()
                 .expect("FAILED TO RUN BUN");
             child.wait().expect("FAILED TO WAIT ON BUN");
