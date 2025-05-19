@@ -4,6 +4,7 @@ pub mod h;
 pub mod reader;
 pub mod js_helpers;
 pub mod input;
+pub mod ej_config;
 
 use std::env;
 use std::path::PathBuf;
