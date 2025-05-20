@@ -1,8 +1,8 @@
-use git2::Repository;
-use tempfile::tempdir;
-use std::path::Path;
 use crate::compile_easy_js;
 use crate::utils::ej_config::{get_ej_config, parse_ej_config, EJConfig};
+use git2::Repository;
+use std::path::Path;
+use tempfile::tempdir;
 
 use crate::utils::{
     get_exe_dir,
@@ -12,9 +12,13 @@ use std::env;
 
 use super::compile;
 
-fn install_easyjs_pkg(package_path: &str) {
-    let binding = get_exe_dir().unwrap();
-    let path = binding.to_str().unwrap();
+fn install_easyjs_pkg(package_path: &str, forced_dir: Option<String>) {
+    let path = if let Some(ref forced_dir) = forced_dir {
+        forced_dir.clone()
+    } else {
+        let binding = get_exe_dir().unwrap();
+        binding.to_str().unwrap().to_string()
+    };
 
     let file_path = get_ej_config(package_path);
     // check we only have 1
@@ -24,9 +28,9 @@ fn install_easyjs_pkg(package_path: &str) {
 
     let config = parse_ej_config(file_path[0].clone()).expect("Could not parse EJConfig file.");
 
-    let pkg_name = config.name;
-    let pkg_output = config.output;
-    let pkg_source = config.source;
+    let pkg_name = &config.name;
+    let pkg_output = &config.output;
+    let pkg_source = &config.source;
     // let pkg_runtime = config.runtime;
 
     // Open the contents of output if exists
@@ -39,21 +43,30 @@ fn install_easyjs_pkg(package_path: &str) {
     }
 
     // save file
-    write_file(format!("{}/{}/{}.js", path, pkg_name, pkg_name).as_str(), &contents);
-    // what OS are we running?
-    let os = env::consts::OS;
-    match os {
-        "windows" => add_windows_cmd(path, &pkg_name),
-        "macos" => println!("Running on macOS"),
-        "linux" => println!("Running on Linux"),
-        _ => println!("Unknown operating system"),
-    }
+    write_file(
+        format!("{}/{}/{}", path, pkg_name, pkg_output).as_str(),
+        &contents,
+    );
+    // Write the config file
+    write_file(
+        format!("{}/{}/pkg.ejconfig", path, pkg_name).as_str(),
+        &serde_json::to_string(&config).unwrap(),
+    );
 
+    if forced_dir.is_none() {
+        // what OS are we running?
+        let os = env::consts::OS;
+        match os {
+            "windows" => add_windows_cmd(&path, &pkg_name, &pkg_output),
+            "macos" => println!("Running on macOS"),
+            "linux" => println!("Running on Linux"),
+            _ => println!("Unknown operating system"),
+        }
+    }
 }
 
 /// Install a package
-pub fn install(package_path: String) {
-
+pub fn install(package_path: String, forced_dir: Option<String>) {
     if package_path.contains("https://") {
         // This shold be a URL
         if !package_path.ends_with(".git") {
@@ -64,27 +77,27 @@ pub fn install(package_path: String) {
         let temp_dir = tempdir().expect("Could not create a temp directory.");
 
         // We have a git path
-        let repo = Repository::clone(&package_path, temp_dir.path()).expect("Could not clone git repo.");
+        let repo =
+            Repository::clone(&package_path, temp_dir.path()).expect("Could not clone git repo.");
 
         // Boom cloned,
-        install_easyjs_pkg(temp_dir.path().to_str().unwrap());
+        install_easyjs_pkg(temp_dir.path().to_str().unwrap(), forced_dir);
     } else {
         // check if a regular file
         if package_path.ends_with(".ejconfig") {
             // regular file get directory
             let path = Path::new(&package_path);
             let dir = path.parent().expect("Could not get parent directory");
-            install_easyjs_pkg(dir.to_str().unwrap());
+            install_easyjs_pkg(dir.to_str().unwrap(), forced_dir);
         } else {
             // this should be a directory then... pass directly
-            install_easyjs_pkg(&package_path);
+            install_easyjs_pkg(&package_path, forced_dir);
         }
     }
-
 }
 
-fn add_windows_cmd(path: &str, name: &str) {
-    let full_path = format!("{}/{}/{}.js", path, name, name);
+fn add_windows_cmd(path: &str, name: &str, output: &str) {
+    let full_path = format!("{}/{}/{}", path, name, output);
     let contents = format!("@echo off\nnode \"{}\" %*", full_path);
 
     write_file(format!("{}/{}.bat", path, name).as_str(), &contents);
