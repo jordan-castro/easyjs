@@ -69,8 +69,12 @@ enum Commands {
     },
     /// Install a easyjs package
     Install {
-        /// The path to the .js file
-        path_to_js_file: String
+        /// The path to the .ejconfig file
+        path_to_js_file: String,
+
+        /// The directory to place the .js file
+        #[arg(short, long, default_value = None)]
+        forced_dir: Option<String>
     }
 }
 
@@ -125,8 +129,8 @@ fn main() {
         Commands::Run { file, runtime , args} => {
             run_file(&runtime, &file, args);
         }
-        Commands::Install { path_to_js_file } => {
-            install(path_to_js_file);
+        Commands::Install { path_to_js_file , forced_dir} => {
+            install(path_to_js_file, forced_dir);
         }
     }
 }
