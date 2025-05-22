@@ -1,19 +1,18 @@
 use core::{panic, str};
 use std::fs::read_dir;
 
-use easyjsc::{
-    commands::{
-        compile::compile_main, install::install, repl::start_repl
-    },
-    repl::runtime::run_file,
-    utils::{self},
-};
+pub mod commands;
+pub mod interpreter;
+pub mod repl;
+
+use crate::commands::{repl::start_repl, install::install, compile::compile_main};
+use crate::repl::runtime::run_file;
 
 use clap::{Parser, Subcommand};
 use minifier::js::minify as js_minify;
 
 #[derive(Parser, Debug)]
-#[command(name = "EasyJS", version = utils::version::VERSION_CODE, author = "Jordan Castro <jorda@grupojvm.com>")]
+#[command(name = "EasyJS", version = easy_utils::utils::version::VERSION_CODE, author = "Jordan Castro <jorda@grupojvm.com>")]
 #[command(about = "EasyJS compiler, repl, and runner.")]
 /// Activate debug mode
 struct Args {
