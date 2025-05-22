@@ -1,10 +1,11 @@
-use crate::{std::load_std, utils::reader::read_file};
+use crate::std::load_std;
+use easy_utils::utils::reader::read_file;
 
 /// Import a `easyjs` file.
 pub fn import_file(file_path: &str) -> String {
     // check if this is a STD
     let std = load_std(file_path);
-    if (std != "") {
+    if std != "" {
         std
     } else {
         // open file path and Read. 

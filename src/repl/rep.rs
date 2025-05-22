@@ -1,9 +1,9 @@
 use std::io::Write;
 
-use crate::utils::version;
-use crate::lexer::lex;
-use crate::parser::par;
-use crate::compiler::transpile::Transpiler;
+use easy_utils::utils::version;
+use easyjsc::lexer::lex;
+use easyjsc::parser::par;
+use easyjsc::compiler::transpile::Transpiler;
 use crate::repl::runtime::Runtime;
 
 /// Repl for EasyJS

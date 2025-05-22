@@ -1,4 +1,5 @@
-use crate::{compiler::transpile::Transpiler, lexer::lex, parser::par, std, utils::reader::read_file};
+use crate::{compiler::transpile::Transpiler, lexer::lex, parser::par, std};
+use easy_utils::utils::reader::read_file;
 
 pub const INT_RANGE: &str = "int_range";
 

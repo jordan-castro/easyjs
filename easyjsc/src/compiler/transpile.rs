@@ -7,13 +7,13 @@ use regex::Regex;
 use super::macros::Macro;
 use super::native::compile_native;
 use crate::lexer::token::STRING;
-use crate::{builtins, emitter};
+use crate::builtins;
 // use crate::interpreter::{interpret_js, is_javascript_var_defined};
 use crate::lexer::lex::{self, ALLOWED_IN_IDENT};
 use crate::parser::ast::{Expression, Statement};
 use crate::parser::{ast, par};
-use crate::utils::js_helpers::is_javascript_keyword;
-use crate::{lexer::token, utils::h::hash_string};
+use easy_utils::utils::{js_helpers::is_javascript_keyword, h::hash_string};
+use crate::lexer::token;
 
 use super::import::import_file;
 

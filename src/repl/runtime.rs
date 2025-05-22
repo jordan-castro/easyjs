@@ -1,4 +1,5 @@
-use crate::{commands::compile, utils};
+use crate::commands::compile;
+use easy_utils::utils;
 use std::{
     io::{BufRead, BufReader, Read, Write},
     process::{Child, ChildStdout, Command, Stdio},

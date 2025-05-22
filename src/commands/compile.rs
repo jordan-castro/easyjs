@@ -1,9 +1,9 @@
 use std::error::Error;
 
-use crate::lexer::lex;
-use crate::parser::par;
-use crate::compiler::transpile::Transpiler;
-use crate::utils::version;
+use easyjsc::lexer::lex;
+use easyjsc::parser::par;
+use easyjsc::compiler::transpile::Transpiler;
+use easy_utils::utils::version;
 
 /// Compile a string of EasyJS into JS code.
 /// 
