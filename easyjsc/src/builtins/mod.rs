@@ -14,8 +14,8 @@ pub fn include(file_path_param: &str, transpiler: &mut Transpiler) -> String {
     // parse the file path
     let binding = file_path_param.replace("'", "").replace("\"", "");
 
-    let mut contents : String;
-    let mut file_path : String;
+    let contents : String;
+    let file_path : String;
 
     // check if binding includes a ":"
     if binding.contains(":") {
@@ -38,7 +38,6 @@ pub fn include(file_path_param: &str, transpiler: &mut Transpiler) -> String {
     let mut parser = par::Parser::new(lexer);
     // parse the program
     let program = parser.parse_program();
-    let module_transpiler = Transpiler::new();
     let result = transpiler.transpile_module(program);
 
     result

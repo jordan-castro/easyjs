@@ -1,17 +1,12 @@
 import os
 import shutil
 
-os.system("wasm-pack build --target web")
+# Build the crate as WebAssembly
+os.system("wasm-pack build --target web --release")
 
-# check for bin
-if not os.path.exists("bin"):
-    os.mkdir("bin")
+# Create output dirs
+os.makedirs("bin/wasm", exist_ok=True)
 
-if not os.path.exists("bin/wasm"):
-    os.mkdir("bin/wasm")
-
-# this will create a pkg directory
-shutil.copyfile("pkg/easyjsc_bg.wasm", "bin/wasm/easyjsc_bg.wasm")
-shutil.copyfile("pkg/easyjsc.js", "bin/wasm/easyjsc.js")
-
-shutil.rmtree("pkg")
+# Copy WASM and JS glue code
+shutil.copyfile("bin/wasm/easyjsc_bg.wasm", "bin/wasm/easyjsc_bg.wasm")
+shutil.copyfile("bin/wasmpkg/easyjsc.js", "bin/wasm/easyjsc.js")
