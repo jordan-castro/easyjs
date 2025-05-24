@@ -1,12 +1,10 @@
 use std::collections::HashMap;
-use std::fmt::format;
 use std::io::Write;
 
 use regex::Regex;
 
 use super::macros::Macro;
 use super::native::compile_native;
-use crate::lexer::token::STRING;
 use crate::builtins;
 // use crate::interpreter::{interpret_js, is_javascript_var_defined};
 use crate::lexer::lex::{self, ALLOWED_IN_IDENT};
@@ -309,7 +307,7 @@ impl Transpiler {
             ast::Statement::ReturnStatement(token, expression) => {
                 Some(self.transpile_return_stmt(token, expression.as_ref().to_owned()))
             }
-            ast::Statement::ImportStatement(token, file_path) => {
+            ast::Statement::ImportStatement(_token, file_path) => {
                 Some(self.transpile_import_stmt(&file_path))
             }
             ast::Statement::ExpressionStatement(token, expression) => {

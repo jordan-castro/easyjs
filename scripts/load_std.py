@@ -12,10 +12,10 @@ def clean_file_contents(contents):
 
 
 version = ""
-with open("lib/version", "r") as f:
+with open("../lib/version", "r") as f:
     version = f.read()
 
-lib_files = glob("lib/*.ej")
+lib_files = glob("../lib/*.ej")
 
 with open("src/std/mod.rs", "w") as f:
     f.write(f"// EasyJS STD version {version}\n")

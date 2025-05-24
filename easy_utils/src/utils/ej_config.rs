@@ -31,8 +31,7 @@ pub struct Author {
 pub fn parse_ej_config(file: PathBuf) -> Result<EJConfig, Box<dyn Error>> {
     // Example implementation (replace with your actual logic)
     let contents = fs::read_to_string(file)?;
-    let config: EJConfig = serde_json::from_str(&contents)?;
-    Ok(config)
+    EJConfig::from_json(&contents).map_err(|e| Box::new(e) as Box<dyn Error>)
 }
 
 /// Find all the `.ejconfig` files in a directory.
@@ -51,4 +50,15 @@ pub fn get_ej_config(dir: &str) -> Vec<PathBuf> {
     }
 
     configs
+}
+
+impl EJConfig {
+    /// from_json
+    pub fn from_json(json_string: &str) -> Result<EJConfig, serde_json::Error> {
+        serde_json::from_str(json_string)
+    }
+    /// to_string
+    pub fn to_string(self) -> Result<String, serde_json::Error> {
+        serde_json::to_string(&self)
+    }
 }

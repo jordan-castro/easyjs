@@ -7,7 +7,7 @@ use tempfile::tempdir;
 
 use easy_utils::utils::{
     get_exe_dir,
-    reader::{read_file, read_file_from_web, write_file},
+    reader::{read_file, write_file},
 };
 use std::env;
 
