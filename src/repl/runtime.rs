@@ -6,6 +6,7 @@ use std::{
     thread::sleep,
     time::Duration,
 };
+// use easyjsr::run_js;
 
 const EASY_JS_CONSTANT: &str = "001101";
 
@@ -34,6 +35,9 @@ impl Runtime {
                 .stdout(Stdio::piped())
                 .spawn()
                 .expect("Failed to start Deno"),
+            "easyjsr" => {
+                unimplemented!("easyjsr is not implemented yet");
+            }
             _ => {
                 panic!("Unknown runtime: {}", runtime);
             }
