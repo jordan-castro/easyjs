@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::io::Write;
 
 use regex::Regex;
 
@@ -8,10 +7,10 @@ use super::native::compile_native;
 use crate::builtins;
 // use crate::interpreter::{interpret_js, is_javascript_var_defined};
 use crate::lexer::lex::{self, ALLOWED_IN_IDENT};
+use crate::lexer::token;
 use crate::parser::ast::{Expression, Statement};
 use crate::parser::{ast, par};
-use easy_utils::utils::{js_helpers::is_javascript_keyword, h::hash_string};
-use crate::lexer::token;
+use easy_utils::utils::{h::hash_string, js_helpers::is_javascript_keyword};
 
 use super::import::import_file;
 
@@ -63,6 +62,17 @@ pub struct Transpiler {
 
     /// Should our tarnspiler take iife into consideration?
     inside_iife: bool,
+
+    /// Are we in debug mode?
+    pub debug_mode: bool,
+}
+/// Non Wasm specific (if running in non wasm enviroment, optionally save the wasm binary)
+#[cfg(not(target_arch = "wasm32"))]
+fn save_wasm_bin(wasm_bin: &Vec<u8>) {
+    use std::io::Write;
+
+    let mut file = std::fs::File::create("easyjs.wasm").unwrap();
+    file.write(&wasm_bin).unwrap();
 }
 
 impl Transpiler {
@@ -81,7 +91,18 @@ impl Transpiler {
                 variables: vec![],
             },
             inside_iife: false,
+            debug_mode: false,
         };
+
+        // Check the EASYJS_DEBUG variable
+        let is_debug_mode_var = std::env::var("EASYJS_DEBUG");
+        let is_debug_mode = if is_debug_mode_var.is_err() {
+            false
+        } else {
+            is_debug_mode_var.unwrap() == "1"
+        };
+
+        t.debug_mode = is_debug_mode;
 
         // add the first scope. This scope will never be popped.
         t.add_scope();
@@ -413,10 +434,10 @@ impl Transpiler {
         }
         // It is ok now!
         let easy_wasm = easy_wasm.unwrap();
-        // TODO: save the wasm to a file (optional)
-        let mut file = std::fs::File::create("easyjs.wasm").unwrap();
-        file.write(&easy_wasm).unwrap();
-
+        // save file if in debug mode
+        if self.debug_mode {
+            save_wasm_bin(&easy_wasm);
+        }
         res.push_str("const __easyjs_native_binary = new Uint8Array([");
         for byte in easy_wasm {
             res.push_str(&byte.to_string());
@@ -953,7 +974,10 @@ impl Transpiler {
                         if response.ends_with(";") {
                             response = response.strip_suffix(';').unwrap().to_string();
                         }
-                        str_value = str_value.replace(format!("${{{}}}", expression).as_str(), format!("${{{}}}", response).as_str());
+                        str_value = str_value.replace(
+                            format!("${{{}}}", expression).as_str(),
+                            format!("${{{}}}", response).as_str(),
+                        );
                     }
                 }
 
