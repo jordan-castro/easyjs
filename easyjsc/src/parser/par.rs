@@ -102,8 +102,8 @@ impl Parser {
 
         let mut p = Parser {
             l,
-            c_token: token::new_token("", ""),
-            peek_token: token::new_token("", ""),
+            c_token: token::new_token("", "", "", -1, -1),
+            peek_token: token::new_token("", "", "", -1, -1),
             errors: vec![],
             is_debug_mode,
         };

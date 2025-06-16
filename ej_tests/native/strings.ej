@@ -1,13 +1,8 @@
 // This example runs in the browser.
 
 native {
-    pub fn test_set_array(): array {
-        var test: array[int] = [1,2,3,4]
-        return test
-    }
-
     pub fn testing_setting_string(): string {
-        var test: string = "Hello world"
+        test : string = "Hello world"
         return test
     }
     pub fn test_add(x:int, y:int): int {
@@ -27,9 +22,9 @@ native {
     }
 
     pub fn add_string_variables():string {
-        var hello : string = "Hello"
-        var world : string = " World"
-        var hello_world : string =  hello + world
+        hello : string = "Hello"
+        world : string = " World"
+        hello_world : string =  hello + world
         return hello_world
     }
 

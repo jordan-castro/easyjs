@@ -61,6 +61,30 @@ pub enum Statement {
 }
 
 impl Statement {
+    /// Get the token of the `Statement`.
+    pub fn get_token(&self) -> &tk::Token {
+        match self {
+            Statement::EmptyStatement => {
+                // No token stored here, so panic or handle as needed
+                panic!("EmptyStatement has no token")
+            }
+            Statement::VariableStatement(token, _, _, _, _) => token,
+            Statement::ReturnStatement(token, _) => token,
+            Statement::ImportStatement(token, _) => token,
+            Statement::ExpressionStatement(token, _) => token,
+            Statement::BlockStatement(token, _) => token,
+            Statement::ForStatement(token, _, _) => token,
+            Statement::JavaScriptStatement(token, _) => token,
+            Statement::StructStatement(token, _, _, _, _, _) => token,
+            Statement::ExportStatement(token, _) => token,
+            Statement::AsyncBlockStatement(token, _) => token,
+            Statement::DocCommentStatement(token, _) => token,
+            Statement::MatchStatement(token, _, _) => token,
+            Statement::NativeStatement(token, _) => token,
+            Statement::EnumStatement(token, _, _) => token,
+        }
+    }
+
     pub fn variant_type(&self) -> String {
         match self {
             Statement::EmptyStatement => "EmptyStatement",
@@ -196,6 +220,55 @@ pub enum Expression {
 }
 
 impl Expression {
+    /// Get the token of the `Expression`
+    pub fn get_token(&self) -> &tk::Token {
+        match self {
+            Expression::EmptyExpression => {
+                // No token stored? Return a reference to a dummy or panic
+                // But since all variants have token except EmptyExpression, you could panic
+                panic!("EmptyExpression has no token")
+            }
+            Expression::Identifier(token, _) => token,
+            Expression::PrefixExpression(token, _, _) => token,
+            Expression::IntegerLiteral(token, _) => token,
+            Expression::StringLiteral(token, _) => token,
+            Expression::CommentExpression(token, _) => token,
+            Expression::InfixExpression(token, _, _, _) => token,
+            Expression::Boolean(token, _) => token,
+            Expression::IfExpression(token, _, _, _, _) => token,
+            Expression::AsyncExpression(token, _) => token,
+            Expression::AwaitExpression(token, _) => token,
+            Expression::FunctionLiteral(token, _, _, _, _) => token,
+            Expression::LambdaLiteral(token, _, _) => token,
+            Expression::CallExpression(token, _, _) => token,
+            Expression::InExpression(token, _, _) => token,
+            Expression::OfExpression(token, _, _) => token,
+            Expression::RangeExpression(token, _, _) => token,
+            Expression::DotExpression(token, _, _) => token,
+            Expression::DotIfExpression(token, _, _) => token,
+            Expression::ArrayLiteral(token, _) => token,
+            Expression::IndexExpression(token, _, _) => token,
+            Expression::ObjectLiteral(token, _) => token,
+            Expression::AssignExpression(token, _, _) => token,
+            Expression::NotExpression(token, _) => token,
+            Expression::AsExpression(token, _, _) => token,
+            Expression::MacroExpression(token, _, _) => token,
+            Expression::MacroDecleration(token, _, _, _) => token,
+            Expression::AndExpression(token, _, _) => token,
+            Expression::OrExpression(token, _, _) => token,
+            Expression::NullExpression(token, _, _) => token,
+            Expression::DefaultIfNullExpression(token, _, _) => token,
+            Expression::NewClassExpression(token, _) => token,
+            Expression::FloatLiteral(token, _) => token,
+            Expression::GroupedExpression(token, _) => token,
+            Expression::IsExpression(token, _, _) => token,
+            Expression::BuiltinCall(token, _) => token,
+            Expression::IdentifierWithType(token, _, _) => token,
+            Expression::Type(token, _) => token,
+            Expression::IIFE(token, _) => token,
+        }
+    }
+
     // Returns a unique identifier for each variant
     pub fn variant_type(&self) -> &'static str {
         match self {

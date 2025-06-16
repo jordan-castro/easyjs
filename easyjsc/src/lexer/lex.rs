@@ -7,9 +7,9 @@ pub struct Lex {
     read_position: usize, // Current ReadPosition, i.e., one after where the position is at
     current_char: char,   // Current char being read
     /// The current line our lexer is on.
-    pub current_line: i64,
+    pub current_line: i32,
     /// The exact column number.
-    pub current_col: i64,
+    pub current_col: i32,
     /// The file being parsed.
     pub current_file: String,
     /// A vector of chars to not .chars() every read_char,
@@ -220,75 +220,82 @@ impl Lex {
         self.skip_whitespace();
 
         if self.is_eof() {
-            return token::new_token(token::EOF, &self.current_char_str());
+            return self.create_new_token(token::EOF, &self.current_char_str());
         }
 
         let token = match self.current_char {
             '=' => {
                 if self.peek_char() == '=' {
-                    token::new_token(token::EQ, &self.cc_pp())
+                    let ccpp = self.cc_pp();
+                    self.create_new_token(token::EQ, &ccpp)
                 } else {
-                    token::new_token(token::ASSIGN, &self.current_char_str())
+                    self.create_new_token(token::ASSIGN, &self.current_char_str())
                 }
             }
             '.' => {
                 if self.peek_char() == '.' {
-                    // let fs = format!("{}{}", self.current_char, self.peek_char());
-                    token::new_token(token::DOTDOT, &self.cc_pp())
+                    let ccpp = self.cc_pp();
+                    self.create_new_token(token::DOTDOT, &ccpp)
                 } else {
-                    token::new_token(token::DOT, &self.current_char_str())
+                    self.create_new_token(token::DOT, &self.current_char_str())
                 }
             }
             '+' => {
                 if self.peek_char() == '=' {
-                    token::new_token(token::PLUS_EQUALS, &self.cc_pp())
+                    let ccpp = self.cc_pp();
+                    self.create_new_token(token::PLUS_EQUALS, &ccpp)
                 } else {
-                    token::new_token(token::PLUS, &self.current_char_str())
+                    self.create_new_token(token::PLUS, &self.current_char_str())
                 }
             }
             '-' => {
                 if self.peek_char() == '=' {
-                    token::new_token(token::MINUS_EQUALS, &self.cc_pp())
+                    let ccpp = self.cc_pp();
+                    self.create_new_token(token::MINUS_EQUALS, &ccpp)
                 } else {
-                    token::new_token(token::MINUS, &self.current_char_str())
+                    self.create_new_token(token::MINUS, &self.current_char_str())
                 }
             }
             '*' => {
                 if self.peek_char() == '=' {
-                    token::new_token(token::ASTERISK_EQUALS, &self.cc_pp())
+                    let ccpp = self.cc_pp();
+                    self.create_new_token(token::ASTERISK_EQUALS, &ccpp)
                 } else {
-                    token::new_token(token::ASTERISK, &self.current_char_str())
+                    self.create_new_token(token::ASTERISK, &self.current_char_str())
                 }
             }
-            '{' => token::new_token(token::L_BRACE, &self.current_char_str()),
-            '}' => token::new_token(token::R_BRACE, &self.current_char_str()),
-            '(' => token::new_token(token::L_PAREN, &self.current_char_str()),
-            ')' => token::new_token(token::R_PAREN, &self.current_char_str()),
-            ',' => token::new_token(token::COMMA, &self.current_char_str()),
-            ';' => token::new_token(token::SEMICOLON, &self.current_char_str()),
-            '\n' => token::new_token(token::EOL, &self.current_char_str()),
-            '[' => token::new_token(token::L_BRACKET, &self.current_char_str()),
-            ']' => token::new_token(token::R_BRACKET, &self.current_char_str()),
-            '%' => token::new_token(token::MODULUS, &self.current_char_str()),
+            '{' => self.create_new_token(token::L_BRACE, &self.current_char_str()),
+            '}' => self.create_new_token(token::R_BRACE, &self.current_char_str()),
+            '(' => self.create_new_token(token::L_PAREN, &self.current_char_str()),
+            ')' => self.create_new_token(token::R_PAREN, &self.current_char_str()),
+            ',' => self.create_new_token(token::COMMA, &self.current_char_str()),
+            ';' => self.create_new_token(token::SEMICOLON, &self.current_char_str()),
+            '\n' => self.create_new_token(token::EOL, &self.current_char_str()),
+            '[' => self.create_new_token(token::L_BRACKET, &self.current_char_str()),
+            ']' => self.create_new_token(token::R_BRACKET, &self.current_char_str()),
+            '%' => self.create_new_token(token::MODULUS, &self.current_char_str()),
             '!' => {
                 if self.peek_char() == '=' {
-                    token::new_token(token::NOT_EQ, &self.cc_pp())
+                    let ccpp = self.cc_pp();
+                    self.create_new_token(token::NOT_EQ, &ccpp)
                 } else {
-                    token::new_token(token::BANG, &self.current_char_str())
+                    self.create_new_token(token::BANG, &self.current_char_str())
                 }
             }
             '>' => {
                 if self.peek_char() == '=' {
-                    token::new_token(token::GT_OR_EQ, &self.cc_pp())
+                    let ccpp = self.cc_pp();
+                    self.create_new_token(token::GT_OR_EQ, &ccpp)
                 } else {
-                    token::new_token(token::GT, &self.current_char_str())
+                    self.create_new_token(token::GT, &self.current_char_str())
                 }
             }
             '<' => {
                 if self.peek_char() == '=' {
-                    token::new_token(token::LT_OR_EQ, &self.cc_pp())
+                    let ccpp = self.cc_pp();
+                    self.create_new_token(token::LT_OR_EQ, &ccpp)
                 } else {
-                    token::new_token(token::LT, &self.current_char_str())
+                    self.create_new_token(token::LT, &self.current_char_str())
                 }
             }
             ':' => {
@@ -297,46 +304,48 @@ impl Lex {
                     format!("{}{}", self.current_char, next_char).as_str(),
                 );
                 if token_type != token::COLON {
-                    token::new_token(&token_type, &self.cc_pp())
+                    let ccpp = self.cc_pp();
+                    self.create_new_token(&token_type, &ccpp)
                 } else {
-                    token::new_token(token_type, &self.current_char_str())
+                    self.create_new_token(token_type, &self.current_char_str())
                 }
             }
             '/' => {
                 if self.peek_char() == '/' {
                     let (tk, comment) = self.read_comment();
-                    token::new_token(tk, &comment)
+                    self.create_new_token(tk, &comment)
                 } else if self.peek_char() == '=' {
-                    token::new_token(token::SLASH_EQUALS, &self.cc_pp())
+                    let ccpp = self.cc_pp();
+                    self.create_new_token(token::SLASH_EQUALS, &self.cc_pp())
                 } else {
-                    token::new_token(token::SLASH, &self.current_char_str())
+                    self.create_new_token(token::SLASH, &self.current_char_str())
                 }
             }
-            '\"' => token::new_token(token::STRING, &self.read_string('\"')),
-            '\'' => token::new_token(token::STRING, &self.read_string('\'')),
+            '\"' => self.create_new_token(token::STRING, &self.read_string('\"')),
+            '\'' => self.create_new_token(token::STRING, &self.read_string('\'')),
             '|' => {
                 if self.peek_char() == '|' {
-                    token::new_token(token::OR_SYMBOL, &self.cc_pp())
+                    self.create_new_token(token::OR_SYMBOL, &self.cc_pp())
                 } else {
-                    token::new_token(token::BITWISE_OR, &self.current_char_str())
+                    self.create_new_token(token::BITWISE_OR, &self.current_char_str())
                 }
             }
             '&' => {
                 if self.peek_char() == '&' {
-                    token::new_token(token::AND_SYMBOL, &self.cc_pp())
+                    self.create_new_token(token::AND_SYMBOL, &self.cc_pp())
                 } else {
-                    token::new_token(token::BITWISE_AND, &self.current_char_str())
+                    self.create_new_token(token::BITWISE_AND, &self.current_char_str())
                 }
             }
             '?' => {
                 if self.peek_char() == '?' {
-                    token::new_token(token::DOUBLE_QUESTION_MARK, &self.cc_pp())
+                    self.create_new_token(token::DOUBLE_QUESTION_MARK, &self.cc_pp())
                 } else {
-                    token::new_token(token::QUESTION_MARK, &self.current_char_str())
+                    self.create_new_token(token::QUESTION_MARK, &self.current_char_str())
                 }
             }
-            // '$' => token::new_token(token::MACRO_SYMBOL, &self.current_char_str()),
-            '@' => token::new_token(token::MACRO_SYMBOL, &self.current_char_str()),
+            // '$' => self.create_new_token(token::MACRO_SYMBOL, &self.current_char_str()),
+            '@' => self.create_new_token(token::MACRO_SYMBOL, &self.current_char_str()),
             _ => {
                 // check for identifier
                 if self.current_char.is_alphabetic() || self.current_char == '_' || self.current_char == '#' {
@@ -347,23 +356,23 @@ impl Lex {
 
                     // if this a JS?
                     if ident == token::JAVASCRIPT {
-                        let t = token::new_token(token::JAVASCRIPT, &self.read_javascript());
+                        let t = self.create_new_token(token::JAVASCRIPT, &self.read_javascript());
                         self.read_char();
                         return t;
                     }
 
                     // return the identifier
-                    token::new_token(ident, literal)
+                    self.create_new_token(ident, literal)
                 } else if self.current_char.is_numeric() {
                     // probably a integer
                     let int = self.read_number();
                     if int.contains('.') {
-                        token::new_token(token::FLOAT, int.as_str())
+                        self.create_new_token(token::FLOAT, int.as_str())
                     } else {
-                        token::new_token(token::INT, int.as_str())
+                        self.create_new_token(token::INT, int.as_str())
                     }
                 } else {
-                    token::new_token(token::ILLEGAL, &self.current_char_str())
+                    self.create_new_token(token::ILLEGAL, &self.current_char_str())
                 }
             }
         };
@@ -377,6 +386,11 @@ impl Lex {
 
         // return the token
         token
+    }
+
+    /// Create a new token with type, literal, file name, line number, column number.
+    fn create_new_token(&self, token_type: &str, token_literal: &str) -> token::Token {
+        token::new_token(token_type, token_literal, &self.current_file, self.current_line, self.current_col)
     }
 }
 
