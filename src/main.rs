@@ -50,7 +50,11 @@ enum Commands {
 
         /// New file name
         #[arg(short, long, default_value = None)]
-        output: Option<String>
+        output: Option<String>,
+
+        /// Output to the terminal.
+        #[arg(short, long, action)]
+        terminal: bool
     },
     /// Run a EasyJS file/project
     Run {
@@ -88,7 +92,8 @@ fn main() {
             file,
             pretty,
             minify,
-            output
+            output,
+            terminal
         } => {
             // Get path.
             let ej_code_bytes: Vec<u8> = std::fs::read(&file).expect("Failed to read file.");
@@ -105,6 +110,13 @@ fn main() {
 
             if minify {
                 js_code = js_minify(&js_code).to_string();
+            }
+
+            // Check if we are outputing to the terminal
+            if terminal {
+                println!("{}", js_code);
+
+                return;
             }
 
             let out_file = {
