@@ -1,20 +1,40 @@
 /// EasyJS compiler token.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Token {
+    /// The type of token (in string)
     pub typ: String,
+    /// The token literal
     pub literal: String,
+    /// The file name this token is in.
+    pub file_name: String,
+    /// The line number of the token.
+    pub line_number: i32,
+    /// The col number the token starts
+    pub col_number: i32,
 }
 
 pub const EMPTY_TOKEN: Token = Token {
     typ: String::new(),
     literal: String::new(),
+    file_name: String::new(),
+    line_number: -1,
+    col_number: -1,
 };
 
 /// Create a new token on the fly
-pub fn new_token(typ: &str, literal: &str) -> Token {
+pub fn new_token(
+    typ: &str,
+    literal: &str,
+    file_name: &str,
+    line_number: i32,
+    col_number: i32,
+) -> Token {
     Token {
         typ: typ.to_owned(),
         literal: literal.to_owned(),
+        file_name: file_name.to_owned(),
+        line_number,
+        col_number,
     }
 }
 

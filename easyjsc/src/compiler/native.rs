@@ -2,18 +2,18 @@
 
 use std::{collections::HashMap, vec};
 
-use wasm_encoder::{ConstExpr, Function, Instruction, ValType};
-
 use crate::{
     emitter::{
         instruction_generator::EasyInstructions,
-        signatures::{create_type_section, EasyNativeFN, EasyNativeVar, FunctionSignature},
+        signatures::{EasyNativeFN, EasyNativeVar, FunctionSignature, create_type_section},
         utils::{
-            expression_is_ident, get_param_type_by_string, get_val_type_from_strong, StrongValType,
+            StrongValType, expression_is_ident, get_param_type_by_string, get_val_type_from_strong,
         },
     },
+    lexer::token::Token,
     parser::ast::{Expression, Statement},
 };
+use wasm_encoder::{ConstExpr, Function, Instruction, ValType};
 
 /// easyjs native is a bare bones language feature. Think of it as C for the web.
 /// To use easyjs native features, wrap your easyjs code in a native block like so:
@@ -232,7 +232,7 @@ impl NativeContext {
             }
             _ => {
                 // This stmt is not supported in native blocks (yet)
-                self.add_error("Unsupported statement");
+                self.add_error("Unsupported statement", stmt.get_token());
             }
         }
     }
@@ -271,7 +271,7 @@ impl NativeContext {
             if let Some(current_fn_ins) = self.instructions.get_mut(&self.next_fn_idx) {
                 current_fn_ins.push(Instruction::LocalSet(self.next_var_idx));
             } else {
-                self.add_error("No current function");
+                self.add_error("No current function", value.get_token());
             }
         }
 
@@ -292,13 +292,13 @@ impl NativeContext {
             Expression::Identifier(_, name) => {
                 // check if null
                 if name != "null" {
-                    self.add_error("Unsupported expression as value for global variable");
+                    self.add_error("Unsupported expression as value for global variable", value.get_token());
                 }
                 ConstExpr::empty()
             }
             _ => {
                 // not supported
-                self.add_error("Unsupported expression as value for global variable");
+                self.add_error("Unsupported expression as value for global variable", value.get_token());
                 ConstExpr::empty()
             }
         }
@@ -331,7 +331,7 @@ impl NativeContext {
                     return vec![Instruction::Call(fun_idx)];
                 }
                 // some error
-                self.add_error(format!("native, error compiling identifier: {} ", name).as_str());
+                self.add_error(format!("native, error compiling identifier: {} ", name).as_str(), expr.get_token());
                 vec![]
             }
             Expression::FunctionLiteral(_, name, params, val_type, body) => {
@@ -354,7 +354,14 @@ impl NativeContext {
                     (StrongValType::Int, StrongValType::Float) => "f32",
                     (StrongValType::Float, StrongValType::Int) => "f32",
                     (_, _) => {
-                        self.add_error(format!("native, Unsupported operation: {:#?} {} {:#?}", left_type, op, right_type).as_str());
+                        self.add_error(
+                            format!(
+                                "native, Unsupported operation: {:#?} {} {:#?}",
+                                left_type, op, right_type
+                            )
+                            .as_str(),
+                            expr.get_token()
+                        );
                         return vec![];
                     }
                 };
@@ -416,17 +423,20 @@ impl NativeContext {
                         result
                     }
                     _ => {
-                        self.add_error(format!("native, Unsupported operator: {}", op).as_str());
+                        self.add_error(format!("native, Unsupported operator: {}", op).as_str(), expr.get_token());
                         vec![]
                     }
                 }
             }
             Expression::CallExpression(_, name, arguments) => {
                 let name = self.compile_raw_expression(name);
-                
+
                 let fun_idx = self.get_fun_idx_from_name(&name);
                 if fun_idx.is_none() {
-                    self.add_error(format!("native, could not parse function: {:#?}", name).as_str());
+                    self.add_error(
+                        format!("native, could not parse function: {:#?}", name).as_str(),
+                        expr.get_token()
+                    );
                     return vec![];
                 }
                 let fun_idx = fun_idx.unwrap();
@@ -570,7 +580,7 @@ impl NativeContext {
             }
             _ => {
                 // add error
-                self.add_error("Can not compile raw expression");
+                self.add_error("Can not compile raw expression", expr.get_token());
                 String::new()
             }
         }
@@ -586,7 +596,7 @@ impl NativeContext {
     /// - function calls (the arguments with types)
     fn get_val_type_from_expression(&mut self, expr: &Expression) -> StrongValType {
         match expr {
-            Expression::Identifier(_, name) => {
+            Expression::Identifier(tk, name) => {
                 let res = get_param_type_by_string(name);
                 if res == StrongValType::NotSupported {
                     // Try to infer from variables
@@ -605,20 +615,20 @@ impl NativeContext {
                     }
 
                     // If we get this far we could not infer
-                    self.add_error("Can not get value from expression");
+                    self.add_error("Can not get value from expression", tk);
                     StrongValType::NotSupported
                 } else {
                     res
                 }
             }
-            Expression::Type(_, val_type) => get_param_type_by_string(val_type),
-            Expression::IdentifierWithType(_, name, val_type) => {
+            Expression::Type(tk, val_type) => get_param_type_by_string(val_type),
+            Expression::IdentifierWithType(tk, name, val_type) => {
                 self.get_val_type_from_expression(val_type.as_ref())
             }
-            Expression::FunctionLiteral(_, _, _, val_type, _) => {
+            Expression::FunctionLiteral(tk, _, _, val_type, _) => {
                 // There is no way to infer the return type of a function (not yet)
                 if val_type.is_none() {
-                    self.add_error("Can not get value from expression.");
+                    self.add_error("Can not get value from expression.", tk);
                     // self.not_valid_reason = Some("Can not get value from expression".to_string());
                     StrongValType::NotSupported
                 } else {
@@ -627,15 +637,21 @@ impl NativeContext {
             }
             _ => {
                 // add error
-                self.add_error("Can not get value from expression");
+                self.add_error("Can not get value from expression", expr.get_token());
                 StrongValType::NotSupported
             }
         }
     }
 
     /// Add a error
-    fn add_error(&mut self, error: &str) {
-        self.errors.push(error.to_string());
+    fn add_error(&mut self, error: &str, current_token: &Token) {
+        self.errors.push(format!(
+            "File {} line: {} col: {}, error: {}",
+            current_token.file_name,
+            current_token.line_number,
+            current_token.col_number,
+            error.to_string()
+        ));
     }
 
     /// Get the type of a variable / literal from a instruction
