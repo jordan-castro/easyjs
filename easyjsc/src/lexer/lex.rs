@@ -118,31 +118,6 @@ impl Lex {
         result
     }
 
-    /// read anything after the // token
-    fn read_comment(&mut self) -> (&str, String) {
-        // go next to not get stuck in the /
-        self.read_char();
-        self.read_char();
-        let is_doc = self.current_char == '/';
-        
-        if is_doc {
-            self.read_char();
-        }
-        
-        let mut res: String = String::new();
-
-        while self.current_char != '\n' && !self.is_eof() {
-            res.push(self.current_char);
-            self.read_char();
-        }
-
-        if is_doc {
-            (token::DOC_COMMENT, res)
-        } else {
-            (token::COMMENT, res)
-        }
-    }
-
     /// read the identifier
     fn read_identifier(&mut self) -> String {
         let mut ident = String::new();
@@ -312,34 +287,67 @@ impl Lex {
             }
             '/' => {
                 if self.peek_char() == '/' {
-                    let (tk, comment) = self.read_comment();
-                    self.create_new_token(tk, &comment)
+                    // Parse the comment here (fricking rust borrow checker!)
+                    // fn parse_comment() {
+                        // go next to not get stuck in the /
+                        self.read_char();
+                        self.read_char();
+                        let is_doc = self.current_char == '/';
+
+                        if is_doc {
+                            self.read_char();
+                        }
+
+                        let mut res: String = String::new();
+
+                        while self.current_char != '\n' && !self.is_eof() {
+                            res.push(self.current_char);
+                            self.read_char();
+                        }
+
+                        let mut token_type: &str;
+                        if is_doc {
+                            token_type = token::DOC_COMMENT;
+                        } else {
+                            token_type = token::COMMENT;
+                        }
+                    // }
+                    self.create_new_token(token_type, &res)
                 } else if self.peek_char() == '=' {
                     let ccpp = self.cc_pp();
-                    self.create_new_token(token::SLASH_EQUALS, &self.cc_pp())
+                    self.create_new_token(token::SLASH_EQUALS, &ccpp)
                 } else {
                     self.create_new_token(token::SLASH, &self.current_char_str())
                 }
             }
-            '\"' => self.create_new_token(token::STRING, &self.read_string('\"')),
-            '\'' => self.create_new_token(token::STRING, &self.read_string('\'')),
+            '\"' => {
+                let string = self.read_string('\"');
+                self.create_new_token(token::STRING, &string)
+            }
+            '\'' => {
+                let string = self.read_string('\'');
+                self.create_new_token(token::STRING, &string)
+            }
             '|' => {
                 if self.peek_char() == '|' {
-                    self.create_new_token(token::OR_SYMBOL, &self.cc_pp())
+                    let ccpp = self.cc_pp();
+                    self.create_new_token(token::OR_SYMBOL, &ccpp)
                 } else {
                     self.create_new_token(token::BITWISE_OR, &self.current_char_str())
                 }
             }
             '&' => {
                 if self.peek_char() == '&' {
-                    self.create_new_token(token::AND_SYMBOL, &self.cc_pp())
+                    let ccpp = self.cc_pp();
+                    self.create_new_token(token::AND_SYMBOL, &ccpp)
                 } else {
                     self.create_new_token(token::BITWISE_AND, &self.current_char_str())
                 }
             }
             '?' => {
                 if self.peek_char() == '?' {
-                    self.create_new_token(token::DOUBLE_QUESTION_MARK, &self.cc_pp())
+                    let ccpp = self.cc_pp();
+                    self.create_new_token(token::DOUBLE_QUESTION_MARK, &ccpp)
                 } else {
                     self.create_new_token(token::QUESTION_MARK, &self.current_char_str())
                 }
@@ -348,7 +356,10 @@ impl Lex {
             '@' => self.create_new_token(token::MACRO_SYMBOL, &self.current_char_str()),
             _ => {
                 // check for identifier
-                if self.current_char.is_alphabetic() || self.current_char == '_' || self.current_char == '#' {
+                if self.current_char.is_alphabetic()
+                    || self.current_char == '_'
+                    || self.current_char == '#'
+                {
                     let literal = &self.read_identifier();
 
                     // probably a identifier
@@ -356,7 +367,8 @@ impl Lex {
 
                     // if this a JS?
                     if ident == token::JAVASCRIPT {
-                        let t = self.create_new_token(token::JAVASCRIPT, &self.read_javascript());
+                        let js_literal = self.read_javascript();
+                        let t = self.create_new_token(token::JAVASCRIPT, &js_literal);
                         self.read_char();
                         return t;
                     }
@@ -390,7 +402,13 @@ impl Lex {
 
     /// Create a new token with type, literal, file name, line number, column number.
     fn create_new_token(&self, token_type: &str, token_literal: &str) -> token::Token {
-        token::new_token(token_type, token_literal, &self.current_file, self.current_line, self.current_col)
+        token::new_token(
+            token_type,
+            token_literal,
+            &self.current_file,
+            self.current_line,
+            self.current_col,
+        )
     }
 }
 

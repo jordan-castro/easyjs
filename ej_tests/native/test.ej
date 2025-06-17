@@ -6,7 +6,7 @@ native {
     }
 
     pub fn test_string():string {
-        msg = "Hello"
+        msg : string = "Hello"
         return msg
     }
 }

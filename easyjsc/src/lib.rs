@@ -4,6 +4,7 @@ pub mod lexer;
 pub mod std;
 pub mod parser;
 pub mod emitter;
+pub mod errors;
 
 use compiler::transpile::Transpiler;
 use wasm_bindgen::prelude::*;
