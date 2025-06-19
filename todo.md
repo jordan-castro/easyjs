@@ -10,6 +10,10 @@
 - v0.7.0 Do named paramaters better. instead of wrapping with {} actually get the position and place it correctly! 
 - v0.6.0 Add namespaces and just include with import 'file.ej' y ya. No as.
 - v0.5.0 Include the wasm binary with the CLI.
+- v0.5.0 Fix for loops in macros
+- v0.5.0 Fix javascript{} token first charater
+- v0.5.0 Add classes
+- v0.5.0 revamp structs.
 
 ## Commands
 - v0.4.5 Add a update command to the CLI
@@ -26,6 +30,7 @@
       - [] char at position
       - toUpper 
       - toLower
+      - ~~alloc~~
     - arrays
       - push
       - append

@@ -2,7 +2,8 @@ import 'std'
 
 native {
     pub fn add(n1: int, n2: int):int {
-        return n1 + n2
+        n3 : int = 12
+        return n1 + n3
     }
 }
 

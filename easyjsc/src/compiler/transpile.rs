@@ -465,7 +465,7 @@ impl Transpiler {
 
                     // Write the string to memory
                     for (let i = 0; i < strBytes.length; i++) {
-                        instance.exports.__str_store_byte(ptr + i, strBytes[i]);
+                        instance.exports.__str_store_byte(ptr, 4 + i, strBytes[i]);
                     }
                     return ptr;
                 }
@@ -474,7 +474,7 @@ impl Transpiler {
                  * Function for reading a string from native.
                  */
                 static read_string_from_native(instance, ptr) {
-                    const length = instance.exports.__str_len(ptr);
+                    const length = instance.exports.__str_get_len(ptr);
 
                     const memoryBuffer = new Uint8Array(instance.exports.memory.buffer, ptr + 4, length);
 
