@@ -1,8 +1,21 @@
 use wasm_encoder::{Instruction, MemArg, ValType};
 
-use crate::{emitter::strings::ALLOCATE_STRING_IDX, parser::ast::Expression};
+use crate::{
+    emitter::builtins::{ALLOCATE_STRING_IDX, STORE_STRING_LENGTH_IDX},
+    parser::ast::Expression,
+};
 
-use super::strings::STORE_STRING_LENGTH_IDX;
+/// Macro for creating a new wasm function with instructions.
+#[macro_export]
+macro_rules! new_function_with_instructions {
+    ($locals:expr, $instructions: expr) => {{
+        let mut function = Function::new($locals);
+        for instruction in $instructions {
+            function.instruction(&instruction);
+        }
+        function
+    }};
+}
 
 pub type EasyInstructions = Vec<Instruction<'static>>;
 
@@ -88,10 +101,13 @@ pub fn call_instruction(name: &str, arguments: &Vec<Expression>) -> EasyInstruct
             set_local(idx)
         }
         "__add_i32" => {
-            let numbers = arguments.iter().map(|arg| match arg {
-                Expression::IntegerLiteral(_, value) => *value as i32,
-                _ => panic!("Expected number as argument for __add_i32"),
-            }).collect();
+            let numbers = arguments
+                .iter()
+                .map(|arg| match arg {
+                    Expression::IntegerLiteral(_, value) => *value as i32,
+                    _ => panic!("Expected number as argument for __add_i32"),
+                })
+                .collect();
             add_i32(numbers)
         }
         // sometimes basic instructions need to be called
@@ -111,6 +127,7 @@ pub fn new_ptr(at: i32) -> EasyInstructions {
     vec![Instruction::I32Const(at)]
 }
 
+/// Instructions for setting strings localy (i.e. AOT)
 pub fn set_local_string(idx: u32, string: String) -> EasyInstructions {
     let str_length = string.len() as i32;
     let str_bytes = string.as_bytes();
@@ -143,7 +160,8 @@ pub fn set_local_string(idx: u32, string: String) -> EasyInstructions {
         // store byte
         instructions.push(i32_store_8(0, 0, 0)[0].to_owned());
     }
-
+    
+    instructions.push(Instruction::LocalGet(idx));
     instructions
 }
 
@@ -176,14 +194,17 @@ pub fn get_global(idx: u32) -> EasyInstructions {
     vec![Instruction::GlobalGet(idx)]
 }
 
+/// Set whatever came before to global IDX
 pub fn set_global(idx: u32) -> EasyInstructions {
     vec![Instruction::GlobalSet(idx)]
 }
 
+/// Get a local by idx
 pub fn get_local(idx: u32) -> EasyInstructions {
     vec![Instruction::LocalGet(idx)]
 }
 
+/// Set whatever came before to the following local idx
 pub fn set_local(idx: u32) -> EasyInstructions {
     vec![Instruction::LocalSet(idx)]
 }
@@ -261,6 +282,14 @@ pub fn i32_load_8u(align: u32, offset: u64, memory_index: u32) -> EasyInstructio
     vec![Instruction::I32Load8U(MemArg {
         align,
         offset,
+        memory_index,
+    })]
+}
+
+pub fn i32_load(align: u32, offset: u64, memory_index: u32) -> EasyInstructions {
+    vec![Instruction::I32Load(MemArg {
+        offset,
+        align,
         memory_index,
     })]
 }

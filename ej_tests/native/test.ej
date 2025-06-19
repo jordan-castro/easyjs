@@ -9,6 +9,15 @@ native {
         msg : string = "Hello"
         return msg
     }
+
+    pub fn new_string(message: string): string {
+        return message
+    }
 }
 
-@print(await test())
+dog = "Dude"
+
+@print(await test_string())
+@print(await new_string("World, $dog"))
+@print(await new_string("Even more strings"))
+@print(await test_string())

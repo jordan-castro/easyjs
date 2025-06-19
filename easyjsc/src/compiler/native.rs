@@ -4,11 +4,9 @@ use std::{collections::HashMap, vec};
 
 use crate::{
     emitter::{
-        instruction_generator::EasyInstructions,
-        signatures::{EasyNativeFN, EasyNativeVar, FunctionSignature, create_type_section},
-        utils::{
-            StrongValType, expression_is_ident, get_param_type_by_string, get_val_type_from_strong,
-        },
+        builtins::{ALLOCATE_STRING_IDX, STORE_STRING_LENGTH_IDX, STR_GET_LEN_IDX, STR_STORE_BYTE_IDX}, instruction_generator::{set_local_string, EasyInstructions}, signatures::{create_type_section, EasyNativeFN, EasyNativeVar, FunctionSignature}, strings::{allocate_string, native_str_get_len, native_str_store_byte, store_string_length}, utils::{
+            expression_is_ident, get_param_type_by_string, get_val_type_from_strong, StrongValType
+        }
     },
     errors::{
         native_can_not_compile_raw_expression, native_can_not_get_value_from_expression,
@@ -19,7 +17,7 @@ use crate::{
     lexer::token::Token,
     parser::ast::{Expression, Statement},
 };
-use wasm_encoder::{ConstExpr, Function, Instruction, ValType};
+use wasm_encoder::{ConstExpr, ExportKind, Function, FunctionSection, GlobalType, Instruction, MemorySection, MemoryType, Module, TypeSection, ValType};
 
 /// easyjs native is a bare bones language feature. Think of it as C for the web.
 /// To use easyjs native features, wrap your easyjs code in a native block like so:
@@ -72,7 +70,21 @@ pub fn compile_native(stmts: &Vec<Statement>) -> Result<Vec<u8>, String> {
     // Setup context
     let mut ctx = NativeContext::new();
 
+    // Builtin functions
+    let mut builtin_fns = vec![
+        allocate_string(),
+        store_string_length(),
+        native_str_store_byte(),
+        native_str_get_len()
+    ];
+    // add to native context.
+    ctx.functions.append(&mut builtin_fns);
+    // update function_idx
+    ctx.next_fn_idx = ctx.functions.len() as u32;
+
     for stmt in stmts {
+        // At the start of each statement we are global
+        ctx.is_currently_global = true;
         match stmt {
             Statement::ExportStatement(_, stmt) => {
                 ctx.compile_statement(stmt, true);
@@ -93,11 +105,12 @@ pub fn compile_native(stmts: &Vec<Statement>) -> Result<Vec<u8>, String> {
     // Setup WASM modules
     let mut module = wasm_encoder::Module::new();
 
-    // Type Section (Defines function signatures)
-    let fn_signatures = ctx.functions.iter().map(|f| f.signature.clone()).collect();
     // create function section here to add types correctly.
     let mut function_section = wasm_encoder::FunctionSection::new();
-    module.section(&create_type_section(fn_signatures, &mut function_section));
+    // Type Section (Defines function signatures)
+    let fn_signatures = ctx.functions.iter().map(|f| f.signature.clone()).collect();
+    let mut type_section = create_type_section(fn_signatures, &mut function_section);
+    module.section(&type_section);
 
     // Import Section (Imports from the host environment)
 
@@ -107,9 +120,24 @@ pub fn compile_native(stmts: &Vec<Statement>) -> Result<Vec<u8>, String> {
     // Table Section (For indirect function calls)
 
     // Memory Section (Defines memory for the module)
+    let mut memory_section = wasm_encoder::MemorySection::new();
+    memory_section.memory(MemoryType {
+        minimum: 1,
+        maximum: None,
+        memory64: false,
+        shared: false,
+        page_size_log2: None,
+    });
+    module.section(&memory_section);
 
     // Global Section (Declares global variables)
     let mut global_section = wasm_encoder::GlobalSection::new();
+    // TODO: dynamic global setting
+    global_section.global(GlobalType {
+        mutable: true,
+        shared: false,
+        val_type: ValType::I32
+    }, &ConstExpr::i32_const(0));
     // for var in ctx.variable_scope[0].iter() {
     //     let mut global = wasm_encoder::
     // }
@@ -119,9 +147,11 @@ pub fn compile_native(stmts: &Vec<Statement>) -> Result<Vec<u8>, String> {
     let mut export_section = wasm_encoder::ExportSection::new();
     for fun in ctx.functions.iter() {
         if fun.is_public {
+            println!("exporting: {}", fun.name);
             export_section.export(&fun.name, wasm_encoder::ExportKind::Func, fun.idx as u32);
         }
     }
+    export_section.export("memory", ExportKind::Memory, 0);
     module.section(&export_section);
 
     // Start Section (Defines an optional function to run at startup)
@@ -131,12 +161,18 @@ pub fn compile_native(stmts: &Vec<Statement>) -> Result<Vec<u8>, String> {
     // Code Section (Contains function bodies)
     let mut code_section = wasm_encoder::CodeSection::new();
     for fun in ctx.functions.iter_mut() {
-        for instruction in ctx.instructions.get(&fun.idx).unwrap() {
-            fun.function.instruction(instruction);
-        }
+        println!("idx: {}, name: {}", fun.idx, fun.name);
+        // NativeContext.functions do not hold instructions.
+        if let Some(instructions) = ctx.instructions.get(&fun.idx) {
+            for instruction in instructions {
+                fun.function.instruction(instruction);
+            }
+        } // but builtin functions DO!
         code_section.function(&fun.function);
     }
 
+    println!("code_stcion: {}", code_section.len());
+    println!("function section: {}", function_section.len());
     module.section(&code_section);
 
     // Data Section (For initializing memory)
@@ -232,6 +268,7 @@ impl NativeContext {
                 }
             }
             Statement::BlockStatement(_, stmts) => {
+                self.is_currently_global = false;
                 for stmt in stmts.as_ref() {
                     self.compile_statement(stmt, is_pub);
                 }
@@ -275,8 +312,12 @@ impl NativeContext {
                 is_mut,
             });
 
+            // Instance the instructions
+            let mut value_instructions = self.compile_expression(value);
+
             // add to instructions
             if let Some(current_fn_ins) = self.instructions.get_mut(&self.next_fn_idx) {
+                current_fn_ins.append(&mut value_instructions);
                 current_fn_ins.push(Instruction::LocalSet(self.next_var_idx));
             } else {
                 panic!("Not sure what is supposed to happen here...");
@@ -471,6 +512,10 @@ impl NativeContext {
 
                 result
             }
+            Expression::StringLiteral(_, literal) => {
+                // When we have a string literal we need to allocate it
+                set_local_string(self.next_var_idx, literal.to_owned())
+            }
             _ => {
                 vec![]
             }
@@ -595,6 +640,7 @@ impl NativeContext {
             Expression::FunctionLiteral(_, name, _, _, _) => {
                 self.compile_raw_expression(name.as_ref())
             }
+            Expression::StringLiteral(_, literal) => literal.to_owned(),
             _ => {
                 // add error
                 self.errors
@@ -655,9 +701,8 @@ impl NativeContext {
                     self.get_val_type_from_expression(val_type.clone().unwrap().as_ref())
                 }
             }
-            Expression::StringLiteral(tk, literal) => {
-                
-            }
+            Expression::StringLiteral(tk, literal) => StrongValType::String,
+            Expression::IntegerLiteral(tk, literal) => StrongValType::Int,
             _ => {
                 // add error
                 self.errors
