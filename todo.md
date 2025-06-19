@@ -23,12 +23,12 @@
 - v0.4.0 ~~add to path (also update path...)~~
 
 ## WASM
-- v0.4.0 Additions
+- v0.4.x Additions
   - smart memory
     - strings
-      - add 2 strings together
+      - add n strings together
       - [] char at position
-      - toUpper 
+      - toUpper
       - toLower
       - ~~alloc~~
     - arrays
@@ -47,9 +47,9 @@
   - classes
   - structs
 - v0.6.0 
-  - GC (Nah, handle your memory... it's not that hard...)
+  - GC
 - v0.6.0 explore multi threaded wasm.
-- v0.5.0 add shared memory support
+- v0.6.0 add shared memory support
 
 ## Website
 - v0.4.0 Links
