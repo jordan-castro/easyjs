@@ -1,7 +1,7 @@
 use wasm_encoder::{Instruction, MemArg, ValType};
 
 use crate::{
-    emitter::builtins::{ALLOCATE_STRING_IDX, STORE_STRING_LENGTH_IDX},
+    emitter::builtins::{ALLOCATE_STRING_IDX, STORE_STRING_LENGTH_IDX, STR_STORE_BYTE_IDX},
     parser::ast::Expression,
 };
 
@@ -16,6 +16,48 @@ macro_rules! new_function_with_instructions {
         function
     }};
 }
+
+/// Instructions for setting a string byte within a loop
+/// 
+/// `loop_index: u32` This is the idx of the loop index.
+/// 
+/// `position: u32` This is the idx of the position variable. This will be set and get.
+/// 
+/// `from_string_ptr: u32` This is the idx of the ptr of the string from which we are loading the byte.
+/// 
+/// `byte: u32` The idx of the byte variable. This will be get and set.
+/// 
+/// `to_string_ptr: u32` The idx of the ptr of the strign to which we are setting the byte.
+#[macro_export]
+macro_rules! set_string_byte_in_loop {
+    ($loop_index: expr, $position: expr, $from_string_ptr: expr, $byte: expr, $to_string_ptr: expr) => {
+        vec![
+        Instruction::LocalGet($loop_index),
+        Instruction::I32Const(4),
+        Instruction::I32Add,
+        Instruction::LocalSet($position),
+        // Set up for byte
+        Instruction::LocalGet($position),
+        Instruction::LocalGet($from_string_ptr),
+        Instruction::I32Add,
+        // Get byte
+        Instruction::I32Load(MemArg {
+            offset: 0,
+            align: 0,
+            memory_index: 0,
+        }),
+        // set local byte
+        Instruction::LocalSet($byte),
+        // setup for __str_store_byte
+        Instruction::LocalGet($to_string_ptr),
+        Instruction::LocalGet($position),
+        Instruction::LocalGet($byte),
+        // call __str_store_byte
+        Instruction::Call(STR_STORE_BYTE_IDX),
+        ]
+    };
+} 
+
 
 pub type EasyInstructions = Vec<Instruction<'static>>;
 
@@ -160,7 +202,7 @@ pub fn set_local_string(idx: u32, string: String) -> EasyInstructions {
         // store byte
         instructions.push(i32_store_8(0, 0, 0)[0].to_owned());
     }
-    
+
     instructions.push(Instruction::LocalGet(idx));
     instructions
 }

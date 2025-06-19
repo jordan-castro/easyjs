@@ -1,39 +1,43 @@
-// This example runs in the browser.
+import 'std'
 
 native {
-    pub fn testing_setting_string(): string {
-        test : string = "Hello world"
-        return test
-    }
-    pub fn test_add(x:int, y:int): int {
-        return x + y
+    pub fn test_string():string {
+        msg : string = "Hello"
+        return msg
     }
 
-//    pub fn test_add_multiple(x:int,y:int,z:int):int {
-//        return x + y + z
-//    }
-
-    pub fn test_r_string(name: string):string {
-        return name
+    pub fn test_return_literal():string {
+        return "Literal return"
     }
 
-    pub fn add_parens(): int {
-        return 1 + 1
+    pub fn new_string(message: string): string {
+        return message
     }
 
-    pub fn add_string_variables():string {
-        hello : string = "Hello"
-        world : string = " World"
-        hello_world : string =  hello + world
-        return hello_world
+    pub fn concat_strings_test(string1: string, string2: string):string {
+        return __str_concat(string1, string2)
     }
 
-//    pub fn add_string_literals():string {
-//        return "hello" + " world"
-//    }
+    pub fn test_concat_within():string {
+        this_is_a := "This is a "
+        test := "test"
+        return this_is_a + test
+    }
+
+    pub fn test_literal_concat():string {
+        return "Literal " + "concat " + "dude"
+    }
 }
 
-console.log(await testing_setting_string())
-console.log(await test_add(1,2))
-console.log(await test_r_string("jordan"))
-console.log(await add_strings())
+javascript{
+    const assert = require('assert').strict;
+}
+
+assert.strictEqual(test_string(), "Hello")
+assert.strictEqual(test_return_literal(), "Literal return")
+assert.strictEqual(new_string("New"), "New")
+assert.strictEqual(concat_strings_test("Concat ", "strings"), "Concat strings")
+assert.strictEqual(test_concat_within(), "This is a test")
+assert.strictEqual(test_literal_concat(), "Literal concat dude")
+
+@print('all tests passed')

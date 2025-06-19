@@ -4,9 +4,19 @@ use std::{collections::HashMap, vec};
 
 use crate::{
     emitter::{
-        builtins::{ALLOCATE_STRING_IDX, STORE_STRING_LENGTH_IDX, STR_GET_LEN_IDX, STR_STORE_BYTE_IDX}, instruction_generator::{set_local_string, EasyInstructions}, signatures::{create_type_section, EasyNativeFN, EasyNativeVar, FunctionSignature}, strings::{allocate_string, native_str_get_len, native_str_store_byte, store_string_length}, utils::{
-            expression_is_ident, get_param_type_by_string, get_val_type_from_strong, StrongValType
-        }
+        builtins::{
+            ALLOCATE_STRING_IDX, STORE_STRING_LENGTH_IDX, STR_CONCAT_IDX, STR_GET_LEN_IDX,
+            STR_STORE_BYTE_IDX,
+        },
+        instruction_generator::{EasyInstructions, set_local_string},
+        signatures::{EasyNativeFN, EasyNativeVar, FunctionSignature, create_type_section},
+        strings::{
+            allocate_string, native_str_cocat, native_str_get_len, native_str_store_byte,
+            store_string_length,
+        },
+        utils::{
+            StrongValType, expression_is_ident, get_param_type_by_string, get_val_type_from_strong,
+        },
     },
     errors::{
         native_can_not_compile_raw_expression, native_can_not_get_value_from_expression,
@@ -17,7 +27,10 @@ use crate::{
     lexer::token::Token,
     parser::ast::{Expression, Statement},
 };
-use wasm_encoder::{ConstExpr, ExportKind, Function, FunctionSection, GlobalType, Instruction, MemorySection, MemoryType, Module, TypeSection, ValType};
+use wasm_encoder::{
+    ConstExpr, ExportKind, Function, FunctionSection, GlobalType, Instruction, MemorySection,
+    MemoryType, Module, TypeSection, ValType,
+};
 
 /// easyjs native is a bare bones language feature. Think of it as C for the web.
 /// To use easyjs native features, wrap your easyjs code in a native block like so:
@@ -72,10 +85,12 @@ pub fn compile_native(stmts: &Vec<Statement>) -> Result<Vec<u8>, String> {
 
     // Builtin functions
     let mut builtin_fns = vec![
+        // STRING METHODS
         allocate_string(),
         store_string_length(),
         native_str_store_byte(),
-        native_str_get_len()
+        native_str_get_len(),
+        native_str_cocat(),
     ];
     // add to native context.
     ctx.functions.append(&mut builtin_fns);
@@ -133,11 +148,14 @@ pub fn compile_native(stmts: &Vec<Statement>) -> Result<Vec<u8>, String> {
     // Global Section (Declares global variables)
     let mut global_section = wasm_encoder::GlobalSection::new();
     // TODO: dynamic global setting
-    global_section.global(GlobalType {
-        mutable: true,
-        shared: false,
-        val_type: ValType::I32
-    }, &ConstExpr::i32_const(0));
+    global_section.global(
+        GlobalType {
+            mutable: true,
+            shared: false,
+            val_type: ValType::I32,
+        },
+        &ConstExpr::i32_const(0),
+    );
     // for var in ctx.variable_scope[0].iter() {
     //     let mut global = wasm_encoder::
     // }
@@ -147,7 +165,6 @@ pub fn compile_native(stmts: &Vec<Statement>) -> Result<Vec<u8>, String> {
     let mut export_section = wasm_encoder::ExportSection::new();
     for fun in ctx.functions.iter() {
         if fun.is_public {
-            println!("exporting: {}", fun.name);
             export_section.export(&fun.name, wasm_encoder::ExportKind::Func, fun.idx as u32);
         }
     }
@@ -161,7 +178,6 @@ pub fn compile_native(stmts: &Vec<Statement>) -> Result<Vec<u8>, String> {
     // Code Section (Contains function bodies)
     let mut code_section = wasm_encoder::CodeSection::new();
     for fun in ctx.functions.iter_mut() {
-        println!("idx: {}, name: {}", fun.idx, fun.name);
         // NativeContext.functions do not hold instructions.
         if let Some(instructions) = ctx.instructions.get(&fun.idx) {
             for instruction in instructions {
@@ -171,8 +187,6 @@ pub fn compile_native(stmts: &Vec<Statement>) -> Result<Vec<u8>, String> {
         code_section.function(&fun.function);
     }
 
-    println!("code_stcion: {}", code_section.len());
-    println!("function section: {}", function_section.len());
     module.section(&code_section);
 
     // Data Section (For initializing memory)
@@ -241,6 +255,7 @@ impl NativeContext {
     /// Pop current variable scope
     fn pop_scope(&mut self) {
         self.variable_scope.pop();
+        self.next_var_idx = 0;
     }
 
     /// Compile a native statement.
@@ -410,6 +425,7 @@ impl NativeContext {
                     (StrongValType::Int, StrongValType::Int) => "int",
                     (StrongValType::Int, StrongValType::Float) => "f32",
                     (StrongValType::Float, StrongValType::Int) => "f32",
+                    (StrongValType::String, StrongValType::String) => "string",
                     (_, _) => {
                         self.errors.push(native_unsupported_operation(
                             expr.get_token(),
@@ -429,6 +445,7 @@ impl NativeContext {
                         match instruction_type {
                             "int" => result.push(Instruction::I32Add),
                             "f32" => result.push(Instruction::F32Add),
+                            "string" => result.push(Instruction::Call(STR_CONCAT_IDX)),
                             _ => {}
                         }
                         result
@@ -512,9 +529,29 @@ impl NativeContext {
 
                 result
             }
+            Expression::DotExpression(tk, left, right) => {
+                let mut instructions = vec![];
+
+                // compile left side
+                instructions.append(&mut self.compile_expression(left.as_ref()));
+                // compile right side.
+                instructions.append(&mut self.compile_expression(right.as_ref()));
+
+                instructions
+            }
             Expression::StringLiteral(_, literal) => {
-                // When we have a string literal we need to allocate it
-                set_local_string(self.next_var_idx, literal.to_owned())
+                // add to the variable scope
+                self.variable_scope.get_mut(1).unwrap().push(EasyNativeVar {
+                    name: format!("{}{}", literal, self.next_var_idx),
+                    idx: self.next_var_idx,
+                    is_global: false,
+                    value: ConstExpr::empty(),
+                    val_type: StrongValType::String,
+                    is_mut: true,
+                });
+                // update idx
+                self.next_var_idx += 1;
+                set_local_string(self.next_var_idx - 1, literal.to_owned())
             }
             _ => {
                 vec![]

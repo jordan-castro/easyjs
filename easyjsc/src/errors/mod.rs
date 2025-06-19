@@ -1,11 +1,11 @@
 use crate::lexer::token::Token;
 
 fn make_error(token: &Token, error_msg: &str) -> String {
-    format!("File: {} at line: {} and col: {}. ERROR: {}", token.file_name, token.line_number, token.col_number, error_msg)
+    format!("File: {} at line: {} and col: {}. ERROR {}", token.file_name, token.line_number, token.col_number, error_msg)
 }
 
 fn make_native_error(token: &Token, error_msg: &str) -> String {
-    make_error(token, format!("Native {}", error_msg).as_str())
+    make_error(token, format!("Native: {}", error_msg).as_str())
 }
 
 pub fn native_can_not_compile_raw_expression(token: &Token) -> String {
