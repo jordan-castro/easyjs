@@ -2,10 +2,12 @@ use wasm_encoder::{BlockType, Function, Instruction, MemArg, TypeSection, ValTyp
 
 use crate::{
     emitter::builtins::{
-        ALLOCATE_STRING_IDX, ALLOCATE_STRING_NAME, GLOBAL_STRING_IDX, STORE_STRING_LENGTH_IDX, STORE_STRING_LENGTH_NAME, STR_CONCAT_IDX, STR_CONCAT_NAME, STR_GET_LEN_IDX, STR_GET_LEN_NAME, STR_STORE_BYTE_IDX, STR_STORE_BYTE_NAME
+        ALLOCATE_STRING_IDX, ALLOCATE_STRING_NAME, GLOBAL_STRING_IDX, STORE_STRING_LENGTH_IDX,
+        STORE_STRING_LENGTH_NAME, STR_CHAR_CODE_AT_IDX, STR_CHAR_CODE_AT_NAME, STR_CONCAT_IDX,
+        STR_CONCAT_NAME, STR_GET_LEN_IDX, STR_GET_LEN_NAME, STR_INDEX_IDX, STR_INDEX_NAME,
+        STR_STORE_BYTE_IDX, STR_STORE_BYTE_NAME,
     },
-    new_function_with_instructions,
-    set_string_byte_in_loop
+    new_function_with_instructions, set_string_byte_in_loop,
 };
 
 use super::{
@@ -187,7 +189,7 @@ pub fn native_str_new() -> EasyNativeFN {
 }
 
 /// Generate a native function for concating 2 strings together.
-pub fn native_str_cocat() -> EasyNativeFN {
+pub fn native_str_concat() -> EasyNativeFN {
     // params
     let n1: u32 = 0; // string ptr 1
     let n2: u32 = 1; // string ptr 2
@@ -205,11 +207,11 @@ pub fn native_str_cocat() -> EasyNativeFN {
     /**
      * n1_length = len(n1)
      * n2_length = len(n2)
-     * 
+     *
      * n_length = i32_add(n1_length, n2_length)
-     * 
+     *
      * ptr = alloc(n_length)
-     * 
+     *
      * for i in n_length
      *      if i < n1_length
      *          position = 4 + i
@@ -220,9 +222,8 @@ pub fn native_str_cocat() -> EasyNativeFN {
      *          byte_position = position - n1_length
      *          byte = i_load(n2 + byte_position)
      *          __str_store_byte(ptr, position, byte)
-     * return ptr 
+     * return ptr
      */
-
     let locals = vec![(7, ValType::I32)];
 
     let mut instructions = vec![];
@@ -254,85 +255,82 @@ pub fn native_str_cocat() -> EasyNativeFN {
         Instruction::LocalGet(n_length),
         Instruction::Call(STORE_STRING_LENGTH_IDX),
         // Add bytes
-        // set loop_index to 0
+        // set loop_index to -1
         Instruction::I32Const(-1),
         Instruction::LocalSet(loop_index),
         // start loop
         Instruction::Loop(BlockType::Empty),
-            // add to index
-            Instruction::LocalGet(loop_index),
-            Instruction::I32Const(1),
-            Instruction::I32Add,
-            Instruction::LocalSet(loop_index),
-
-            // Check which ptr we are loading
-            Instruction::LocalGet(loop_index), // i < n1_length 
-            Instruction::LocalGet(n1_length),
-            Instruction::I32LtS,
-            // If block for loading from n1 ptr
-            Instruction::If(BlockType::Empty),
-                // setup position
-                Instruction::LocalGet(loop_index),
-                Instruction::I32Const(4),
-                Instruction::I32Add,
-                Instruction::LocalSet(position),
-                // Set up for byte
-                Instruction::LocalGet(position),
-                Instruction::LocalGet(n1),
-                Instruction::I32Add,
-                // Get byte
-                Instruction::I32Load(MemArg {
-                    offset: 0,
-                    align: 0,
-                    memory_index: 0,
-                }),
-                // set local byte
-                Instruction::LocalSet(byte),
-                // setup for __str_store_byte
-                Instruction::LocalGet(ptr),
-                Instruction::LocalGet(position),
-                Instruction::LocalGet(byte),
-                // call __str_store_byte
-                Instruction::Call(STR_STORE_BYTE_IDX),
-            Instruction::Else,
-                // we are loading n2 ptr
-                // setup position
-                Instruction::LocalGet(loop_index),
-                Instruction::I32Const(4),
-                Instruction::I32Add,
-                Instruction::LocalSet(position),
-                // Set up for byte
-                Instruction::LocalGet(position),
-                Instruction::LocalGet(n1_length),
-                // subtract n1_length to get correct index in n2
-                Instruction::I32Sub,
-                Instruction::LocalGet(n2),
-                Instruction::I32Add,
-                // Get byte
-                Instruction::I32Load(MemArg {
-                    offset: 0,
-                    align: 0,
-                    memory_index: 0,
-                }),
-                // set local byte
-                Instruction::LocalSet(byte),
-                // setup for __str_store_byte
-                Instruction::LocalGet(ptr),
-                Instruction::LocalGet(position),
-                Instruction::LocalGet(byte),
-                // call __str_store_byte
-                Instruction::Call(STR_STORE_BYTE_IDX),
-            Instruction::End, // close if/else stmt
-
-            // check size
-            Instruction::LocalGet(loop_index),
-            Instruction::LocalGet(n_length),
-            Instruction::I32LtS,
-            Instruction::BrIf(0),
-
+        // add to index
+        Instruction::LocalGet(loop_index),
+        Instruction::I32Const(1),
+        Instruction::I32Add,
+        Instruction::LocalSet(loop_index),
+        // Check which ptr we are loading
+        Instruction::LocalGet(loop_index), // i < n1_length
+        Instruction::LocalGet(n1_length),
+        Instruction::I32LtS,
+        // If block for loading from n1 ptr
+        Instruction::If(BlockType::Empty),
+        // setup position
+        Instruction::LocalGet(loop_index),
+        Instruction::I32Const(4),
+        Instruction::I32Add,
+        Instruction::LocalSet(position),
+        // Set up for byte
+        Instruction::LocalGet(position),
+        Instruction::LocalGet(n1),
+        Instruction::I32Add,
+        // Get byte
+        Instruction::I32Load(MemArg {
+            offset: 0,
+            align: 0,
+            memory_index: 0,
+        }),
+        // set local byte
+        Instruction::LocalSet(byte),
+        // setup for __str_store_byte
+        Instruction::LocalGet(ptr),
+        Instruction::LocalGet(position),
+        Instruction::LocalGet(byte),
+        // call __str_store_byte
+        Instruction::Call(STR_STORE_BYTE_IDX),
+        Instruction::Else,
+        // we are loading n2 ptr
+        // setup position
+        Instruction::LocalGet(loop_index),
+        Instruction::I32Const(4),
+        Instruction::I32Add,
+        Instruction::LocalSet(position),
+        // Set up for byte
+        Instruction::LocalGet(position),
+        Instruction::LocalGet(n1_length),
+        // subtract n1_length to get correct index in n2
+        Instruction::I32Sub,
+        Instruction::LocalGet(n2),
+        Instruction::I32Add,
+        // Get byte
+        Instruction::I32Load(MemArg {
+            offset: 0,
+            align: 0,
+            memory_index: 0,
+        }),
+        // set local byte
+        Instruction::LocalSet(byte),
+        // setup for __str_store_byte
+        Instruction::LocalGet(ptr),
+        Instruction::LocalGet(position),
+        Instruction::LocalGet(byte),
+        // call __str_store_byte
+        Instruction::Call(STR_STORE_BYTE_IDX),
+        Instruction::End, // close if/else stmt
+        // check size
+        Instruction::LocalGet(loop_index),
+        Instruction::LocalGet(n_length),
+        Instruction::I32LtS,
+        Instruction::BrIf(0),
         Instruction::End,
         Instruction::LocalGet(ptr),
-        Instruction::End // function
+        Instruction::End, // function
     ]);
 
     let function = new_function_with_instructions!(locals, instructions);
@@ -347,6 +345,149 @@ pub fn native_str_cocat() -> EasyNativeFN {
         function,
         name: STR_CONCAT_NAME.to_string(),
         idx: STR_CONCAT_IDX,
+        is_public: true,
+    }
+}
+
+/// Generate a command
+pub fn native_str_index() -> EasyNativeFN {
+    // params
+    let ptr: u32 = 0;
+    let index: u32 = 1;
+
+    // locals
+    let n_ptr: u32 = 2;
+    let n_byte: u32 = 3;
+    let byte_position: u32 = 4;
+
+    // locals
+    let locals = vec![(3, ValType::I32)];
+
+    /**
+     * pseudo code
+     * 
+     * // check index
+     * if index < 0 {
+     *      byte_position = __str_get_len(ptr) + index
+     * } else {
+     *      byte_position = index
+     * }
+     * 
+     * byte_position = ptr + 4
+     * 
+     * i32_load(byte_position)
+     * 
+     * // the rest which should work fine...
+     */
+
+    let instructions = vec![
+        // set byte pos to 0
+        // // get ptr
+        // Instruction::LocalGet(ptr),
+        // // add 4
+        // Instruction::I32Const(4),
+        // Instruction::I32Add,
+        // // Set byte position
+        // Instruction::LocalSet(byte_position),
+        
+        // Check if index < 0
+        Instruction::LocalGet(index),
+        Instruction::I32Const(0),
+        Instruction::I32LtS,
+        Instruction::If(BlockType::Empty),
+
+        // update byte position based on length + (-index)
+        Instruction::LocalGet(ptr),
+        Instruction::Call(STR_GET_LEN_IDX),
+        Instruction::LocalGet(index),
+        Instruction::I32Add,
+        Instruction::LocalSet(byte_position),
+
+        Instruction::Else,
+        Instruction::LocalGet(index),
+        Instruction::LocalSet(byte_position),
+        
+        Instruction::End,
+        Instruction::LocalGet(byte_position),
+        Instruction::LocalGet(ptr),
+        Instruction::I32Add,
+        Instruction::I32Const(4),
+        Instruction::I32Add,
+        // Instruction::I32Add,
+        // load memory
+        Instruction::I32Load(MemArg {
+            offset: 0,
+            align: 0,
+            memory_index: 0,
+        }),
+        // set it to a local byte
+        Instruction::LocalSet(n_byte),
+        // size of new string
+        Instruction::I32Const(1),
+        // allocate
+        Instruction::Call(ALLOCATE_STRING_IDX),
+        Instruction::LocalSet(n_ptr),
+        // store length
+        Instruction::LocalGet(n_ptr),
+        Instruction::I32Const(1),
+        Instruction::Call(STORE_STRING_LENGTH_IDX),
+        // store byte
+        Instruction::LocalGet(n_ptr),
+        Instruction::I32Const(4),
+        Instruction::LocalGet(n_byte),
+        Instruction::Call(STR_STORE_BYTE_IDX),
+        // return pointer
+        Instruction::LocalGet(n_ptr),
+        // Create a new
+        Instruction::End,
+    ];
+
+    EasyNativeFN {
+        signature: FunctionSignature {
+            params: vec![ValType::I32, ValType::I32],
+            results: vec![ValType::I32],
+            param_strong: vec![StrongValType::String, StrongValType::Int],
+            results_strong: vec![StrongValType::String],
+        },
+        function: new_function_with_instructions!(locals, instructions),
+        name: STR_INDEX_NAME.to_string(),
+        idx: STR_INDEX_IDX,
+        is_public: true,
+    }
+}
+
+/// Generate a Native function for getting the charCodeAt on a string
+pub fn native_str_char_code_at() -> EasyNativeFN {
+    let ptr: u32 = 0;
+    let index: u32 = 1;
+
+    let locals = vec![];
+
+    let instructions = vec![
+        // i32load(ptr + offset i.e. 4 + index)
+        Instruction::LocalGet(ptr),
+        Instruction::I32Const(4),
+        Instruction::I32Add,
+        Instruction::LocalGet(index),
+        Instruction::I32Add,
+        Instruction::I32Load8U(MemArg {
+            offset: 0,
+            align: 0,
+            memory_index: 0,
+        }),
+        Instruction::End,
+    ];
+
+    EasyNativeFN {
+        signature: FunctionSignature {
+            params: vec![ValType::I32, ValType::I32],
+            results: vec![ValType::I32],
+            param_strong: vec![StrongValType::String, StrongValType::Int],
+            results_strong: vec![StrongValType::Int],
+        },
+        function: new_function_with_instructions!(locals, instructions),
+        name: STR_CHAR_CODE_AT_NAME.to_string(),
+        idx: STR_CHAR_CODE_AT_IDX,
         is_public: true,
     }
 }

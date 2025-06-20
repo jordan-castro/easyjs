@@ -27,6 +27,28 @@ native {
     pub fn test_literal_concat():string {
         return "Literal " + "concat " + "dude"
     }
+
+    pub fn test_index_expression():string {
+        str = "This"
+        return str[0] // should be T
+    }
+
+    pub fn test_char_code_at(str:string, index:int):int {
+        return __str_char_code_at(str, index)
+    }
+
+    pub fn test_index_expression2():string {
+        return "Thist"[4]
+    }
+
+    pub fn test_index_expression_negative():string {
+        t := "Test"
+        t2 := "Yyeo"
+        t_char := t[-1]
+        t2_char := t2[-2]
+        return t_char + t2_char + "What"[0]
+    }
+
 }
 
 javascript{
@@ -39,5 +61,12 @@ assert.strictEqual(new_string("New"), "New")
 assert.strictEqual(concat_strings_test("Concat ", "strings"), "Concat strings")
 assert.strictEqual(test_concat_within(), "This is a test")
 assert.strictEqual(test_literal_concat(), "Literal concat dude")
+assert.strictEqual(test_index_expression(), "T")
+
+string = "CharCodeAt"
+assert.strictEqual(test_char_code_at(string, 0), string.charCodeAt(0))
+
+assert.strictEqual(test_index_expression2(), "t")
+assert.strictEqual(test_index_expression_negative(), "teW")
 
 @print('all tests passed')

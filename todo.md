@@ -26,11 +26,16 @@
 - v0.4.x Additions
   - smart memory
     - strings
-      - add n strings together
-      - [] char at position
-      - toUpper
-      - toLower
+      - ~~add n strings together~~
+      - ~~char_at~~
+      - ~~char_code_at~~
+      - slice
+      - substring
+      - ~~[]~~
+      - to_upper_case
+      - to_lower_case
       - ~~alloc~~
+      - ~~negative indexing~~
     - arrays
       - push
       - append
@@ -50,6 +55,7 @@
   - GC
 - v0.6.0 explore multi threaded wasm.
 - v0.6.0 add shared memory support
+- v0.4.x Generate WAT for debugging purposes.
 
 ## Website
 - v0.4.0 Links

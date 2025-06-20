@@ -13,3 +13,5 @@ target/
 /index.html
 
 bin/
+
+/easyjs.wat

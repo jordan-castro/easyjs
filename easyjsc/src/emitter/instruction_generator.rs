@@ -64,7 +64,6 @@ pub type EasyInstructions = Vec<Instruction<'static>>;
 /// Is a function a core wasm function?
 pub fn is_wasm_core(fn_name: &str) -> bool {
     match fn_name {
-        "__new_ptr" => true,
         "__i32_store" => true,
         "__i32_store_16" => true,
         "__i32_store_8" => true,
@@ -79,13 +78,6 @@ pub fn is_wasm_core(fn_name: &str) -> bool {
 /// Call the core wasm function.
 pub fn call_instruction(name: &str, arguments: &Vec<Expression>) -> EasyInstructions {
     match name {
-        "__new_ptr" => {
-            let at = match arguments[0] {
-                Expression::IntegerLiteral(_, at) => at as i32,
-                _ => panic!("Expected number as argument for __new_ptr"),
-            };
-            new_ptr(at)
-        }
         // i32_store(align: u32, offset: u64, memory_index: u32)
         "__i32_store" => {
             let mut args = vec![];
@@ -163,10 +155,6 @@ pub fn call_instruction(name: &str, arguments: &Vec<Expression>) -> EasyInstruct
             vec![Instruction::Unreachable]
         }
     }
-}
-
-pub fn new_ptr(at: i32) -> EasyInstructions {
-    vec![Instruction::I32Const(at)]
 }
 
 /// Instructions for setting strings localy (i.e. AOT)
