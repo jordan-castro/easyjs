@@ -1,30 +1,32 @@
 // Native compiler. Used within transpiler.rs
 
-use std::{collections::HashMap, vec};
+use std::{collections::HashMap, string, vec};
 
 use crate::{
     emitter::{
         builtins::{
             ALLOCATE_STRING_IDX, STORE_STRING_LENGTH_IDX, STR_CONCAT_IDX, STR_GET_LEN_IDX,
-            STR_STORE_BYTE_IDX,
+            STR_INDEX_IDX, STR_STORE_BYTE_IDX,
         },
-        instruction_generator::{EasyInstructions, set_local_string},
-        signatures::{EasyNativeFN, EasyNativeVar, FunctionSignature, create_type_section},
+        instruction_generator::{set_local_string, EasyInstructions},
+        signatures::{create_type_section, EasyNativeFN, EasyNativeVar, FunctionSignature},
         strings::{
-            allocate_string, native_str_cocat, native_str_get_len, native_str_store_byte,
-            store_string_length,
+            allocate_string, native_str_char_code_at, native_str_concat, native_str_get_len,
+            native_str_index, native_str_store_byte, store_string_length,
         },
         utils::{
-            StrongValType, expression_is_ident, get_param_type_by_string, get_val_type_from_strong,
+            expression_is_ident, get_param_type_by_string, get_val_type_from_strong, StrongValType
         },
     },
     errors::{
         native_can_not_compile_raw_expression, native_can_not_get_value_from_expression,
         native_could_not_parse_function, native_error_compiling_identifier,
-        native_unsupported_expression_as_value_for_global_variable, native_unsupported_operation,
-        native_unsupported_operator, native_unsupported_statement,
+        native_unsupported_expression_as_value_for_global_variable,
+        native_unsupported_index_expression, native_unsupported_operation,
+        native_unsupported_operator, native_unsupported_prefix_expression,
+        native_unsupported_statement,
     },
-    lexer::token::Token,
+    lexer::token::{self, Token},
     parser::ast::{Expression, Statement},
 };
 use wasm_encoder::{
@@ -90,7 +92,9 @@ pub fn compile_native(stmts: &Vec<Statement>) -> Result<Vec<u8>, String> {
         store_string_length(),
         native_str_store_byte(),
         native_str_get_len(),
-        native_str_cocat(),
+        native_str_concat(),
+        native_str_index(),
+        native_str_char_code_at(),
     ];
     // add to native context.
     ctx.functions.append(&mut builtin_fns);
@@ -304,7 +308,7 @@ impl NativeContext {
         // get variable name as raw expression
         let var_name = self.compile_raw_expression(name);
         let strong_val_type = self.get_val_type_from_expression(&value);
-
+        
         if self.is_currently_global {
             let parsed = self.compile_global_variable_stmt(value);
             // add to variable
@@ -541,17 +545,71 @@ impl NativeContext {
             }
             Expression::StringLiteral(_, literal) => {
                 // add to the variable scope
+                let string_var_idx = self.next_var_idx;
+                // update idx
+                self.next_var_idx += 1;
                 self.variable_scope.get_mut(1).unwrap().push(EasyNativeVar {
                     name: format!("{}{}", literal, self.next_var_idx),
-                    idx: self.next_var_idx,
+                    idx: string_var_idx,
                     is_global: false,
                     value: ConstExpr::empty(),
                     val_type: StrongValType::String,
                     is_mut: true,
                 });
-                // update idx
-                self.next_var_idx += 1;
-                set_local_string(self.next_var_idx - 1, literal.to_owned())
+                set_local_string(string_var_idx, literal.to_owned())
+            }
+            Expression::IndexExpression(tk, left, index) => {
+                let mut instructions = vec![];
+
+                // get left type
+                let left_type = self.get_val_type_from_expression(left.as_ref());
+                // get index type
+                let index_type = self.get_val_type_from_expression(index.as_ref());
+
+                // compile left side
+                instructions.append(&mut self.compile_expression(left));
+
+                match left_type {
+                    StrongValType::String => {
+                        instructions.append(&mut self.compile_expression(index));
+                        match index_type {
+                            StrongValType::Int => {
+                                // Call __str_index
+                                instructions.push(Instruction::Call(STR_INDEX_IDX));
+                            }
+                            _ => self
+                                .errors
+                                .push(native_unsupported_index_expression(index.get_token())),
+                        }
+                    }
+                    _ => self
+                        .errors
+                        .push(native_unsupported_index_expression(left.get_token())),
+                }
+
+                instructions
+            }
+            Expression::PrefixExpression(tk, prefix, right) => {
+                // TODO: this and in get_val_type
+                let mut instructions = vec![];
+
+                // check prefix, it's gonna be eiter a BANG or a MINUS
+                match prefix.as_str() {
+                    // token::BANG => {}
+                    token::MINUS => {
+                        // Multiple the expression by -1 to convert the number into a negative.
+                        instructions.append(&mut self.compile_expression(&right));
+                        instructions.append(&mut vec![
+                            Instruction::I32Const(-1),
+                            Instruction::I32Mul,
+                        ]);
+                    }
+                    _ => self
+                        .errors
+                        .push(native_unsupported_prefix_expression(tk, prefix)),
+                }
+
+                instructions
             }
             _ => {
                 vec![]
@@ -695,6 +753,8 @@ impl NativeContext {
     /// - literals
     /// - function calls (the return type)
     /// - function calls (the arguments with types)
+    /// - prefix expressions
+    /// 
     fn get_val_type_from_expression(&mut self, expr: &Expression) -> StrongValType {
         match expr {
             Expression::Identifier(tk, name) => {
@@ -731,6 +791,7 @@ impl NativeContext {
                 // There is no way to infer the return type of a function (not yet)
                 // TODO: infer return type of function. also in JS
                 if val_type.is_none() {
+
                     self.errors
                         .push(native_can_not_get_value_from_expression(tk));
                     StrongValType::NotSupported
@@ -740,6 +801,12 @@ impl NativeContext {
             }
             Expression::StringLiteral(tk, literal) => StrongValType::String,
             Expression::IntegerLiteral(tk, literal) => StrongValType::Int,
+            Expression::PrefixExpression(tk, prefix, expression) => {
+                self.get_val_type_from_expression(expression)
+            }
+            Expression::IndexExpression(tk, source, index) => {
+                self.get_val_type_from_expression(source)
+            }
             _ => {
                 // add error
                 self.errors

@@ -1,7 +1,7 @@
 use crate::lexer::token::Token;
 
 fn make_error(token: &Token, error_msg: &str) -> String {
-    format!("File: {} at line: {} and col: {}. ERROR {}", token.file_name, token.line_number, token.col_number, error_msg)
+    format!("File: {} at line: {} and col: {}. ERROR {}. Token details: type: {}, literal: {}", token.file_name, token.line_number, token.col_number, error_msg, token.typ, token.literal)
 }
 
 fn make_native_error(token: &Token, error_msg: &str) -> String {
@@ -43,4 +43,13 @@ pub fn native_unsupported_expression_as_value_for_global_variable(token: &Token)
 /// Native ERROR: Unsupported statement
 pub fn native_unsupported_statement(token: &Token) -> String {
     make_native_error(token, "Unsupported statement")
+}
+
+pub fn native_unsupported_index_expression(token: &Token) -> String {
+    make_native_error(token, format!("Unsupported index expression for: {} {}", token.typ, token.literal).as_str())
+}
+
+/// ERROR Native: Unsupported prefix {prefix}.
+pub fn native_unsupported_prefix_expression(token: &Token, prefix: &str) -> String {
+    make_native_error(token, format!("Unsupported prefix {}", prefix).as_str())
 }
