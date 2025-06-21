@@ -2,6 +2,7 @@ use wasm_encoder::{Instruction, MemArg, ValType};
 
 use crate::{
     emitter::builtins::{ALLOCATE_STRING_IDX, STORE_STRING_LENGTH_IDX, STR_STORE_BYTE_IDX},
+    errors::make_native_error,
     parser::ast::Expression,
 };
 
@@ -18,131 +19,148 @@ macro_rules! new_function_with_instructions {
 }
 
 /// Instructions for setting a string byte within a loop
-/// 
+///
 /// `loop_index: u32` This is the idx of the loop index.
-/// 
+///
 /// `position: u32` This is the idx of the position variable. This will be set and get.
-/// 
+///
 /// `from_string_ptr: u32` This is the idx of the ptr of the string from which we are loading the byte.
-/// 
+///
 /// `byte: u32` The idx of the byte variable. This will be get and set.
-/// 
+///
 /// `to_string_ptr: u32` The idx of the ptr of the strign to which we are setting the byte.
 #[macro_export]
 macro_rules! set_string_byte_in_loop {
     ($loop_index: expr, $position: expr, $from_string_ptr: expr, $byte: expr, $to_string_ptr: expr) => {
         vec![
-        Instruction::LocalGet($loop_index),
-        Instruction::I32Const(4),
-        Instruction::I32Add,
-        Instruction::LocalSet($position),
-        // Set up for byte
-        Instruction::LocalGet($position),
-        Instruction::LocalGet($from_string_ptr),
-        Instruction::I32Add,
-        // Get byte
-        Instruction::I32Load(MemArg {
-            offset: 0,
-            align: 0,
-            memory_index: 0,
-        }),
-        // set local byte
-        Instruction::LocalSet($byte),
-        // setup for __str_store_byte
-        Instruction::LocalGet($to_string_ptr),
-        Instruction::LocalGet($position),
-        Instruction::LocalGet($byte),
-        // call __str_store_byte
-        Instruction::Call(STR_STORE_BYTE_IDX),
+            Instruction::LocalGet($loop_index),
+            Instruction::I32Const(4),
+            Instruction::I32Add,
+            Instruction::LocalSet($position),
+            // Set up for byte
+            Instruction::LocalGet($position),
+            Instruction::LocalGet($from_string_ptr),
+            Instruction::I32Add,
+            // Get byte
+            Instruction::I32Load(MemArg {
+                offset: 0,
+                align: 0,
+                memory_index: 0,
+            }),
+            // set local byte
+            Instruction::LocalSet($byte),
+            // setup for __str_store_byte
+            Instruction::LocalGet($to_string_ptr),
+            Instruction::LocalGet($position),
+            Instruction::LocalGet($byte),
+            // call __str_store_byte
+            Instruction::Call(STR_STORE_BYTE_IDX),
         ]
     };
-} 
+}
 
+/// Get arguments from when a wasm_core function is called.
+///
+/// `arguments:&Vec<Expression>` a vector of expressions as arguments
+///
+/// `core_fn_name:&str` the name of the core function.
+///
+/// `error:&str` A possible error message.
+///
+/// `errors:Vec<String>` mutable vector to ad the error to.
+///
+/// returns: `args: Vec<u32>` The generated arguments.
+macro_rules! wasm_core_args {
+    ($arguments:expr, $core_fn_name:expr, $error:expr, $errors:expr) => {{
+        let mut args = vec![];
+        for arg in $arguments {
+            match arg {
+                Expression::IntegerLiteral(_, value) => {
+                    args.push(*value as u32);
+                }
+                _ => $errors.push(make_native_error(arg.get_token(), $error)),
+            }
+        }
+
+        args
+    }};
+}
 
 pub type EasyInstructions = Vec<Instruction<'static>>;
 
 /// Is a function a core wasm function?
 pub fn is_wasm_core(fn_name: &str) -> bool {
     match fn_name {
+        "__local_get" => true,
+        "__local_set" => true,
+        "__global_get" => true,
+        "__global_set" => true,
         "__i32_store" => true,
         "__i32_store_16" => true,
         "__i32_store_8" => true,
-        "__get_local" => true,
-        "__set_local" => true,
-        "__add_i32" => true,
         "__i32_add" => true,
+        "__i32_load" => true,
+        "__i32_load8u" => true,
         _ => false,
     }
 }
 
 /// Call the core wasm function.
-pub fn call_instruction(name: &str, arguments: &Vec<Expression>) -> EasyInstructions {
+pub fn call_wasm_core_function(
+    errors: &mut Vec<String>,
+    name: &str,
+    arguments: &Vec<Expression>,
+) -> EasyInstructions {
     match name {
         // i32_store(align: u32, offset: u64, memory_index: u32)
         "__i32_store" => {
-            let mut args = vec![];
-            for arg in arguments {
-                match arg {
-                    Expression::IntegerLiteral(_, value) => {
-                        args.push(*value);
-                    }
-                    _ => panic!("Expected number as argument for __i32_store"),
-                }
-            }
-
+            let args = wasm_core_args!(
+                arguments,
+                "__i32_store",
+                "Expected number as argument",
+                errors
+            );
             i32_store(args[0] as u32, args[1] as u64, args[2] as u32)
         }
         // i32_store_16(align: u32, offset: u64, memory_index: u32)
         "__i32_store_16" => {
-            let mut args = vec![];
-            for arg in arguments {
-                match arg {
-                    Expression::IntegerLiteral(_, value) => {
-                        args.push(*value);
-                    }
-                    _ => panic!("Expected number as argument for __i32_store_16"),
-                }
-            }
+            let mut args = wasm_core_args!(
+                arguments,
+                "__i32_store_16",
+                "Expected number as argument",
+                errors
+            );
 
             i32_store_16(args[0] as u32, args[1] as u64, args[2] as u32)
         }
         // i32_store_8(align: u32, offset: u64, memory_index: u32)
         "__i32_store_8" => {
-            let mut args = vec![];
-            for arg in arguments {
-                match arg {
-                    Expression::IntegerLiteral(_, value) => {
-                        args.push(*value);
-                    }
-                    _ => panic!("Expected number as argument for __i32_store_8"),
-                }
-            }
+            let mut args = wasm_core_args!(
+                arguments,
+                "__i32_store_8",
+                "Expected number as argument",
+                errors
+            );
 
             i32_store_8(args[0] as u32, args[1] as u64, args[2] as u32)
         }
-        "__get_local" => {
-            let idx = match arguments[0] {
-                Expression::IntegerLiteral(_, idx) => idx as u32,
-                _ => panic!("Expected number as argument for __get_local"),
-            };
-            get_local(idx)
+        "__local_get" => {
+            let mut args = wasm_core_args!(
+                arguments,
+                "__local_get",
+                "Expected number as argument",
+                errors
+            );
+            get_local(args[0] as u32)
         }
-        "__set_local" => {
-            let idx = match arguments[0] {
-                Expression::IntegerLiteral(_, idx) => idx as u32,
-                _ => panic!("Expected number as argument for __set_local"),
-            };
-            set_local(idx)
-        }
-        "__add_i32" => {
-            let numbers = arguments
-                .iter()
-                .map(|arg| match arg {
-                    Expression::IntegerLiteral(_, value) => *value as i32,
-                    _ => panic!("Expected number as argument for __add_i32"),
-                })
-                .collect();
-            add_i32(numbers)
+        "__local_set" => {
+            let mut args = wasm_core_args!(
+                arguments,
+                "__local_set",
+                "Expected number as argument",
+                errors
+            );
+            set_local(args[0] as u32)
         }
         // sometimes basic instructions need to be called
         "__i32_add" => {
@@ -150,6 +168,50 @@ pub fn call_instruction(name: &str, arguments: &Vec<Expression>) -> EasyInstruct
         }
         "__f32_add" => {
             vec![Instruction::F32Add]
+        }
+        "__i32_load" => {
+            let mut args = wasm_core_args!(
+                arguments,
+                "__i32_load",
+                "Expected number as argument",
+                errors
+            );
+            vec![Instruction::I32Load(MemArg {
+                offset: args[0] as u64,
+                align: args[1],
+                memory_index: args[2],
+            })]
+        }
+        "__i32_load8u" => {
+            let mut args = wasm_core_args!(
+                arguments,
+                "__i32_load8u",
+                "Expected number as argument",
+                errors
+            );
+            vec![Instruction::I32Load(MemArg {
+                offset: args[0] as u64,
+                align: args[1],
+                memory_index: args[2],
+            })]
+        }
+        "__global_get" => {
+            let mut args = wasm_core_args!(
+                arguments,
+                "__global_get",
+                "Expected number as argument",
+                errors
+            );
+            vec![Instruction::GlobalGet(args[0])]
+        }
+        "__global_set" => {
+            let mut args = wasm_core_args!(
+                arguments,
+                "__global_set",
+                "Expected number as argument",
+                errors
+            );
+            vec![Instruction::GlobalSet(args[0])]
         }
         _ => {
             vec![Instruction::Unreachable]

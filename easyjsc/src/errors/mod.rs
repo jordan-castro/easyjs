@@ -4,7 +4,7 @@ fn make_error(token: &Token, error_msg: &str) -> String {
     format!("File: {} at line: {} and col: {}. ERROR {}. Token details: type: {}, literal: {}", token.file_name, token.line_number, token.col_number, error_msg, token.typ, token.literal)
 }
 
-fn make_native_error(token: &Token, error_msg: &str) -> String {
+pub fn make_native_error(token: &Token, error_msg: &str) -> String {
     make_error(token, format!("Native: {}", error_msg).as_str())
 }
 
@@ -53,3 +53,11 @@ pub fn native_unsupported_index_expression(token: &Token) -> String {
 pub fn native_unsupported_prefix_expression(token: &Token, prefix: &str) -> String {
     make_native_error(token, format!("Unsupported prefix {}", prefix).as_str())
 }
+
+/// ERROR Native: Unsupported builtin call
+pub fn native_unsupported_builtin_call(token: &Token) -> String {
+    make_native_error(token, "Unsupported builtin call:")
+}
+
+/// ERROR Native: if expressions must go within functions.
+pub fn native_if_expression_must_go_within_functions

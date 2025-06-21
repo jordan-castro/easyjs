@@ -1,0 +1,9 @@
+import "ej_tests/native/TEST_UTILS.ej"
+
+// testing logic if, >, <, >=, <=, =, ==
+
+native {
+    fn test_if():bool {
+        
+    }
+}

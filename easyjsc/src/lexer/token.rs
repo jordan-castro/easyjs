@@ -174,15 +174,8 @@ pub fn lookup_ident(ident: &str) -> &'static str {
         "pub" => PUB,
         "is" => IS,
         "import" => IMPORT,
-        // "var" => VAR,
-        // "use_mod" => BUILTIN,
         "match" => MATCH,
         "with" => WITH,
-        // "int" => INT_32_TYPE,
-        // "BigInt" => INT_64_TYPE,
-        // "float" => FLOAT_32_TYPE,
-        // "BigFloat" => FLOAT_64_TYPE,
-        // "bool" => BOOLEAN_TYPE,
         _ => IDENT, // Default case for unknown identifiers
     }
 }
