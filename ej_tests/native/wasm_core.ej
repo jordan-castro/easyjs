@@ -1,0 +1,24 @@
+// Testing wasm core functions work
+import 'ej_tests/native/TEST_UTILS.ej'
+
+native {
+    pub fn test_local_get(): int {
+        x = 0
+
+        return __local_get(0)
+    }
+    
+    pub fn test_local_set(): int {
+        y = 1
+        
+        100
+        __local_set(0)
+
+        return y
+    }
+}
+
+@assert(test_local_get(), 0)
+@assert(test_local_set(), 100)
+
+@print('all tests passed')

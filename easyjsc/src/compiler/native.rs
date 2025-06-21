@@ -8,19 +8,22 @@ use crate::{
             ALLOCATE_STRING_IDX, STORE_STRING_LENGTH_IDX, STR_CONCAT_IDX, STR_GET_LEN_IDX,
             STR_INDEX_IDX, STR_STORE_BYTE_IDX,
         },
-        instruction_generator::{set_local_string, EasyInstructions},
-        signatures::{create_type_section, EasyNativeFN, EasyNativeVar, FunctionSignature},
+        instruction_generator::{
+            EasyInstructions, call_wasm_core_function, is_wasm_core, set_local_string,
+        },
+        signatures::{EasyNativeFN, EasyNativeVar, FunctionSignature, create_type_section},
         strings::{
             allocate_string, native_str_char_code_at, native_str_concat, native_str_get_len,
             native_str_index, native_str_store_byte, store_string_length,
         },
         utils::{
-            expression_is_ident, get_param_type_by_string, get_val_type_from_strong, StrongValType
+            StrongValType, expression_is_ident, get_param_type_by_string, get_val_type_from_strong,
         },
     },
     errors::{
         native_can_not_compile_raw_expression, native_can_not_get_value_from_expression,
         native_could_not_parse_function, native_error_compiling_identifier,
+        native_unsupported_builtin_call,
         native_unsupported_expression_as_value_for_global_variable,
         native_unsupported_index_expression, native_unsupported_operation,
         native_unsupported_operator, native_unsupported_prefix_expression,
@@ -30,8 +33,7 @@ use crate::{
     parser::ast::{Expression, Statement},
 };
 use wasm_encoder::{
-    ConstExpr, ExportKind, Function, FunctionSection, GlobalType, Instruction, MemorySection,
-    MemoryType, Module, TypeSection, ValType,
+    BlockType, ConstExpr, ExportKind, Function, FunctionSection, GlobalType, Instruction, MemorySection, MemoryType, Module, TypeSection, ValType
 };
 
 /// easyjs native is a bare bones language feature. Think of it as C for the web.
@@ -308,7 +310,7 @@ impl NativeContext {
         // get variable name as raw expression
         let var_name = self.compile_raw_expression(name);
         let strong_val_type = self.get_val_type_from_expression(&value);
-        
+
         if self.is_currently_global {
             let parsed = self.compile_global_variable_stmt(value);
             // add to variable
@@ -412,7 +414,8 @@ impl NativeContext {
             }
             Expression::FunctionLiteral(_, name, params, val_type, body) => {
                 self.compile_function_literal(name, params, val_type.as_ref().unwrap(), body);
-                self.instructions.iter().last().unwrap().1.clone()
+                vec![]
+                // self.instructions.iter().last().unwrap().1.clone()
             }
             Expression::IntegerLiteral(_, val) => vec![Instruction::I32Const(*val as i32)],
             Expression::FloatLiteral(_, val) => vec![Instruction::F32Const(*val as f32)],
@@ -514,9 +517,15 @@ impl NativeContext {
 
                 let fun_idx = self.get_fun_idx_from_name(&name);
                 if fun_idx.is_none() {
-                    self.errors
-                        .push(native_could_not_parse_function(expr.get_token(), &name));
-                    return vec![];
+                    // Check if this is a wasm core function
+                    if !is_wasm_core(name.as_str()) {
+                        self.errors
+                            .push(native_could_not_parse_function(expr.get_token(), &name));
+                        return vec![];
+                    } else {
+                        // We have a core function. Call it and pass back the instructions
+                        return call_wasm_core_function(&mut self.errors, name.as_str(), arguments);
+                    }
                 }
                 let fun_idx = fun_idx.unwrap();
 
@@ -599,10 +608,8 @@ impl NativeContext {
                     token::MINUS => {
                         // Multiple the expression by -1 to convert the number into a negative.
                         instructions.append(&mut self.compile_expression(&right));
-                        instructions.append(&mut vec![
-                            Instruction::I32Const(-1),
-                            Instruction::I32Mul,
-                        ]);
+                        instructions
+                            .append(&mut vec![Instruction::I32Const(-1), Instruction::I32Mul]);
                     }
                     _ => self
                         .errors
@@ -610,6 +617,40 @@ impl NativeContext {
                 }
 
                 instructions
+            }
+            Expression::Boolean(tk, value) => {
+                if *value {
+                    vec![Instruction::I32Const(1)]
+                } else {
+                    vec![Instruction::I32Const(0)]
+                }
+            }
+            // Expression::InfixExpression(tk, left, infix, right) => {
+
+            // }
+            Expression::IfExpression(token, condition, consequence, elseif, else_) => {
+                if let Some(instructions) = self.instructions.get_mut(&self.next_fn_idx) {
+                    vec![]
+                } else {
+                    self.errors.push(value);
+                    vec![]
+                }
+                // // compile the condition
+                // instructions.append(&mut self.compile_expression(condition));
+                // // Start a new if block
+                // instructions.push(Instruction::If(BlockType::Empty));
+                // // compile statment
+                // // self.compile_statement(stmt, false);
+                // // if !elseif.is_empty() {
+                //     // compile the elseif condition
+                //     // instructions.append(&mut self.compile_expression(elseif));
+                //     // treat it as a completely new if statement.
+                // // }
+
+                // // close if/elseif/else 
+                // instructions.push(Instruction::End);
+
+                // vec![]
             }
             _ => {
                 vec![]
@@ -754,7 +795,7 @@ impl NativeContext {
     /// - function calls (the return type)
     /// - function calls (the arguments with types)
     /// - prefix expressions
-    /// 
+    ///
     fn get_val_type_from_expression(&mut self, expr: &Expression) -> StrongValType {
         match expr {
             Expression::Identifier(tk, name) => {
@@ -791,7 +832,6 @@ impl NativeContext {
                 // There is no way to infer the return type of a function (not yet)
                 // TODO: infer return type of function. also in JS
                 if val_type.is_none() {
-
                     self.errors
                         .push(native_can_not_get_value_from_expression(tk));
                     StrongValType::NotSupported
@@ -806,6 +846,9 @@ impl NativeContext {
             }
             Expression::IndexExpression(tk, source, index) => {
                 self.get_val_type_from_expression(source)
+            }
+            Expression::Boolean(_, _) => {
+                StrongValType::Bool
             }
             _ => {
                 // add error
@@ -859,6 +902,18 @@ impl NativeContext {
         for fun in self.functions.iter() {
             if fun.name == *name {
                 return Some(fun.idx);
+            }
+        }
+        None
+    }
+
+    /// Get variable idx from name
+    fn get_var_idx_from_name(&self, name: &str) -> Option<u32> {
+        for scope in self.variable_scope.iter() {
+            for var in scope.iter() {
+                if var.name == *name {
+                    return Some(var.idx);
+                }
             }
         }
         None

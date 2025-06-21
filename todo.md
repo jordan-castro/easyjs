@@ -24,6 +24,7 @@
 
 ## WASM
 - v0.4.x Additions
+  - instruction generator
   - smart memory
     - strings
       - ~~add n strings together~~

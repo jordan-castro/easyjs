@@ -1358,21 +1358,6 @@ impl Transpiler {
                     self.transpile_expression(right.as_ref().to_owned())
                 )
             }
-            Expression::BuiltinCall(tk, params) => {
-                // check builtin method name
-                let method_name = tk.literal.clone();
-                match method_name.as_str() {
-                    "use_mod" => {
-                        // get the first param
-                        let param = &params[0];
-                        let result =
-                            builtins::include(&self.transpile_expression(param.to_owned()), self);
-
-                        result
-                    }
-                    _ => "".to_string(),
-                }
-            }
             Expression::MacroDecleration(_, name, paramaters, body) => {
                 let macro_name: String = self.transpile_expression(name.as_ref().to_owned());
                 let macro_params = paramaters.as_ref().to_owned();
