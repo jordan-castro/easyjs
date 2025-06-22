@@ -2,5 +2,9 @@ fn function_with_kwarsgs(father, mother, kwargs) {
     console.log(kwargs.name)
 }
 
-function_with_kwarsgs(father, mother, name="Jordan", age=[22,33,44]) 
-// transpiled into => function_with_kwarsgs(father, mother, {name: "Jordan", age: [22,33,44]})
+fn function_with_args(...args) {
+    console.log(args)
+}
+
+function_with_kwarsgs(father, mother, name="Jordan", age=[22,33,44])
+function_with_args('test', 1, 0, 0.121, 'a', [1,2,2,], {t: 'yes'})

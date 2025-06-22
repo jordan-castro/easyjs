@@ -20,6 +20,7 @@
   - ^ 
 - v0.4.x revamp IIFEs. Using get_return logic
 - v0.4.x Update wasm usecase in transpiler
+- v0.4.x confirm imports of the same file work in the same project.
 
 ## Commands
 - v0.4.5 Add a update command to the CLI

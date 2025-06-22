@@ -229,6 +229,8 @@ pub enum Expression {
     /// 
     /// var a = fn { return 1 } // a = 1
     IIFE(tk::Token, Box<Statement>),
+    /// ...variable
+    SpreadExpression(tk::Token, Box<Expression>),
 }
 
 impl Expression {
@@ -278,6 +280,7 @@ impl Expression {
             Expression::IdentifierWithType(token, _, _) => token,
             Expression::Type(token, _) => token,
             Expression::IIFE(token, _) => token,
+            Expression::SpreadExpression(token, _) => token
         }
     }
 
@@ -322,7 +325,8 @@ impl Expression {
             Expression::BuiltinCall(_, _) => "BuiltinCall",
             Expression::IdentifierWithType(_, _, _) => "IdentifierWithType",
             Expression::Type(_, _) => "Type",
-            Expression::IIFE(_, _) => "IIFE"
+            Expression::IIFE(_, _) => "IIFE",
+            Expression::SpreadExpression(_, _) => "SpreadExpression"
         }
     }
 

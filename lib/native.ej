@@ -1,0 +1,135 @@
+import 'std'
+
+// Macro for encoding UTF-8
+macro utf8_encode(str) {
+    new TextEncoder('utf-8').encode(#str)
+}
+
+// Macro for decoding UTF-8
+macro utf8_decode(bytes) {
+    new TextDecoder('utf-8').decode(#bytes)
+}
+
+/// Initialize the native module.
+async fn EASYJS_NATIVE_init(binary) {
+    @const(module, await WebAssembly.instantiate(binary.buffer))
+    @const(instance, module.instance)
+
+    return instance
+}
+
+/// Convert a host string to a native string
+fn EASYJS_NATIVE_convert_string_to_native(instance, str) {
+    // get length and bytes
+    @const(str_len, str.length)
+    @const(str_bytes, @utf8_encode(str))
+
+    // allocate space and get ptr
+    @const(ptr, instance.exports.__str_alloc(str_len))
+
+    // store length
+    instance.exports.__str_store_len(ptr, str_len)
+
+    // Write the string to memory
+    for i in 0..str_bytes.length {
+        instance.exports.__str_store_byte(ptr, 4 + i, str_bytes[i])
+    }
+
+    return ptr
+}
+
+/// Convert a native string into a host string.
+fn EASYJS_NATIVE_convert_string_to_host(instance, ptr) {
+    @const(length, instance.exports.__str_get_len(ptr))
+    @const(memory_buffer, new Uint8Array(instance.exports.memory.buffer, ptr + 4, length))
+
+    // Decode string
+    return @utf8_decode(memory_buffer)
+}
+
+/// Call a easyjs native method
+fn EASYJS_NATIVE_call(fn_name, param_types, return_types, ...args) {
+    
+}
+
+            function __easyjs_native_call(fnName, paramTypes, returnTypes, ...args) {
+                if (!__easyjs_native_instance) {
+                    throw new Error('No instance of __easyjs_native loaded');
+                }
+
+                if (!__easyjs_native_instance.exports[fnName]) {
+                    throw new Error(`Function ${fnName} not found in __easyjs_native`);
+                }
+
+                if (paramTypes.length !== args.length) {
+                    throw new Error('Number of arguments does not match number of parameters');
+                }
+
+                // go through params and make sure args match type
+                for (let i = 0; i < args.length; i++) {
+                    const arg = args[i];
+                    const paramType = paramTypes[i];
+
+                    switch (paramType) {
+                        case 'string': {
+                        if (typeof arg !== 'string') {
+                            throw new Error(`Argument ${i} is not a string`);
+                        }
+
+                        // this is a string so we need to convert it to a native pointer.
+                        args[i] = __EasyJSNativeInterop.convert_string_to_native(__easyjs_native_instance, args[i])
+                        break;
+                        }
+                        case 'int': {
+                        if (typeof arg !== 'number' || !Number.isInteger(arg)) {
+                            throw new Error(`Argument ${i} is not an integer`);
+                        }
+                        break;
+                        }
+                        case 'float': {
+                        if (typeof arg !== 'number' || isNaN(arg)) {
+                            throw new Error(`Argument ${i} is not a valid float`);
+                        }
+                        break;
+                        }
+                        case 'bool': {
+                        // booleans must be true/false or a number
+                        if (typeof arg !== 'boolean' && typeof arg !== 'number') {
+                            throw new Error(`Argument ${i} is not a valid boolean`);
+                        }
+                        // if true/false convert it to a int
+                        if (typeof arg === 'boolean') {
+                            args[i] = arg == true ? 1 : 0;
+                        } else {
+                            // make sure that the value is 0 or 1
+                            args[i] = arg > 0 ? 1 : 0;
+                        }
+                        break;
+                        }
+                    }
+                }
+
+                let result = __easyjs_native_instance.exports[fnName](...args);
+
+                // match result type
+                // TODO: support multiple return types
+                switch (returnTypes[0]) {
+                    case 'string': {
+                        // get length
+                        result = __EasyJSNativeInterop.read_string_from_native(__easyjs_native_instance, result);
+                        break;
+                    }
+                    case 'int': {
+                        break;
+                    }
+                    case 'float': {
+                        break;
+                    }
+                    case 'bool': {
+                        result = result == 0 ? false : true
+                        break;
+                    }
+                }
+
+                return result;
+            }\n\n
