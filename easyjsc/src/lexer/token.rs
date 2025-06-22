@@ -78,6 +78,7 @@ pub const PLUS_EQUALS: &str = "+=";
 pub const MINUS_EQUALS: &str = "-=";
 pub const SLASH_EQUALS: &str = "/=";
 pub const ASTERISK_EQUALS: &str = "*=";
+pub const SPREAD: &str = "...";
 
 // Delimiters
 pub const COMMA: &str = ",";

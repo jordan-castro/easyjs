@@ -28,7 +28,7 @@ const LESSGREATER: i64 = 3; // < > >= <=
 const SUM: i64 = 4; // + -
 const PRODUCT: i64 = 5; // * /
 
-const DOT: i64 = 6; // .field or .method
+const DOT: i64 = 6; // .field or .method or ...spread
 
 const CALL: i64 = 7; // my_function(X)
 const BRACKET: i64 = 10; // [
@@ -63,6 +63,7 @@ fn precedences(tk: &str) -> i64 {
         token::ASTERISK => PRODUCT,
         token::L_PAREN => CALL,
         token::DOT => DOT,
+        token::SPREAD => DOT,
         token::LT_OR_EQ => LESSGREATER,
         token::GT_OR_EQ => LESSGREATER,
         token::L_BRACKET => BRACKET,
@@ -145,6 +146,7 @@ impl Parser {
             token::ASYNC => parse_async_expressoin(self),
             token::AWAIT => parse_await_expression(self),
             token::MACRO_SYMBOL => parse_macro_expression(self),
+            token::SPREAD => parse_spread_expression(self),
             // token::DECORATOR => parse_macro_expression(self),
             token::MACRO => parse_macro_decleration(self),
             token::NEW => parse_new_expression(self),
@@ -175,6 +177,7 @@ impl Parser {
             token::ASYNC => true,
             token::AWAIT => true,
             token::MACRO_SYMBOL => true,
+            token::SPREAD => true,
             // token::DECORATOR => true,
             token::MACRO => true,
             token::NEW => true,

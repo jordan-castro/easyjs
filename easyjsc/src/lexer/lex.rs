@@ -210,7 +210,17 @@ impl Lex {
             '.' => {
                 if self.peek_char() == '.' {
                     let ccpp = self.cc_pp();
-                    self.create_new_token(token::DOTDOT, &ccpp)
+                    // Check again
+                    if self.peek_char() == '.' {
+                        // We got a spread
+                        self.read_char(); // go to peek char
+                        self.create_new_token(
+                            token::SPREAD,
+                            format!("{}{}", ccpp, self.current_char).as_str(),
+                        )
+                    } else {
+                        self.create_new_token(token::DOTDOT, &ccpp)
+                    }
                 } else {
                     self.create_new_token(token::DOT, &self.current_char_str())
                 }
@@ -289,28 +299,28 @@ impl Lex {
                 if self.peek_char() == '/' {
                     // Parse the comment here (fricking rust borrow checker!)
                     // fn parse_comment() {
-                        // go next to not get stuck in the /
+                    // go next to not get stuck in the /
+                    self.read_char();
+                    self.read_char();
+                    let is_doc = self.current_char == '/';
+
+                    if is_doc {
                         self.read_char();
+                    }
+
+                    let mut res: String = String::new();
+
+                    while self.current_char != '\n' && !self.is_eof() {
+                        res.push(self.current_char);
                         self.read_char();
-                        let is_doc = self.current_char == '/';
+                    }
 
-                        if is_doc {
-                            self.read_char();
-                        }
-
-                        let mut res: String = String::new();
-
-                        while self.current_char != '\n' && !self.is_eof() {
-                            res.push(self.current_char);
-                            self.read_char();
-                        }
-
-                        let mut token_type: &str;
-                        if is_doc {
-                            token_type = token::DOC_COMMENT;
-                        } else {
-                            token_type = token::COMMENT;
-                        }
+                    let mut token_type: &str;
+                    if is_doc {
+                        token_type = token::DOC_COMMENT;
+                    } else {
+                        token_type = token::COMMENT;
+                    }
                     // }
                     self.create_new_token(token_type, &res)
                 } else if self.peek_char() == '=' {
