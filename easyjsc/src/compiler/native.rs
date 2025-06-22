@@ -11,7 +11,9 @@ use crate::{
         instruction_generator::{
             EasyInstructions, call_wasm_core_function, is_wasm_core, set_local_string,
         },
-        signatures::{EasyNativeFN, EasyNativeVar, FunctionSignature, create_type_section},
+        signatures::{
+            EasyNativeBlock, EasyNativeFN, EasyNativeVar, FunctionSignature, create_type_section,
+        },
         strings::{
             allocate_string, native_str_char_code_at, native_str_concat, native_str_get_len,
             native_str_index, native_str_store_byte, store_string_length,
@@ -23,8 +25,10 @@ use crate::{
     errors::{
         native_can_not_compile_raw_expression, native_can_not_get_value_from_expression,
         native_could_not_parse_function, native_error_compiling_identifier,
-        native_unsupported_builtin_call,
-        native_unsupported_expression_as_value_for_global_variable,
+        native_if_expression_must_go_within_functions,
+        native_no_function_provided_for_variable_scope,
+        native_return_value_does_not_match_function, native_unsupported_builtin_call,
+        native_unsupported_expression, native_unsupported_expression_as_value_for_global_variable,
         native_unsupported_index_expression, native_unsupported_operation,
         native_unsupported_operator, native_unsupported_prefix_expression,
         native_unsupported_statement,
@@ -33,8 +37,76 @@ use crate::{
     parser::ast::{Expression, Statement},
 };
 use wasm_encoder::{
-    BlockType, ConstExpr, ExportKind, Function, FunctionSection, GlobalType, Instruction, MemorySection, MemoryType, Module, TypeSection, ValType
+    BlockType, ConstExpr, ExportKind, Function, FunctionSection, GlobalType, Instruction,
+    MemorySection, MemoryType, Module, TypeSection, ValType,
 };
+
+/// Get the left side idx from a InfixExpression.
+///
+/// - `left:Expression` The left side expression
+macro_rules! get_left_side_idx {
+    ($left:expr) => {{
+        // Get last instruction from left side
+        let last_instruction = $left.last().unwrap();
+        let mut is_global = false;
+        let mut vidx: i32;
+        match last_instruction {
+            Instruction::LocalGet(idx) => {
+                vidx = idx.clone() as i32;
+            }
+            Instruction::GlobalGet(idx) => {
+                is_global = true;
+                vidx = idx.clone() as i32;
+            }
+            _ => {
+                vidx = -1;
+            }
+        }
+
+        (is_global, vidx)
+    }};
+}
+
+/// For generating instructions for operators:
+/// 
+/// - += 
+/// - -=
+/// - *=
+/// - /*
+/// 
+/// Params:
+/// - `left:Expression` The left side expression
+/// - `instruction:Instruction` The instruction to generate. i.e. I32Add, F32Add, etc
+macro_rules! generate_n_assign_instructions {
+    ($left:expr, $instruction:expr) => {{
+        let (is_global, idx) = get_left_side_idx!(&$left);
+        if is_global {
+            vec![
+                $instruction,
+                Instruction::GlobalSet(idx as u32)
+            ]
+        } else {
+            vec![
+                $instruction,
+                Instruction::LocalSet(idx as u32)
+            ]
+        }
+    }};
+}
+                        // "int" => {
+                        //     let (is_global, left_idx) = get_left_side_idx!(left);
+                        //     if is_global {
+                        //         instructions.append(&mut vec![
+                        //             Instruction::I32Add,
+                        //             Instruction::GlobalSet(left_idx as u32)
+                        //         ]);
+                        //     } else {
+                        //         instructions.append(&mut vec![
+                        //             Instruction::I32Add,
+                        //             Instruction::LocalSet(left_idx as u32)
+                        //         ]);
+                        //     }
+                        // }
 
 /// easyjs native is a bare bones language feature. Think of it as C for the web.
 /// To use easyjs native features, wrap your easyjs code in a native block like so:
@@ -237,6 +309,9 @@ struct NativeContext {
 
     /// Is currently in a public scope?
     is_pub: bool,
+
+    /// Block scope
+    block_scope: Vec<Vec<EasyNativeBlock>>,
 }
 
 impl NativeContext {
@@ -250,18 +325,29 @@ impl NativeContext {
             next_fn_idx: 0,
             instructions: HashMap::new(),
             is_pub: false,
+            block_scope: Vec::new(),
         }
     }
 
     /// Add a new variable scope.
-    fn add_scope(&mut self) {
+    fn add_var_scope(&mut self) {
         self.variable_scope.push(vec![]);
     }
 
     /// Pop current variable scope
-    fn pop_scope(&mut self) {
+    fn pop_var_scope(&mut self) {
         self.variable_scope.pop();
         self.next_var_idx = 0;
+    }
+
+    /// Add a new block scope
+    fn add_block_scope(&mut self) {
+        self.block_scope.push(vec![]);
+    }
+
+    /// Pop current block scope
+    fn poop_block_scope(&mut self) {
+        self.block_scope.pop();
     }
 
     /// Compile a native statement.
@@ -281,11 +367,11 @@ impl NativeContext {
                     current_fn_ins.append(&mut instructions.clone());
                 }
             }
-            Statement::ReturnStatement(_, expr) => {
+            Statement::ReturnStatement(token, expr) => {
                 let mut instructions = self.compile_expression(expr);
-                instructions.push(Instruction::Return);
                 if let Some(current_fn_ins) = self.instructions.get_mut(&self.next_fn_idx) {
                     current_fn_ins.append(&mut instructions);
+                    current_fn_ins.push(Instruction::Return);
                 }
             }
             Statement::BlockStatement(_, stmts) => {
@@ -310,6 +396,47 @@ impl NativeContext {
         // get variable name as raw expression
         let var_name = self.compile_raw_expression(name);
         let strong_val_type = self.get_val_type_from_expression(&value);
+
+        // check if variable already exists in scope
+        let mut easy_native_var: Option<&EasyNativeVar> = None;
+        for var in self.variable_scope.iter().rev() {
+            for v in var.iter() {
+                if v.name == var_name {
+                    easy_native_var = Some(v);
+                    break;
+                }
+            }
+
+            if easy_native_var.is_some() {
+                break;
+            }
+        }
+
+        // This variable already exists.
+        if let Some(easy_native_var) = easy_native_var {
+            // clone to appease the borrow checker
+            let easy_native_var = easy_native_var.clone();
+            // We should simply get and set the variable
+            // First let's compiile the value
+            let mut instructions = self.compile_expression(value);
+
+            // Let's check if we have a function context.
+            if let Some(current_fn_ins) = self.instructions.get_mut(&self.next_fn_idx) {
+                current_fn_ins.append(&mut instructions);
+                if easy_native_var.is_global {
+                    current_fn_ins.push(Instruction::GlobalSet(easy_native_var.idx));
+                } else {
+                    current_fn_ins.push(Instruction::LocalSet(easy_native_var.idx));
+                }
+            } else {
+                self.errors
+                    .push(native_no_function_provided_for_variable_scope(
+                        name.get_token(),
+                    ));
+            }
+
+            return;
+        }
 
         if self.is_currently_global {
             let parsed = self.compile_global_variable_stmt(value);
@@ -341,8 +468,12 @@ impl NativeContext {
                 current_fn_ins.append(&mut value_instructions);
                 current_fn_ins.push(Instruction::LocalSet(self.next_var_idx));
             } else {
-                panic!("Not sure what is supposed to happen here...");
-                // self.add_error("No current function", value.get_token());
+                // panic!("Not sure what is supposed to happen here...");
+                self.errors
+                    .push(native_no_function_provided_for_variable_scope(
+                        name.get_token(),
+                    ));
+                return;
             }
         }
 
@@ -430,9 +561,13 @@ impl NativeContext {
                 // hierarchy: f64 > f32 > i64 > i32
                 let instruction_type = match (&left_type, &right_type) {
                     (StrongValType::Int, StrongValType::Int) => "int",
-                    (StrongValType::Int, StrongValType::Float) => "f32",
-                    (StrongValType::Float, StrongValType::Int) => "f32",
+                    (StrongValType::Int, StrongValType::Float) => "int",
+                    (StrongValType::Float, StrongValType::Float) => "float",
+                    (StrongValType::Float, StrongValType::Int) => "float",
                     (StrongValType::String, StrongValType::String) => "string",
+                    (StrongValType::Bool, StrongValType::Bool) => "int",
+                    (StrongValType::Int, StrongValType::Bool) => "int",
+                    (StrongValType::Bool, StrongValType::Int) => "int",
                     (_, _) => {
                         self.errors.push(native_unsupported_operation(
                             expr.get_token(),
@@ -444,63 +579,77 @@ impl NativeContext {
                     }
                 };
 
+                let mut instructions = vec![];
+                instructions.append(&mut left.clone());
+                instructions.append(&mut right.clone());
+
                 match op.as_str() {
-                    "+" => {
-                        let mut result = vec![];
-                        result.append(&mut left.clone());
-                        result.append(&mut right.clone());
-                        match instruction_type {
-                            "int" => result.push(Instruction::I32Add),
-                            "f32" => result.push(Instruction::F32Add),
-                            "string" => result.push(Instruction::Call(STR_CONCAT_IDX)),
-                            _ => {}
+                    token::PLUS => match instruction_type {
+                        "int" => instructions.push(Instruction::I32Add),
+                        "float" => instructions.push(Instruction::F32Add),
+                        "string" => instructions.push(Instruction::Call(STR_CONCAT_IDX)),
+                        _ => {}
+                    },
+                    token::MINUS => match instruction_type {
+                        "int" => instructions.push(Instruction::I32Sub),
+                        "float" => instructions.push(Instruction::F32Sub),
+                        _ => {}
+                    },
+                    token::ASTERISK => match instruction_type {
+                        "int" => instructions.push(Instruction::I32Mul),
+                        "float" => instructions.push(Instruction::F32Mul),
+                        _ => {}
+                    },
+                    token::SLASH => match instruction_type {
+                        "int" => instructions.push(Instruction::I32DivS),
+                        "float" => instructions.push(Instruction::F32Div),
+                        _ => {}
+                    },
+                    token::MODULUS => match instruction_type {
+                        "int" => instructions.push(Instruction::I32RemS),
+                        "float" => instructions.push(Instruction::I32RemS),
+                        _ => {}
+                    },
+                    token::EQ => match instruction_type {
+                        "int" => instructions.push(Instruction::I32Eq),
+                        "float" => instructions.push(Instruction::F32Eq),
+                        _ => {}
+                    },
+                    token::LT => match instruction_type {
+                        "int" => instructions.push(Instruction::I32LtS),
+                        "float" => instructions.push(Instruction::F32Lt),
+                        _ => {}
+                    },
+                    token::LT_OR_EQ => match instruction_type {
+                        "int" => instructions.push(Instruction::I32LeS),
+                        "float" => instructions.push(Instruction::F32Le),
+                        _ => {}
+                    },
+                    token::GT => match instruction_type {
+                        "int" => instructions.push(Instruction::I32GtS),
+                        "float" => instructions.push(Instruction::F32Gt),
+                        _ => {}
+                    },
+                    token::GT_OR_EQ => match instruction_type {
+                        "int" => instructions.push(Instruction::I32GeS),
+                        "float" => instructions.push(Instruction::F32Ge),
+                        _ => {}
+                    },
+                    token::PLUS_EQUALS => match instruction_type {
+                        "int" => {
+                            let mut n_assign = generate_n_assign_instructions!(left, Instruction::I32Add);
+                            instructions.append(&mut n_assign);
                         }
-                        result
-                    }
-                    "-" => {
-                        let mut result = vec![];
-                        result.append(&mut left.clone());
-                        result.append(&mut right.clone());
-                        match instruction_type {
-                            "int" => result.push(Instruction::I32Sub),
-                            "f32" => result.push(Instruction::F32Sub),
-                            _ => {}
+                        "float" => {
+                            let mut n_assign = generate_n_assign_instructions!(left, Instruction::F32Add);
+                            instructions.append(&mut n_assign);
                         }
-                        result
-                    }
-                    "*" => {
-                        let mut result = vec![];
-                        result.append(&mut left.clone());
-                        result.append(&mut right.clone());
-                        match instruction_type {
-                            "int" => result.push(Instruction::I32Mul),
-                            "f32" => result.push(Instruction::F32Mul),
-                            _ => {}
+                        "string" => {
+                            let mut n_assign = generate_n_assign_instructions!(left, Instruction::Call(STR_CONCAT_IDX));
+                            instructions.append(&mut n_assign);
                         }
-                        result
-                    }
-                    "/" => {
-                        let mut result = vec![];
-                        result.append(&mut left.clone());
-                        result.append(&mut right.clone());
-                        match instruction_type {
-                            "int" => result.push(Instruction::I32DivS),
-                            "f32" => result.push(Instruction::F32Div),
-                            _ => {}
-                        }
-                        result
-                    }
-                    "%" => {
-                        let mut result = vec![];
-                        result.append(&mut left.clone());
-                        result.append(&mut right.clone());
-                        match instruction_type {
-                            "int" => result.push(Instruction::I32RemS),
-                            "f32" => result.push(Instruction::I32RemS),
-                            _ => {}
-                        }
-                        result
-                    }
+                        _ => {}
+                    },
                     _ => {
                         self.errors
                             .push(native_unsupported_operator(expr.get_token(), op));
@@ -508,9 +657,11 @@ impl NativeContext {
                         //     format!("native, Unsupported operator: {}", op).as_str(),
                         //     expr.get_token(),
                         // );
-                        vec![]
+                        return vec![];
                     }
                 }
+
+                instructions
             }
             Expression::CallExpression(_, name, arguments) => {
                 let name = self.compile_raw_expression(name);
@@ -625,34 +776,106 @@ impl NativeContext {
                     vec![Instruction::I32Const(0)]
                 }
             }
-            // Expression::InfixExpression(tk, left, infix, right) => {
-
-            // }
-            Expression::IfExpression(token, condition, consequence, elseif, else_) => {
-                if let Some(instructions) = self.instructions.get_mut(&self.next_fn_idx) {
-                    vec![]
-                } else {
-                    self.errors.push(value);
-                    vec![]
+            Expression::IfExpression(token, condition, consequence, elif, else_block) => {
+                // The index of the If instruction. Used for when doing If as expressions
+                let mut current_instruction_index = 0;
+                // If Expression requires the context to access the direct instructions for the current function.
+                let mut compiled_condition = self.compile_expression(&condition);
+                {
+                    if let Some(instructions) = self.instructions.get_mut(&self.next_fn_idx) {
+                        // add compiled condition
+                        instructions.append(&mut compiled_condition);
+                        current_instruction_index += instructions.len();
+                        instructions.push(Instruction::If(BlockType::Empty));
+                    } else {
+                        self.errors
+                            .push(native_if_expression_must_go_within_functions(token));
+                        return vec![];
+                    }
                 }
-                // // compile the condition
-                // instructions.append(&mut self.compile_expression(condition));
-                // // Start a new if block
-                // instructions.push(Instruction::If(BlockType::Empty));
-                // // compile statment
-                // // self.compile_statement(stmt, false);
-                // // if !elseif.is_empty() {
-                //     // compile the elseif condition
-                //     // instructions.append(&mut self.compile_expression(elseif));
-                //     // treat it as a completely new if statement.
-                // // }
+                // compile consequence
+                self.compile_statement(&consequence, self.is_pub);
 
-                // // close if/elseif/else 
-                // instructions.push(Instruction::End);
+                // Check for a elif
+                if !elif.is_empty() {
+                    // Let's add a else and compile the elif expression
+                    if let Some(instructions) = self.instructions.get_mut(&self.next_fn_idx) {
+                        // add ELSE instruction
+                        instructions.push(Instruction::Else);
+                    }
+                    // Let's compile the elif expression
+                    self.compile_expression(&elif);
+                }
 
-                // vec![]
+                // Check for a else
+                if !else_block.is_empty() {
+                    // Let's add a else block and compile the statement
+                    if let Some(instructions) = self.instructions.get_mut(&self.next_fn_idx) {
+                        instructions.push(Instruction::Else);
+                    }
+                    // Compile else statement
+                    self.compile_statement(&else_block, self.is_pub);
+                }
+                // Add a end instruction
+                if let Some(instructions) = self.instructions.get_mut(&self.next_fn_idx) {
+                    instructions.push(Instruction::End);
+                }
+
+                // TODO: implement iife
+                // if self.block_scope.len() > 0 {
+                //     // check if and else block types
+                //     let if_block_type = self.get_return_val_type_of_block(&consequence);
+                //     let else_block_type = self.get_return_val_type_of_block(&else_block);
+
+                //     // Check if they exist first of all
+                // }
+
+                // // Make sure they match the function return type
+                // if (if_block_type.is_some() && if_block_type != self.current_fn_block.block_type)
+                //     || (else_block_type.is_some()
+                //         && else_block_type != self.current_fn_block.block_type)
+                // {
+                //     self.errors
+                //         .push(native_return_value_does_not_match_function(token));
+                //     return vec![];
+                // }
+
+                // // Check if the types are none or not
+                // if let Some(block_type) = if_block_type {
+                //     // We already have it
+                //     self.insert_instruction_at(
+                //         current_instruction_index,
+                //         self.next_fn_idx,
+                //         Instruction::If(BlockType::Result(block_type)),
+                //     );
+                // } else {
+                //     // Let's check else_block
+                //     if let Some(block_type) = else_block_type {
+                //         // We have a block type
+                //         self.insert_instruction_at(
+                //             current_instruction_index,
+                //             self.next_fn_idx,
+                //             Instruction::If(BlockType::Result(block_type)),
+                //         );
+                //     }
+                // }
+
+                vec![]
+            }
+            Expression::IIFE(token, body) => {
+                // IIFE contains a stmt so just call compile_stmt
+                // But we do need to add a block scope
+                self.add_block_scope();
+                self.compile_statement(body, self.is_pub);
+                // Now we can remove the block scope
+                self.poop_block_scope();
+                vec![]
+            }
+            Expression::EmptyExpression => {
+                vec![]
             }
             _ => {
+                self.errors.push(native_unsupported_expression(expr));
                 vec![]
             }
         }
@@ -684,12 +907,24 @@ impl NativeContext {
             .collect::<Vec<ValType>>();
         // lets get the type too
         let return_type = self.get_val_type_from_expression(val_type);
-
-        // add empty instructions
+        // Get the block type
+        // let block = {
+        //     if let Some(return_val_type) = get_val_type_from_strong(&return_type) {
+        //         BlockType::Result(return_val_type)
+        //     } else {
+        //         BlockType::Empty
+        //     }
+        // };
         self.instructions.insert(self.next_fn_idx, vec![]);
+        // create current_fn_block
+        // self.current_fn_block = EasyNativeBlock {
+        //     idx: 0,
+        //     block_type: get_val_type_from_strong(&return_type),
+        //     strong_block_type: return_type.clone(),
+        // };
 
         // add a new scope
-        self.add_scope();
+        self.add_var_scope();
 
         // add params to scope
         for i in 0..params.len() {
@@ -714,7 +949,10 @@ impl NativeContext {
         self.instructions
             .get_mut(&self.next_fn_idx)
             .unwrap()
-            .push(Instruction::End);
+            .append(&mut vec![
+                Instruction::Unreachable, // To make sure if works
+                Instruction::End,
+            ]);
 
         // set the function
         // get variables of current scope.
@@ -755,7 +993,7 @@ impl NativeContext {
         self.next_fn_idx += 1;
 
         // pop current variable scope
-        self.pop_scope();
+        self.pop_var_scope();
     }
 
     /// Compile the raw expression into a String
@@ -847,8 +1085,12 @@ impl NativeContext {
             Expression::IndexExpression(tk, source, index) => {
                 self.get_val_type_from_expression(source)
             }
-            Expression::Boolean(_, _) => {
-                StrongValType::Bool
+            Expression::Boolean(_, _) => StrongValType::Bool,
+            Expression::InfixExpression(tk, left, infix, right) => {
+                self.get_val_type_from_expression(left)
+            }
+            Expression::FloatLiteral(tk, literal) => {
+                StrongValType::Float                
             }
             _ => {
                 // add error
@@ -907,15 +1149,68 @@ impl NativeContext {
         None
     }
 
-    /// Get variable idx from name
-    fn get_var_idx_from_name(&self, name: &str) -> Option<u32> {
-        for scope in self.variable_scope.iter() {
-            for var in scope.iter() {
-                if var.name == *name {
-                    return Some(var.idx);
+    // /// Get variable idx from name
+    // fn get_var_idx_from_name(&self, name: &str) -> Option<u32> {
+    //     for scope in self.variable_scope.iter() {
+    //         for var in scope.iter() {
+    //             if var.name == *name {
+    //                 return Some(var.idx);
+    //             }
+    //         }
+    //     }
+    //     None
+    // }
+
+    /// Insert a instruction at a specific in a specific function.
+    ///
+    /// This is used in:
+    ///
+    /// - if expressions
+    fn insert_instruction_at(
+        &mut self,
+        index: usize,
+        fn_index: u32,
+        instruction: Instruction<'static>,
+    ) {
+        if let Some(instructions) = self.instructions.get_mut(&fn_index) {
+            if index >= instructions.len() {
+                return;
+            }
+
+            // Update
+            instructions[index] = instruction;
+        }
+    }
+
+    /// Get the StrongValType of a block.
+    ///
+    /// Only works for return statements.
+    fn get_return_val_type_of_block(&mut self, block: &Statement) -> Option<ValType> {
+        // Let's update our block type
+        let final_stmt = block.get_final_stmt();
+        let mut new_block_type: Option<ValType> = None;
+        match final_stmt {
+            Statement::ReturnStatement(_, expr) => {
+                let strong_val_type = self.get_val_type_from_expression(expr);
+                match strong_val_type {
+                    StrongValType::Bool => {
+                        new_block_type = Some(ValType::I32);
+                    }
+                    StrongValType::Float => {
+                        new_block_type = Some(ValType::F32);
+                    }
+                    StrongValType::Int => {
+                        new_block_type = Some(ValType::I32);
+                    }
+                    StrongValType::String => {
+                        new_block_type = Some(ValType::I32);
+                    }
+                    _ => {}
                 }
             }
+            _ => {}
         }
-        None
+
+        new_block_type
     }
 }

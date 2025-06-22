@@ -32,10 +32,10 @@ pub enum Statement {
     /// ```
     StructStatement(tk::Token, Box<Expression>, Option<Box<Vec<Expression>>>, Option<Box<Vec<Expression>>>, Box<Vec<Statement>>, Box<Vec<Expression>>),
 
-    /// export fn
-    /// export struct
-    /// export var
-    /// export const
+    /// pub fn
+    /// pub struct
+    /// pub var
+    /// pub const
     ExportStatement(tk::Token, Box<Statement>),
     
     /// Async block statement
@@ -115,6 +115,18 @@ impl Statement {
 
     pub fn is_native(&self) -> bool {
         self.variant_type() == "NativeStatement"
+    }
+
+    /// Get the final stmt of a Block.
+    /// 
+    /// If not being called on a block, it will return the current stmt.
+    pub fn get_final_stmt(&self) -> &Statement {
+        match self {
+            Statement::BlockStatement(token, statements) => {
+                statements.last().unwrap().get_final_stmt()
+            },
+            _ => self
+        }
     }
 }
 

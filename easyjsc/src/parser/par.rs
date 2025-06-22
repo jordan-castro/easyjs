@@ -562,6 +562,10 @@ fn parse_return_statement(p: &mut Parser) -> ast::Statement {
     p.debug_print("parse_return_statement");
     let token = p.c_token.clone();
 
+    // Sometimes the return is empty
+    if p.peek_token_is(token::R_BRACE) {
+        return ast::Statement::ReturnStatement(token, Box::new(empty_expression()));
+    }
     p.next_token();
 
     let value = parse_expression(p, LOWEST);
