@@ -19,6 +19,7 @@
   - <<
   - ^ 
 - v0.4.x revamp IIFEs. Using get_return logic
+- v0.4.x Update wasm usecase in transpiler
 
 ## Commands
 - v0.4.5 Add a update command to the CLI
@@ -78,6 +79,7 @@
 - v0.6.0 explore multi threaded wasm.
 - v0.6.0 add shared memory support
 - v0.4.x Generate WAT for debugging purposes.
+- v0.5.0 Run a optomizer on the wasm byte code before transpiling.
 
 ## Website
 - v0.4.0 Links
