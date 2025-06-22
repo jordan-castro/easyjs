@@ -14,6 +14,11 @@
 - v0.5.0 Fix javascript{} token first charater
 - v0.5.0 Add classes
 - v0.5.0 revamp structs.
+- v0.4.x add break and continue as tokens.
+- v0.4.x Finish adding all operators
+  - <<
+  - ^ 
+- v0.4.x revamp IIFEs. Using get_return logic
 
 ## Commands
 - v0.4.5 Add a update command to the CLI
@@ -37,6 +42,7 @@
       - to_lower_case
       - ~~alloc~~
       - ~~negative indexing~~
+      - use data for static strings.
     - arrays
       - push
       - append
@@ -44,7 +50,22 @@
       - remove
   - import functions from external.
   - loops
-  - if statements
+  - ~~if statements~~
+  - operators
+    - ~~>~~
+    - ~~<~~
+    - ~~>=~~
+    - ~~<=~~
+    - ~~=~~
+    - ~~+~~
+    - ~~-~~
+    - ~~*~~
+    - ~~\~~
+    - ~~%~~
+    - ~~+=~~
+    - -=
+    - *=
+    - /=
 - v0.5.0
   - dicts
     - key, value

@@ -3,7 +3,98 @@ import "ej_tests/native/TEST_UTILS.ej"
 // testing logic if, >, <, >=, <=, =, ==
 
 native {
-    fn test_if():bool {
-        
+    pub fn test_if_else():bool {
+        x := 0
+
+        if x == 0 {
+            return true
+        } else {
+            return false
+        }
+    }
+
+    pub fn test_if_elif_else(num:int):string {
+        if num == 0 {
+            return "The number is 0"
+        } elif num == 1 {
+            return "The number is 1"
+        } else {
+            return "The number is neither 0 or 1"
+        }
+    }
+
+    pub fn test_if():int {
+        x := 0
+
+        if x == 0 {
+            x = x + 1
+        } else {
+            return 100
+        }
+
+        return x
+    }
+    
+    pub fn test_eq(x:int, y:int):bool {
+        return x == y
+    }
+
+    pub fn test_lt():bool {
+        return 0 < 1
+    }
+
+    pub fn test_lte(n1:int, n2:int):bool {
+        return n1 <= n2
+    }
+
+    pub fn test_gt(n1:int, n2:int):bool {
+        return n1 > n2
+    }
+
+    pub fn test_gte(n1:int, n2:int):bool {
+        return n1 >= n2
+    }
+
+    pub fn test_pe():int {
+        x := 0
+        x += 1
+
+        return x
+    }
+    
+    pub fn test_pe_string():string {
+        x := "test"
+        x += "1"
+
+        return x
+    }
+
+    pub fn test_pe_float():float {
+        x := 0.1
+        x += 0.2
+
+        return x
     }
 }
+
+@assert(test_if_else(), true)
+@assert(test_if_elif_else(1), "The number is 1")
+@assert(test_if_elif_else(0), "The number is 0")
+@assert(test_if_elif_else(2), "The number is neither 0 or 1")
+@assert(test_eq(0, 0), true)
+@assert(test_eq(0, 1), false)
+@assert(test_lt(), true)
+@assert(test_lte(0, 1), true)
+@assert(test_lte(0, 0), true)
+@assert(test_lte(0, -1), false)
+@assert(test_gt(0, 1), false)
+@assert(test_gt(0, 0), false)
+@assert(test_gt(0, -1), true)
+@assert(test_gte(0, 1), false)
+@assert(test_gte(0, 0), true)
+@assert(test_gte(0, -1), true)
+@assert(test_pe(), 1)
+@assert(test_pe_string(), "test1")
+@assert(test_pe_float().toFixed(1), 0.3.toString())
+
+@print('tests passed')

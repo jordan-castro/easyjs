@@ -18,6 +18,7 @@ pub struct EasyNativeFN {
 /// Context for a native variable.
 /// 
 /// The value is for global variables only.
+#[derive(Clone)]
 pub struct EasyNativeVar {
     /// Name of variable
     pub name: String,
@@ -31,6 +32,16 @@ pub struct EasyNativeVar {
     pub val_type: StrongValType,
     /// Is the variable mutable?
     pub is_mut: bool
+}
+
+/// Context for a Block.
+pub struct EasyNativeBlock {
+    /// The blocks idx.
+    pub idx: u32,
+    /// The block type as a `ValType`
+    pub block_type: Option<ValType>,
+    /// The `StrongValType` equivalent of block_type
+    pub strong_block_type: StrongValType
 }
 
 /// A signature for a function.

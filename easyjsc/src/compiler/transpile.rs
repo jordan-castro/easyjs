@@ -525,6 +525,20 @@ impl Transpiler {
                         }
                         break;
                         }
+                        case 'bool': {
+                        // booleans must be true/false or a number
+                        if (typeof arg !== 'boolean' && typeof arg !== 'number') {
+                            throw new Error(`Argument ${i} is not a valid boolean`);
+                        }
+                        // if true/false convert it to a int
+                        if (typeof arg === 'boolean') {
+                            args[i] = arg == true ? 1 : 0;
+                        } else {
+                            // make sure that the value is 0 or 1
+                            args[i] = arg > 0 ? 1 : 0;
+                        }
+                        break;
+                        }
                     }
                 }
 
@@ -542,6 +556,10 @@ impl Transpiler {
                         break;
                     }
                     case 'float': {
+                        break;
+                    }
+                    case 'bool': {
+                        result = result == 0 ? false : true
                         break;
                     }
                 }
@@ -1385,6 +1403,9 @@ impl Transpiler {
                 } else {
                     String::from("")
                 }
+            }
+            Expression::EmptyExpression => { 
+                String::from("")
             }
             _ => String::from(""),
         }

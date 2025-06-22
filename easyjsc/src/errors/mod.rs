@@ -1,4 +1,4 @@
-use crate::lexer::token::Token;
+use crate::{lexer::token::Token, parser::ast::Expression};
 
 fn make_error(token: &Token, error_msg: &str) -> String {
     format!("File: {} at line: {} and col: {}. ERROR {}. Token details: type: {}, literal: {}", token.file_name, token.line_number, token.col_number, error_msg, token.typ, token.literal)
@@ -60,4 +60,21 @@ pub fn native_unsupported_builtin_call(token: &Token) -> String {
 }
 
 /// ERROR Native: if expressions must go within functions.
-pub fn native_if_expression_must_go_within_functions
+pub fn native_if_expression_must_go_within_functions(token: &Token) -> String {
+    make_native_error(token, "If expression must go within a function")
+}
+
+/// ERROR Native: Unsupported expression: {expression}
+pub fn native_unsupported_expression(expression: &Expression) -> String {
+    make_native_error(expression.get_token(), format!("Unsupported expression: {:#?}", expression).as_str())
+}
+
+/// ERROR Native: No function provided for variable scope.
+pub fn native_no_function_provided_for_variable_scope(token: &Token) -> String {
+    make_native_error(token, "No function provided for variable scope")
+}
+
+/// ERROR Native: return value does not match function return type
+pub fn native_return_value_does_not_match_function(token: &Token) -> String {
+    make_native_error(token, "return value does not match function return type")
+}
