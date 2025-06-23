@@ -1404,6 +1404,9 @@ impl Transpiler {
                     String::from("")
                 }
             }
+            Expression::SpreadExpression(tk, expression) => {
+                format!("...{}", self.transpile_expression(expression.as_ref().to_owned()))
+            }
             Expression::EmptyExpression => { 
                 String::from("")
             }
