@@ -20,6 +20,15 @@
   - ^ 
 - v0.4.x revamp IIFEs. Using get_return logic
 - v0.4.x Update wasm usecase in transpiler
+  - I'm trying to do so that you need to do:
+    - // pseduo code
+    - module = await load_wasm(__native) 
+    - module.fun_name(arg1, arg2, ...etc)
+    - I definietely need to add a TypeChecker to the transpiler. I might need to refactor some parts of it.
+    - But I wonder...
+    - What if we treated the transpiler as INSTRUCTION based?
+    - that would be crazy right?
+    - hmmm, that might be really advanced actually
 - v0.4.x confirm imports of the same file work in the same project.
 
 ## Commands
