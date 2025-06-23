@@ -138,3 +138,8 @@ macro keys(object) {
 macro freeze(object) {
     Object.freeze(#object)
 }
+
+// Check type
+macro is_type(variable, type_name) {
+    typeof(#variable) == #type_name
+}

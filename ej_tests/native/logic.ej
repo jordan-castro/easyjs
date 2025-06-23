@@ -1,4 +1,5 @@
 import "ej_tests/native/TEST_UTILS.ej"
+import 'native'
 
 // testing logic if, >, <, >=, <=, =, ==
 
@@ -77,24 +78,29 @@ native {
     }
 }
 
-@assert(test_if_else(), true)
-@assert(test_if_elif_else(1), "The number is 1")
-@assert(test_if_elif_else(0), "The number is 0")
-@assert(test_if_elif_else(2), "The number is neither 0 or 1")
-@assert(test_eq(0, 0), true)
-@assert(test_eq(0, 1), false)
-@assert(test_lt(), true)
-@assert(test_lte(0, 1), true)
-@assert(test_lte(0, 0), true)
-@assert(test_lte(0, -1), false)
-@assert(test_gt(0, 1), false)
-@assert(test_gt(0, 0), false)
-@assert(test_gt(0, -1), true)
-@assert(test_gte(0, 1), false)
-@assert(test_gte(0, 0), true)
-@assert(test_gte(0, -1), true)
-@assert(test_pe(), 1)
-@assert(test_pe_string(), "test1")
-@assert(test_pe_float().toFixed(1), 0.3.toString())
+async {
+    // intialize module
+    module : EASY_NATIVE_MODULE = await EASYJS_NATIVE_init(__easyjs_native_module)
 
-@print('tests passed')
+    @assert(module.test_if_else(), true)
+    @assert(module.test_if_elif_else(1), "The number is 1")
+    @assert(module.test_if_elif_else(0), "The number is 0")
+    @assert(module.test_if_elif_else(2), "The number is neither 0 or 1")
+    @assert(module.test_eq(0, 0), true)
+    @assert(module.test_eq(0, 1), false)
+    @assert(module.test_lt(), true)
+    @assert(module.test_lte(0, 1), true)
+    @assert(module.test_lte(0, 0), true)
+    @assert(module.test_lte(0, -1), false)
+    @assert(module.test_gt(0, 1), false)
+    @assert(module.test_gt(0, 0), false)
+    @assert(module.test_gt(0, -1), true)
+    @assert(module.test_gte(0, 1), false)
+    @assert(module.test_gte(0, 0), true)
+    @assert(module.test_gte(0, -1), true)
+    @assert(module.test_pe(), 1)
+    @assert(module.test_pe_string(), "test1")
+    @assert(module.test_pe_float().toFixed(1), 0.3.toString())
+
+    @print('tests passed')
+}
