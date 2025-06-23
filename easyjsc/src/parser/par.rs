@@ -361,7 +361,10 @@ fn parse_statement(parser: &mut Parser) -> ast::Statement {
     let stmt = match parser.c_token.typ.as_str() {
         // token::VAR => parse_var_statement(parser),
         token::IDENT => {
-            if parser.peek_token_is(token::ASSIGN) || parser.peek_token_is(token::COLON) || parser.peek_token_is(token::TYPE_ASSIGNMENT) {
+            if parser.peek_token_is(token::ASSIGN)
+                || parser.peek_token_is(token::COLON)
+                || parser.peek_token_is(token::TYPE_ASSIGNMENT)
+            {
                 parse_var_statement(parser)
                 // parse_const_var_statement(parser)
             } else {
@@ -474,7 +477,7 @@ fn parse_match_statement(p: &mut Parser) -> ast::Statement {
 
     if p.peek_token_is(token::R_BRACE) {
         p.next_token(); // consume it and continue
-        return ast::Statement::MatchStatement(token, Box::new(expr), Box::new(conditions))
+        return ast::Statement::MatchStatement(token, Box::new(expr), Box::new(conditions));
     }
 
     while !p.peek_token_is(token::R_BRACE) {
@@ -483,7 +486,7 @@ fn parse_match_statement(p: &mut Parser) -> ast::Statement {
         if !p.expect_peek(token::COLON) {
             return ast::empty_statement();
         }
-        p.next_token(); 
+        p.next_token();
         let right_block = parse_block_statement(p);
         // p.next_token(); // consume the brace...
         conditions.push((left_condition, right_block));
@@ -549,9 +552,17 @@ fn parse_var_statement(p: &mut Parser) -> ast::Statement {
     }
 
     if !p.peek_token_is(token::ASSIGN) && !p.peek_token_is(token::TYPE_ASSIGNMENT) {
-        p.add_error(format!("Expected {} or {} but got {} instead.", token::ASSIGN, token::TYPE_ASSIGNMENT, p.peek_token.literal).as_str());
+        p.add_error(
+            format!(
+                "Expected {} or {} but got {} instead.",
+                token::ASSIGN,
+                token::TYPE_ASSIGNMENT,
+                p.peek_token.literal
+            )
+            .as_str(),
+        );
         return ast::Statement::EmptyStatement;
-    } 
+    }
     let infer_type = p.peek_token_is(token::TYPE_ASSIGNMENT);
     p.next_token();
     p.next_token();
@@ -587,7 +598,6 @@ fn parse_expression_statement(p: &mut Parser) -> ast::Statement {
 
     ast::Statement::ExpressionStatement(token, Box::new(expression))
 }
-
 
 fn parse_block_statement(p: &mut Parser) -> ast::Statement {
     p.debug_print("parse_block_statement");
@@ -685,7 +695,7 @@ fn parse_identifier(parser: &mut Parser, try_parse_type: bool) -> ast::Expressio
     // check if we are parsing a self
     if token.typ == token::SELF {
         lit = "this".to_owned();
-    } 
+    }
 
     // should we try to parse a type?
     if try_parse_type {
@@ -700,8 +710,8 @@ fn parse_identifier(parser: &mut Parser, try_parse_type: bool) -> ast::Expressio
 fn parse_type(p: &mut Parser) -> ast::Expression {
     p.debug_print("parse_type");
     let token = p.c_token.clone();
-    
-    // consume the : 
+
+    // consume the :
     p.next_token();
     // and go to the identifer
     if !p.expect_peek(token::IDENT) {
@@ -869,12 +879,22 @@ fn parse_function_paramaters(p: &mut Parser) -> Vec<ast::Expression> {
 
     // go to first identifier
     p.next_token();
-    idents.push(parse_identifier(p, true));
+    // Check if a spread operator
+    if p.cur_token_is(token::SPREAD) {
+        // spreads can't be typed
+        idents.push(parse_spread_expression(p));
+    } else {
+        idents.push(parse_identifier(p, true));
+    }
 
     while p.peek_token_is(token::COMMA) {
         p.next_token();
         p.next_token();
-        idents.push(parse_identifier(p, true));
+        if p.cur_token_is(token::SPREAD) {
+            idents.push(parse_spread_expression(p));
+        } else {
+            idents.push(parse_identifier(p, true));
+        }
     }
 
     if !p.expect_peek(token::R_PAREN) {
@@ -1330,7 +1350,7 @@ fn parse_struct_statement(p: &mut Parser) -> ast::Statement {
     }
     let ident = parse_identifier(p, false);
 
-    let mut constructor_vars : Option<Box<Vec<ast::Expression>>> = None;
+    let mut constructor_vars: Option<Box<Vec<ast::Expression>>> = None;
 
     // We have constructor variables
     if p.peek_token_is(token::L_BRACKET) {
@@ -1351,7 +1371,7 @@ fn parse_struct_statement(p: &mut Parser) -> ast::Statement {
     }
 
     let mut mixins: Option<Box<Vec<ast::Expression>>> = None;
-   if p.peek_token_is(token::WITH) {
+    if p.peek_token_is(token::WITH) {
         let mut mixin_names = vec![];
         p.next_token(); // consume the WITH
         p.next_token(); // be on the mixin
@@ -1396,7 +1416,7 @@ fn parse_struct_statement(p: &mut Parser) -> ast::Statement {
                 ast::empty_box_exp(),
                 None,
                 ast::empty_box_exp(),
-                false
+                false,
             )) {
                 return ast::empty_statement();
             }
@@ -1504,7 +1524,7 @@ fn parse_new_expression(p: &mut Parser) -> ast::Expression {
 fn parse_float_literal(p: &mut Parser) -> ast::Expression {
     p.debug_print("parse_float_literal");
     let token = p.c_token.to_owned(); // 1.0
-                                      // check is float
+    // check is float
     let is_float = p.c_token.literal.parse::<f64>().is_ok();
     if !is_float {
         p.add_error(format!("Epected type FLOAT got {} instead", token.literal).as_str());
@@ -1546,4 +1566,23 @@ fn parse_builtin_expression(p: &mut Parser) -> ast::Expression {
     }
 
     ast::Expression::BuiltinCall(token, Box::new(args))
+}
+
+fn parse_spread_expression(p: &mut Parser) -> ast::Expression {
+    p.debug_print("parse_spread_expression");
+    let token = p.c_token.to_owned(); // ...
+
+    if !p.expect_peek(token::IDENT) {
+        p.add_error(
+            format!(
+                "Expected a identifer after the ... got {} instead",
+                p.peek_token.literal
+            )
+            .as_str(),
+        );
+        return ast::empty_expression();
+    }
+    let ident = parse_expression(p, LOWEST);
+
+    ast::Expression::SpreadExpression(token, Box::new(ident))
 }
