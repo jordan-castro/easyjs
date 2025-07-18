@@ -17,7 +17,7 @@ with open("../lib/version", "r") as f:
 
 lib_files = glob("../lib/*.ej")
 
-with open("src/std/mod.rs", "w") as f:
+with open("../easyjsc/src/std/mod.rs", "w") as f:
     f.write(f"// EasyJS STD version {version}\n")
 
     name_to_source = {}

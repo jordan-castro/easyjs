@@ -1,4 +1,4 @@
-// EasyJS STD version 0.4.0
+// EasyJS STD version 0.4.2
 const DATE: &str = r##"// Get the days between 2 dates
 macro days_between_dates(d1, d2) { 
     Math.ceil(Math.abs(#d1 - #d2) / (1000 * 60 * 60 * 24)) 
@@ -42,6 +42,136 @@ macro calculate_percent(value,total) {
     Math.round((#value / #total) * 100)
 }
 "##;
+const NATIVE: &str = r##"import 'std'
+
+// Macro for encoding UTF-8
+macro utf8_encode(str) {
+    new TextEncoder('utf-8').encode(#str)
+}
+
+// Macro for decoding UTF-8
+macro utf8_decode(bytes) {
+    new TextDecoder('utf-8').decode(#bytes)
+}
+
+/// Initialize the native module.
+async fn EASYJS_NATIVE_init(binary) {
+    @const(module, await WebAssembly.instantiate(binary.buffer))
+    @const(instance, module.instance)
+
+    return instance.exports
+}
+
+/// Convert a host string to a native string
+fn EASYJS_NATIVE_convert_string_to_native(instance, str) {
+    // get length and bytes
+    @const(str_len, str.length)
+    @const(str_bytes, @utf8_encode(str))
+
+    // allocate space and get ptr
+    @const(ptr, instance.exports.__str_alloc(str_len))
+
+    // store length
+    instance.exports.__str_store_len(ptr, str_len)
+
+    // Write the string to memory
+    for i in 0..str_bytes.length {
+        instance.exports.__str_store_byte(ptr, 4 + i, str_bytes[i])
+    }
+
+    return ptr
+}
+
+/// Convert a native string into a host string.
+fn EASYJS_NATIVE_convert_string_to_host(instance, ptr) {
+    @const(length, instance.exports.__str_get_len(ptr))
+    @const(memory_buffer, new Uint8Array(instance.exports.memory.buffer, ptr + 4, length))
+
+    // Decode string
+    return @utf8_decode(memory_buffer)
+}
+
+/// Call a easyjs native method
+fn EASYJS_NATIVE_call(instance, fn_name, param_types, return_types, ...args) {
+    if !instance {
+        @throw('No native module loaded')
+    }
+
+    if !instance.exports[fn_name] {
+        @throw('Function $fn_name not found in native module')
+    }
+
+    if param_types.length != args.length {
+        @throw('Number of arguments does not match number of parameters')
+    }
+
+    // Go through params and make sure args match type
+    for i in 0..args.length {
+        arg = args[i]
+        param_type = param_types[i]
+
+        match param_type {
+            'string': {
+                if typeof(arg) != 'string' {
+                    @throw('Argument $i is not a string')
+                }
+                // This is a string so we need to convert it to a native pointer.
+                args[i] = EASYJS_NATIVE_convert_string_to_native(instance, args[i])
+            }
+            'int': {
+                if typeof(arg) != 'number' or !Number.isInteger(arg) {
+                    @throw('Argument $i is not a integer')
+                }
+            }
+            'float': {
+                if typeof(arg) != 'number' or isNaN(arg) {
+                    @throw('Argument is not a valid float')
+                }
+            }
+            'bool': {
+                // booleans must be true/false or a number
+                if not @is_type(arg, 'boolean') and not @is_type(arg, 'number') {
+                    @throw('Argument: $i is not a valid boolean')
+                }
+                // if true/false convert it to a int.
+                if @is_type(arg, 'boolean') {
+                    // TODO: implement this: args[i] = if arg == true 1 else 0
+                    if arg == true {
+                        args[i] = 1
+                    } else {
+                        args[i] = 0
+                    }
+                } else {
+                    // is already a number so make sure it is either 0 or 1
+                    if arg > 0 {
+                        args[i] = 1
+                    } else {
+                        args[i] = 0
+                    }
+                }
+            }
+        }
+    }
+    // load result
+    result = instance.exports[fn_name](...args)
+    
+    // match result type
+    match return_types[0] {
+        'string': {
+            // convert from native to host
+            result = EASYJS_NATIVE_convert_string_to_host(instance, result)
+        }
+        'bool': {
+            if result == 1 {
+                result = true
+            } else {
+                result = false
+            }
+        }
+    }
+
+    return result
+}"##;
 const RANDOM: &str = r##"// EasyJS implementation of random.uniform from Python.
 macro uniform(a,b) {
     Math.random() * (#b - #a + 1) + #a
@@ -214,6 +344,11 @@ macro keys(object) {
 // Call Object.freeze on a object
 macro freeze(object) {
     Object.freeze(#object)
+}
+
+// Check type
+macro is_type(variable, type_name) {
+    typeof(#variable) == #type_name
 }"##;
 const STRINGS: &str = r##"native {
     pub fn __get_str_len(ptr:int):int {
@@ -229,12 +364,13 @@ const STRINGS: &str = r##"native {
     }
 }"##;
 
-/// Load a STD library from EasyJS version 0.4.0, or an empty string if not found.
+/// Load a STD library from EasyJS version 0.4.2, or an empty string if not found.
 pub fn load_std(name: &str) -> String {
 match name {
 "date" => DATE,
 "malloc" => MALLOC,
 "math" => MATH,
+"native" => NATIVE,
 "random" => RANDOM,
 "std" => STD,
 "strings" => STRINGS,
