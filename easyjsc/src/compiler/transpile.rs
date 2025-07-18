@@ -69,14 +69,14 @@ pub struct Transpiler {
     /// Track native variables and functions
     native_ctx: NativeContext,
 
-    /// Should our tarnspiler take iife into consideration?
-    inside_iife: bool,
-
     /// Are we in debug mode?
     pub debug_mode: bool,
 
     /// All imported modules (including stdlib)
-    imported_modules: Vec<String>
+    imported_modules: Vec<String>,
+
+    /// Is this being compiled as a module
+    is_module: bool
 }
 /// Non Wasm specific (if running in non wasm enviroment, optionally save the wasm binary)
 #[cfg(not(target_arch = "wasm32"))]
@@ -102,9 +102,9 @@ impl Transpiler {
                 functions: vec![],
                 variables: vec![],
             },
-            inside_iife: false,
             debug_mode: false,
-            imported_modules: Vec::new()
+            imported_modules: Vec::new(),
+            is_module: false
         };
 
         // Check the EASYJS_DEBUG variable
@@ -220,6 +220,7 @@ impl Transpiler {
     /// Transpile a module.
     pub fn transpile_module(&mut self, p: ast::Program) -> String {
         let mut t = Transpiler::new();
+        t.is_module = true;
         let js = t.transpile(p);
         self.native_ctx
             .functions
@@ -227,7 +228,11 @@ impl Transpiler {
         self.native_ctx
             .variables
             .append(&mut t.native_ctx.variables);
-        self.native_stmts.append(&mut t.native_stmts);
+        // Have to add the imported native statements to the top first.
+        let mut native_stmts = t.native_stmts.clone();
+        native_stmts.append(&mut self.native_stmts);
+        self.native_stmts = native_stmts;
+
         self.macros.extend(t.macros);
         js
     }
@@ -246,8 +251,8 @@ impl Transpiler {
     fn to_string(&mut self) -> String {
         let mut res = String::new();
 
-        if self.native_stmts.len() > 0 {
-        //     res.push_str("(async () => {\n");
+        // Only compile the native statments if we are not in a module and there are any.
+        if !self.is_module && self.native_stmts.len() > 0 {
             // compiile native
             res.push_str(&self.transpile_native_stmts());
         }
@@ -255,11 +260,6 @@ impl Transpiler {
         for script in self.scripts.iter() {
             res.push_str(&script);
         }
-
-        // if self.native_stmts.len() > 0 {
-        //     // close native and call script.
-        //     res.push_str("})()");
-        // }
 
         res
     }
@@ -282,7 +282,7 @@ impl Transpiler {
     /// Transpile easyjs code into JS from a ast program.
     fn transpile_from(&mut self, p: ast::Program) -> String {
         // seperate stmt types
-        let native_stmts = p
+        let mut native_stmts = p
             .statements
             .iter()
             .filter(|p| p.is_native())
@@ -418,6 +418,12 @@ impl Transpiler {
     }
 
     fn transpile_import_stmt(&mut self, file_path: &str) -> String {
+        // Check if already imported
+        if self.imported_modules.contains(&file_path.to_string()) {
+            return "".to_string();
+        }
+        // add to imported modules
+        self.imported_modules.push(file_path.to_string());
         let contents = import_file(file_path);
         if contents == "".to_string() {
             return "".to_string();
