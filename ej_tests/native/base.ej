@@ -2,10 +2,10 @@ import 'std'
 
 native {
     pub fn add(n1: int, n2: int):int {
-        n3 : int = 12
+        n3 : int = 56
         return n1 + n3
     }
 }
 
 x = add(1,2)
-@print(add(1,2))
+@print(x)

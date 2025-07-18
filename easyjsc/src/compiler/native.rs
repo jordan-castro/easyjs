@@ -937,6 +937,7 @@ impl NativeContext {
                 is_mut: true,
             });
         }
+        self.next_var_idx += params.len() as u32;
 
         // all instructions have been added correctly.
         self.compile_statement(body, self.is_pub);

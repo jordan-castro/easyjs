@@ -30,6 +30,7 @@
     - that would be crazy right?
     - hmmm, that might be really advanced actually
 - v0.4.x confirm imports of the same file work in the same project.
+- v0.4.1 Fix ?.
 
 ## Commands
 - v0.4.5 Add a update command to the CLI
@@ -77,7 +78,7 @@
     - -=
     - *=
     - /=
-- v0.5.0
+- v0.4.0
   - dicts
     - key, value
     - set, get by key
@@ -89,7 +90,7 @@
 - v0.6.0 explore multi threaded wasm.
 - v0.6.0 add shared memory support
 - v0.4.x Generate WAT for debugging purposes.
-- v0.5.0 Run a optomizer on the wasm byte code before transpiling.
+- v0.4.0 Run a optomizer on the wasm byte code before transpiling.
 
 ## Website
 - v0.4.0 Links

@@ -247,7 +247,7 @@ impl Transpiler {
         let mut res = String::new();
 
         if self.native_stmts.len() > 0 {
-            res.push_str("(async () => {\n");
+        //     res.push_str("(async () => {\n");
             // compiile native
             res.push_str(&self.transpile_native_stmts());
         }
@@ -256,10 +256,10 @@ impl Transpiler {
             res.push_str(&script);
         }
 
-        if self.native_stmts.len() > 0 {
-            // close native and call script.
-            res.push_str("})()");
-        }
+        // if self.native_stmts.len() > 0 {
+        //     // close native and call script.
+        //     res.push_str("})()");
+        // }
 
         res
     }
@@ -458,128 +458,128 @@ impl Transpiler {
         }
         res.push_str("]);\n");
 
-        // res.push_str("
-        //     const __easyjs_native = await WebAssembly.instantiate(__easyjs_native_binary.buffer);
-        //     const __easyjs_native_instance = __easyjs_native.instance;
-        //     class __EasyJSNativeInterop {
-        //         /**
-        //          * Function for converting a string to native.
-        //          */
-        //         static convert_string_to_native(instance, str) {
-        //             // get length and bytes
-        //             const strLen = str.length;
-        //             const strBytes = new TextEncoder('utf-8').encode(str);
+        res.push_str("
+            const __easyjs_native = new WebAssembly.Module(__easyjs_native_module);
+            const __easyjs_native_instance = new WebAssembly.Instance(__easyjs_native);
+            class __EasyJSNativeInterop {
+                /**
+                 * Function for converting a string to native.
+                 */
+                static convert_string_to_native(instance, str) {
+                    // get length and bytes
+                    const strLen = str.length;
+                    const strBytes = new TextEncoder('utf-8').encode(str);
 
-        //             // allocate space and get pointer
-        //             const ptr = instance.exports.__str_alloc(strLen);
+                    // allocate space and get pointer
+                    const ptr = instance.exports.__str_alloc(strLen);
 
-        //             // store length
-        //             instance.exports.__str_store_len(ptr, strLen);
+                    // store length
+                    instance.exports.__str_store_len(ptr, strLen);
 
-        //             // Write the string to memory
-        //             for (let i = 0; i < strBytes.length; i++) {
-        //                 instance.exports.__str_store_byte(ptr, 4 + i, strBytes[i]);
-        //             }
-        //             return ptr;
-        //         }
+                    // Write the string to memory
+                    for (let i = 0; i < strBytes.length; i++) {
+                        instance.exports.__str_store_byte(ptr, 4 + i, strBytes[i]);
+                    }
+                    return ptr;
+                }
 
-        //         /**
-        //          * Function for reading a string from native.
-        //          */
-        //         static read_string_from_native(instance, ptr) {
-        //             const length = instance.exports.__str_get_len(ptr);
+                /**
+                 * Function for reading a string from native.
+                 */
+                static read_string_from_native(instance, ptr) {
+                    const length = instance.exports.__str_get_len(ptr);
 
-        //             const memoryBuffer = new Uint8Array(instance.exports.memory.buffer, ptr + 4, length);
+                    const memoryBuffer = new Uint8Array(instance.exports.memory.buffer, ptr + 4, length);
 
-        //             // Decode the string
-        //             const decodedString = new TextDecoder('utf-8').decode(memoryBuffer);
+                    // Decode the string
+                    const decodedString = new TextDecoder('utf-8').decode(memoryBuffer);
 
-        //             return decodedString;
-        //         }
-        //     }
+                    return decodedString;
+                }
+            }
 
-        //     function __easyjs_native_call(fnName, paramTypes, returnTypes, ...args) {
-        //         if (!__easyjs_native_instance) {
-        //             throw new Error('No instance of __easyjs_native loaded');
-        //         }
+            function __easyjs_native_call(fnName, paramTypes, returnTypes, ...args) {
+                if (!__easyjs_native_instance) {
+                    throw new Error('No instance of __easyjs_native loaded');
+                }
 
-        //         if (!__easyjs_native_instance.exports[fnName]) {
-        //             throw new Error(`Function ${fnName} not found in __easyjs_native`);
-        //         }
+                if (!__easyjs_native_instance.exports[fnName]) {
+                    throw new Error(`Function ${fnName} not found in __easyjs_native`);
+                }
 
-        //         if (paramTypes.length !== args.length) {
-        //             throw new Error('Number of arguments does not match number of parameters');
-        //         }
+                if (paramTypes.length !== args.length) {
+                    throw new Error('Number of arguments does not match number of parameters');
+                }
 
-        //         // go through params and make sure args match type
-        //         for (let i = 0; i < args.length; i++) {
-        //             const arg = args[i];
-        //             const paramType = paramTypes[i];
+                // go through params and make sure args match type
+                for (let i = 0; i < args.length; i++) {
+                    const arg = args[i];
+                    const paramType = paramTypes[i];
 
-        //             switch (paramType) {
-        //                 case 'string': {
-        //                 if (typeof arg !== 'string') {
-        //                     throw new Error(`Argument ${i} is not a string`);
-        //                 }
+                    switch (paramType) {
+                        case 'string': {
+                        if (typeof arg !== 'string') {
+                            throw new Error(`Argument ${i} is not a string`);
+                        }
 
-        //                 // this is a string so we need to convert it to a native pointer.
-        //                 args[i] = __EasyJSNativeInterop.convert_string_to_native(__easyjs_native_instance, args[i])
-        //                 break;
-        //                 }
-        //                 case 'int': {
-        //                 if (typeof arg !== 'number' || !Number.isInteger(arg)) {
-        //                     throw new Error(`Argument ${i} is not an integer`);
-        //                 }
-        //                 break;
-        //                 }
-        //                 case 'float': {
-        //                 if (typeof arg !== 'number' || isNaN(arg)) {
-        //                     throw new Error(`Argument ${i} is not a valid float`);
-        //                 }
-        //                 break;
-        //                 }
-        //                 case 'bool': {
-        //                 // booleans must be true/false or a number
-        //                 if (typeof arg !== 'boolean' && typeof arg !== 'number') {
-        //                     throw new Error(`Argument ${i} is not a valid boolean`);
-        //                 }
-        //                 // if true/false convert it to a int
-        //                 if (typeof arg === 'boolean') {
-        //                     args[i] = arg == true ? 1 : 0;
-        //                 } else {
-        //                     // make sure that the value is 0 or 1
-        //                     args[i] = arg > 0 ? 1 : 0;
-        //                 }
-        //                 break;
-        //                 }
-        //             }
-        //         }
+                        // this is a string so we need to convert it to a native pointer.
+                        args[i] = __EasyJSNativeInterop.convert_string_to_native(__easyjs_native_instance, args[i])
+                        break;
+                        }
+                        case 'int': {
+                        if (typeof arg !== 'number' || !Number.isInteger(arg)) {
+                            throw new Error(`Argument ${i} is not an integer`);
+                        }
+                        break;
+                        }
+                        case 'float': {
+                        if (typeof arg !== 'number' || isNaN(arg)) {
+                            throw new Error(`Argument ${i} is not a valid float`);
+                        }
+                        break;
+                        }
+                        case 'bool': {
+                        // booleans must be true/false or a number
+                        if (typeof arg !== 'boolean' && typeof arg !== 'number') {
+                            throw new Error(`Argument ${i} is not a valid boolean`);
+                        }
+                        // if true/false convert it to a int
+                        if (typeof arg === 'boolean') {
+                            args[i] = arg == true ? 1 : 0;
+                        } else {
+                            // make sure that the value is 0 or 1
+                            args[i] = arg > 0 ? 1 : 0;
+                        }
+                        break;
+                        }
+                    }
+                }
 
-        //         let result = __easyjs_native_instance.exports[fnName](...args);
+                let result = __easyjs_native_instance.exports[fnName](...args);
 
-        //         // match result type
-        //         // TODO: support multiple return types
-        //         switch (returnTypes[0]) {
-        //             case 'string': {
-        //                 // get length
-        //                 result = __EasyJSNativeInterop.read_string_from_native(__easyjs_native_instance, result);
-        //                 break;
-        //             }
-        //             case 'int': {
-        //                 break;
-        //             }
-        //             case 'float': {
-        //                 break;
-        //             }
-        //             case 'bool': {
-        //                 result = result == 0 ? false : true
-        //                 break;
-        //             }
-        //         }
+                // match result type
+                // TODO: support multiple return types
+                switch (returnTypes[0]) {
+                    case 'string': {
+                        // get length
+                        result = __EasyJSNativeInterop.read_string_from_native(__easyjs_native_instance, result);
+                        break;
+                    }
+                    case 'int': {
+                        break;
+                    }
+                    case 'float': {
+                        break;
+                    }
+                    case 'bool': {
+                        result = result == 0 ? false : true
+                        break;
+                    }
+                }
 
-        //         return result;
-        //     }\n\n
-        // ");
+                return result;
+            }\n\n
+        ");
 
         res
     }
@@ -1227,17 +1227,6 @@ impl Transpiler {
             }
             Expression::DotExpression(token, left, right) => {
                 let mut res = String::new();
-
-                // Check if the left side is actually a native module.
-                match left.as_ref() {
-                    Expression::Identifier(_, name) => {
-                        // Check is native module
-                        if 
-                    } 
-                    _ => {
-
-                    }
-                }
 
                 res.push_str(&self.transpile_expression(left.as_ref().to_owned()));
                 res.push_str(".");
