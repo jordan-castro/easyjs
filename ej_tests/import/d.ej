@@ -1,0 +1,22 @@
+import 'ej_tests/import/a.ej'
+import 'ej_tests/import/b.ej'
+import 'ej_tests/import/c.ej'
+import 'std'
+
+native {
+    pub fn sub(n1:int, n2:int):int {
+        return n1 - n2
+    }
+
+    pub fn call_add(n1:int, n2:int):int {
+        return add(n1,n2)
+    }
+}
+
+@print('We are all in this together')
+@print(add(2,3))
+@print(sub(2,3))
+@print(call_add(1,2))
+
+p = Person('Jordan', 23)
+p.say_hi()

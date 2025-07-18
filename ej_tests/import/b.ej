@@ -1,0 +1,7 @@
+import 'std'
+
+struct Person[name, age] {
+    fn say_hi(self) {
+        @print('${self.name} = ${self.age}')
+    }
+}
