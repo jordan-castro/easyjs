@@ -1,5 +1,6 @@
+use crate::lexer::token::MACRO;
 use crate::lexer::{lex, token};
-use crate::parser::ast;
+use crate::parser::ast::{self, Expression};
 
 use super::ast::empty_expression;
 
@@ -43,10 +44,9 @@ const ASSIGN: i64 = 16;
 const AS: i64 = 18;
 const MACRO_SYMBOL: i64 = 19;
 // const DECORATOR: i64 = 20;
-const MACRO: i64 = 21;
+const DOC_COMMENT: i64 = 20;
 const AND: i64 = 22;
 const OR: i64 = 23;
-const QUESTION_MARK: i64 = 24;
 const DOUBLE_QUESTION_MARK: i64 = 25;
 const NEW: i64 = 27;
 
@@ -76,11 +76,10 @@ fn precedences(tk: &str) -> i64 {
         token::ASSIGN => ASSIGN,
         token::AS => AS,
         token::MACRO_SYMBOL => MACRO_SYMBOL,
+        token::DOC_COMMENT => DOC_COMMENT,
         // token::DECORATOR => DECORATOR,
-        token::MACRO => MACRO,
         token::AND_SYMBOL => AND,
         token::OR_SYMBOL => OR,
-        token::QUESTION_MARK => QUESTION_MARK,
         token::DOUBLE_QUESTION_MARK => DOUBLE_QUESTION_MARK,
         token::MODULUS => PRODUCT,
         token::NEW => NEW,
@@ -136,6 +135,7 @@ impl Parser {
             token::MINUS => parse_prefix_expression(self),
             token::TRUE => parse_boolean(self),
             token::FALSE => parse_boolean(self),
+            token::NULL => parse_null(self),
             token::L_PAREN => parse_group_expression(self),
             token::IF => parse_if_expression(self),
             token::FUNCTION => parse_function_literal(self),
@@ -147,8 +147,8 @@ impl Parser {
             token::AWAIT => parse_await_expression(self),
             token::MACRO_SYMBOL => parse_macro_expression(self),
             token::SPREAD => parse_spread_expression(self),
+            token::DOC_COMMENT => parse_doc_comment_expression(self),
             // token::DECORATOR => parse_macro_expression(self),
-            token::MACRO => parse_macro_decleration(self),
             token::NEW => parse_new_expression(self),
             token::BUILTIN => parse_builtin_expression(self),
             _ => ast::Expression::EmptyExpression,
@@ -167,6 +167,7 @@ impl Parser {
             token::MINUS => true,
             token::TRUE => true,
             token::FALSE => true,
+            token::NULL => true,
             token::L_PAREN => true,
             token::IF => true,
             token::FUNCTION => true,
@@ -175,11 +176,11 @@ impl Parser {
             token::L_BRACKET => true,
             token::L_BRACE => true,
             token::ASYNC => true,
+            token::DOC_COMMENT => true,
             token::AWAIT => true,
             token::MACRO_SYMBOL => true,
             token::SPREAD => true,
             // token::DECORATOR => true,
-            token::MACRO => true,
             token::NEW => true,
             token::BUILTIN => true,
             _ => false,
@@ -245,7 +246,6 @@ impl Parser {
             token::ASSIGN => parse_assign_expression(self, left),
             token::AND_SYMBOL => parse_and_expression(self, left),
             token::OR_SYMBOL => parse_or_expression(self, left),
-            token::QUESTION_MARK => parse_question_mark_expression(self, left),
             token::DOUBLE_QUESTION_MARK => parse_double_question_mark_expression(self, left),
             token::MODULUS => parse_infix_expression(self, left),
             token::PLUS_EQUALS => parse_infix_expression(self, left),
@@ -382,10 +382,12 @@ fn parse_statement(parser: &mut Parser) -> ast::Statement {
         token::STRUCT => parse_struct_statement(parser),
         token::PUB => parse_export_statement(parser),
         token::ASYNC => parse_async_block_statement(parser),
-        token::DOC_COMMENT => parse_doc_comment_statement(parser),
         token::MATCH => parse_match_statement(parser),
         token::NATIVE => parse_native_statement(parser),
         token::ENUM => parse_enum_statement(parser),
+        token::BREAK => parse_break_statement(parser),
+        token::CONTINUE => parse_continue_statement(parser),
+        token::MACRO => parse_macro_decleration(parser),
         _ => parse_expression_statement(parser),
     };
 
@@ -395,6 +397,18 @@ fn parse_statement(parser: &mut Parser) -> ast::Statement {
     }
 
     stmt
+}
+
+fn parse_break_statement(p: &mut Parser) -> ast::Statement {
+    p.debug_print("parse_break_statement");
+    let token = p.c_token.clone();
+
+    ast::Statement::BreakStatement(token)
+}
+
+fn parse_continue_statement(p: &mut Parser) -> ast::Statement {
+    p.debug_print("parse_continue_statement");
+    ast::Statement::ContinueStatement(p.c_token.clone())
 }
 
 fn parse_enum_statement(p: &mut Parser) -> ast::Statement {
@@ -500,7 +514,7 @@ fn parse_match_statement(p: &mut Parser) -> ast::Statement {
     ast::Statement::MatchStatement(token, Box::new(expr), Box::new(conditions))
 }
 
-fn parse_doc_comment_statement(p: &mut Parser) -> ast::Statement {
+fn parse_doc_comment_expression(p: &mut Parser) -> ast::Expression {
     p.debug_print("parse_doc_comment_statement");
     let token = p.c_token.to_owned(); // ///
 
@@ -514,7 +528,7 @@ fn parse_doc_comment_statement(p: &mut Parser) -> ast::Statement {
         comments.push(p.c_token.to_owned().literal);
     }
 
-    ast::Statement::DocCommentStatement(token, comments)
+    ast::Expression::DocCommentExpression(token, comments)
 }
 
 fn parse_export_statement(p: &mut Parser) -> ast::Statement {
@@ -1181,11 +1195,13 @@ fn parse_index_expression(p: &mut Parser, left: ast::Expression) -> ast::Express
 fn parse_range_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression {
     p.debug_print("parse_range_expression");
     let token = p.c_token.to_owned();
-    p.next_token();
+    let mut right: Expression;
 
-    let right = parse_expression(p, LOWEST);
-    if right.is_empty() {
-        return ast::Expression::EmptyExpression;
+    if p.peek_token_is(token::R_BRACKET) {
+        right = Expression::EmptyExpression;
+    } else {
+        p.next_token();
+        right = parse_expression(p, LOWEST);
     }
 
     ast::Expression::RangeExpression(token, Box::new(left), Box::new(right))
@@ -1298,18 +1314,18 @@ fn parse_macro_expression(p: &mut Parser) -> ast::Expression {
     ast::Expression::MacroExpression(token, Box::new(ident), Box::new(args))
 }
 
-fn parse_macro_decleration(p: &mut Parser) -> ast::Expression {
+fn parse_macro_decleration(p: &mut Parser) -> ast::Statement {
     p.debug_print("parse_macro_decleration");
     let token = p.c_token.to_owned(); // macro
 
     if !p.expect_peek(token::IDENT) {
-        return ast::empty_expression();
+        return ast::empty_statement();
     }
 
     let name = parse_identifier(p, false);
 
     if !p.expect_peek(token::L_PAREN) {
-        return ast::empty_expression();
+        return ast::empty_statement();
     }
 
     let args = {
@@ -1329,17 +1345,16 @@ fn parse_macro_decleration(p: &mut Parser) -> ast::Expression {
     };
 
     if !p.expect_peek(token::R_PAREN) {
-        return ast::empty_expression();
+        return ast::empty_statement();
     }
 
     if !p.expect_peek(token::L_BRACE) {
-        return ast::empty_expression();
+        return ast::empty_statement();
     }
 
     let body = parse_block_statement(p);
 
-    ast::Expression::MacroDecleration(token, Box::new(name), Box::new(args), Box::new(body))
-    // ast::Expression::MacroLiteral(token)
+    ast::Statement::MacroStatement(token, Box::new(name), Box::new(args), Box::new(body))
 }
 
 fn parse_struct_statement(p: &mut Parser) -> ast::Statement {
@@ -1441,9 +1456,10 @@ fn parse_struct_statement(p: &mut Parser) -> ast::Statement {
     }
 
     // what else could this be???
-    if !p.expect_peek(token::FUNCTION) {
+    if !p.peek_token_is(token::FUNCTION) && !p.peek_token_is(token::ASYNC) && !p.peek_token_is(token::DOC_COMMENT) {
         return ast::empty_statement();
     }
+    p.next_token();
 
     // start parsing the functions
     loop {
@@ -1486,15 +1502,6 @@ fn parse_or_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression
     let right = parse_expression(p, LOWEST);
 
     ast::Expression::OrExpression(token, Box::new(left), Box::new(right))
-}
-
-fn parse_question_mark_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression {
-    p.debug_print("parse_question_mark_expression");
-    let token = p.c_token.to_owned(); // ?
-    p.next_token();
-    let right = parse_expression(p, LOWEST);
-
-    ast::Expression::NullExpression(token, Box::new(left), Box::new(right))
 }
 
 fn parse_double_question_mark_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression {
@@ -1585,4 +1592,11 @@ fn parse_spread_expression(p: &mut Parser) -> ast::Expression {
     let ident = parse_expression(p, LOWEST);
 
     ast::Expression::SpreadExpression(token, Box::new(ident))
+}
+
+fn parse_null(p: &mut Parser) -> ast::Expression {
+    p.debug_print("parse_null");
+    let token = p.c_token.to_owned();
+
+    ast::Expression::NullExpression(token)
 }

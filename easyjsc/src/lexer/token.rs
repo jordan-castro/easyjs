@@ -141,6 +141,9 @@ pub const MATCH: &str = "MATCH";
 pub const WITH: &str = "WITH";
 pub const IMPORT: &str = "IMPORT";
 pub const ENUM: &str = "ENUM";
+pub const BREAK: &str = "BREAK";
+pub const CONTINUE: &str = "CONTINUE";
+pub const NULL: &str = "NULL";
 
 // Builtin methods
 pub const BUILTIN: &str = "BUILTIN";
@@ -177,6 +180,9 @@ pub fn lookup_ident(ident: &str) -> &'static str {
         "import" => IMPORT,
         "match" => MATCH,
         "with" => WITH,
+        "break" => BREAK,
+        "continue" => CONTINUE,
+        "null" => NULL,
         _ => IDENT, // Default case for unknown identifiers
     }
 }

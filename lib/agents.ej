@@ -1,0 +1,11 @@
+// Property of easyjs
+
+class Agent {
+    name:string
+    tools:Array<Tool>
+
+    fn __new(self, details) {
+        self.name = details.name ?? ''
+        self.tools = details.tools ?? []
+    }
+}

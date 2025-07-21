@@ -108,6 +108,7 @@ impl Lex {
                 result.push(self.current_char);
                 // move pass the backslash
                 self.read_char();
+                continue;
             }
 
             // add the current character to the result string

@@ -20,13 +20,27 @@ macro throw(error_msg) {
 
 // Try to do an operation.
 macro try(method, throw) {
+    ___try = #method
     javascript {
         try {
-            #method();
+            ___try();
         } catch (e) {
             if (#throw == true) {
                 throw e;
             }
+        }
+    }
+}
+
+// Try and catch a operation
+macro try_catch(method, on_catch) {
+    ___try = #method
+    ___catch = #on_catch
+    javascript {
+        try {
+            ___try();
+        } catch (e) {
+            ___catch(e)
         }
     }
 }
@@ -75,11 +89,6 @@ macro flatten(list) {
     javascript {
         [...new Set(#list)];
     }
-}
-
-// Capitalize a string
-macro capitalize(str) {
-    "${#str.charAt(0).toUpperCase()}${#str.slice(1)}"
 }
 
 // Merge 2 arrays
@@ -142,4 +151,44 @@ macro freeze(object) {
 // Check type
 macro is_type(variable, type_name) {
     typeof(#variable) == #type_name
+}
+
+// log error
+macro log_error(err) {
+    console.error(#err)
+}
+
+// JS comment
+macro jsc(comment) {
+    javascript{
+        // #comment
+    }
+}
+
+// Null Dot operation
+macro null_dot(object, field_or_method) {
+    javascript{
+        #object?.#field_or_method
+    }
+}
+
+// Is null
+macro is_null(object) {
+    javascript{
+        (#object === null)
+    }
+}
+
+// Is undefined
+macro is_undefined(object) {
+    javascript{
+        (#object === undefined)
+    }
+}
+
+// Is null or undefined
+macro is_null_undefined(object) {
+    javascript{
+        (#object === null || #object === undefined)
+    }
 }

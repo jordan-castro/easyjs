@@ -27,7 +27,7 @@ struct Variable {
     /// Is mutable
     is_mutable: bool,
     /// Variable type
-    easy_type: Option<EasyType>
+    easy_type: Option<EasyType>,
 }
 
 /// Used only in transpiler and type checker.
@@ -76,7 +76,7 @@ pub struct Transpiler {
     imported_modules: Vec<String>,
 
     /// Is this being compiled as a module
-    is_module: bool
+    is_module: bool,
 }
 /// Non Wasm specific (if running in non wasm enviroment, optionally save the wasm binary)
 #[cfg(not(target_arch = "wasm32"))]
@@ -104,7 +104,7 @@ impl Transpiler {
             },
             debug_mode: false,
             imported_modules: Vec::new(),
-            is_module: false
+            is_module: false,
         };
 
         // Check the EASYJS_DEBUG variable
@@ -335,9 +335,14 @@ impl Transpiler {
 
     fn transpile_stmt(&mut self, stmt: ast::Statement) -> Option<String> {
         match stmt {
-            ast::Statement::VariableStatement(token, name, ej_type, value, _) => Some(
-                self.transpile_var_stmt(token, name.as_ref().to_owned(), ej_type.as_deref(), value.as_ref().to_owned()),
-            ),
+            ast::Statement::VariableStatement(token, name, ej_type, value, _) => {
+                Some(self.transpile_var_stmt(
+                    token,
+                    name.as_ref().to_owned(),
+                    ej_type.as_deref(),
+                    value.as_ref().to_owned(),
+                ))
+            }
             ast::Statement::ReturnStatement(token, expression) => {
                 Some(self.transpile_return_stmt(token, expression.as_ref().to_owned()))
             }
@@ -378,9 +383,6 @@ impl Transpiler {
             Statement::AsyncBlockStatement(tk, block) => {
                 Some(self.transpile_async_block_stmt(tk, block.as_ref().to_owned()))
             }
-            Statement::DocCommentStatement(tk, comments) => {
-                Some(self.transpile_doc_comment_stmt(tk, comments))
-            }
             Statement::MatchStatement(tk, expr, conditions) => Some(self.transpile_match_stmt(
                 tk,
                 expr.as_ref().to_owned(),
@@ -388,6 +390,16 @@ impl Transpiler {
             )),
             Statement::EnumStatement(tk, name, options) => {
                 Some(self.transpile_enum_stmt(&name, options.as_ref()))
+            }
+            Statement::BreakStatement(tk) => Some("break".to_string()),
+            Statement::ContinueStatement(tk) => Some("continue".to_string()),
+            Statement::MacroStatement(_, name, paramaters, body) => {
+                let macro_name: String = self.transpile_expression(name.as_ref().to_owned());
+                let macro_params = paramaters.as_ref().to_owned();
+                let macro_body = body.as_ref().to_owned();
+
+                self.add_macro_function(macro_name, macro_params, macro_body);
+                Some(String::from(""))
             }
             _ => None,
         }
@@ -632,9 +644,9 @@ impl Transpiler {
         res
     }
 
-    fn transpile_doc_comment_stmt(&mut self, token: token::Token, comments: Vec<String>) -> String {
+    fn transpile_doc_comment_expr(&mut self, token: token::Token, comments: Vec<String>) -> String {
         let mut res = String::new();
-        res.push_str("/**\n"); // start doc
+        res.push_str("\n/**\n"); // start doc
 
         for comment in comments {
             res.push_str(format!(" * {}\n", comment).as_str());
@@ -691,15 +703,15 @@ impl Transpiler {
             // check for type
             let mut easy_type: Option<EasyType> = None;
             if let Some(ej_type) = ej_type {
-                easy_type = Some(EasyType { 
-                    type_name: self.transpile_expression(ej_type.to_owned()) 
+                easy_type = Some(EasyType {
+                    type_name: self.transpile_expression(ej_type.to_owned()),
                 });
             }
 
             self.scopes.last_mut().unwrap().push(Variable {
                 name: name_string.clone(),
                 is_mutable: true,
-                easy_type
+                easy_type,
             });
             format!(
                 "let {} = {};\n",
@@ -717,6 +729,19 @@ impl Transpiler {
         expression: ast::Expression,
     ) -> String {
         format!("return {};\n", self.transpile_expression(expression))
+    }
+
+    /// Transpile the high level macro block stmt
+    ///
+    /// A macro does not have it's own scope, that is the only difference really.
+    fn transpile_macro_block_stmt(&mut self, stmts: Vec<Statement>) -> String {
+        let mut response = String::new();
+        for stmt in stmts {
+            if let Some(stmt) = self.transpile_stmt(stmt) {
+                response.push_str(&stmt);
+            }
+        }
+        response
     }
 
     fn transpile_block_stmt(&mut self, token: token::Token, stmts: Vec<ast::Statement>) -> String {
@@ -763,7 +788,7 @@ impl Transpiler {
     // }
 
     fn transpile_javascript_stmt(&mut self, token: token::Token, js: String) -> String {
-        format!("{}", js)
+        format!("\n{}\n", js)
     }
 
     fn transpile_for_stmt(
@@ -800,6 +825,8 @@ impl Transpiler {
             }
             Expression::InExpression(token, left, right) => match right.as_ref().to_owned() {
                 Expression::RangeExpression(token, start, end) => {
+                    // TODO: error for if end is empty
+
                     let ident: String = self.transpile_expression(left.as_ref().to_owned());
                     res.push_str("for (let ");
                     res.push_str(&ident);
@@ -845,8 +872,13 @@ impl Transpiler {
         token: token::Token,
         expression: ast::Expression,
     ) -> String {
+        let has_semicolon = match expression {
+            Expression::FunctionLiteral(_, _, _, _, _) => false,
+            Expression::DocCommentExpression(_, _) => false,
+            _ => true,
+        };
         let res = self.transpile_expression(expression);
-        let semi = if res.trim().len() > 0 { ";\n" } else { "" };
+        let semi = if has_semicolon { ";\n" } else { "" };
         format!("{}{}", res, semi)
     }
 
@@ -921,6 +953,9 @@ impl Transpiler {
             let mut result = String::new();
             let cleaned_method_is_static = self.get_struct_method_function_exp(method);
             match cleaned_method_is_static.0.clone() {
+                Expression::DocCommentExpression(tk, comments) => {
+                    result = self.transpile_doc_comment_expr(tk, comments);
+                }
                 Expression::FunctionLiteral(_, name, params, _, body) => {
                     result = (self.transpile_struct_method(
                         &struct_name,
@@ -932,7 +967,7 @@ impl Transpiler {
                 Expression::AsyncExpression(_, function) => {
                     result = (self.transpile_struct_method(
                         &struct_name,
-                        cleaned_method_is_static.0,
+                        function.as_ref().to_owned(),
                         true,
                         cleaned_method_is_static.1,
                     ));
@@ -1016,6 +1051,7 @@ impl Transpiler {
 
                     for expression in expressions {
                         let mut internal_t = Transpiler::new();
+                        internal_t.macros = self.macros.clone();
                         let mut response = internal_t.transpile_from_string(expression.clone());
                         response = response.trim().to_string();
                         if response.ends_with(";") {
@@ -1279,9 +1315,42 @@ impl Transpiler {
                 let mut res = String::new();
 
                 res.push_str(&self.transpile_expression(left.as_ref().to_owned()));
-                res.push_str("[");
-                res.push_str(&self.transpile_expression(index.as_ref().to_owned()));
-                res.push_str("]");
+                match index.as_ref() {
+                    Expression::RangeExpression(tk, start, end) => {
+                        res.push_str(
+                            format!(
+                                ".slice({},",
+                                self.transpile_expression(start.as_ref().to_owned()),
+                                // self.transpile_expression(end.as_ref().to_owned())
+                            )
+                            .as_str(),
+                        );
+                        match end.as_ref() {
+                            Expression::EmptyExpression => {
+                                res.push_str(
+                                    format!(
+                                        "{}.length)",
+                                        self.transpile_expression(left.as_ref().to_owned())
+                                    )
+                                    .as_str(),
+                                );
+                            }
+                            _ => {
+                                res.push_str(&self.transpile_expression(end.as_ref().to_owned()));
+                                res.push_str(")");
+                            }
+                        }
+                    }
+                    _ => {
+                        res.push_str(
+                            format!(
+                                "[{}]",
+                                &self.transpile_expression(index.as_ref().to_owned())
+                            )
+                            .as_str(),
+                        );
+                    }
+                }
 
                 res
             }
@@ -1294,9 +1363,12 @@ impl Transpiler {
                     let p = properties.get(i).unwrap();
                     let key = p.first().unwrap().as_ref().to_owned();
                     let value = p.last().unwrap().as_ref().to_owned();
-                    res.push_str(&self.transpile_expression(key));
-                    res.push_str(":");
-                    res.push_str(&self.transpile_expression(value));
+
+                    res.push_str(&self.transpile_expression(key.clone()));
+                    if &key.get_token() != &value.get_token() {
+                        res.push_str(":");
+                        res.push_str(&self.transpile_expression(value));
+                    }
                     if i != properties.len() - 1 {
                         res.push_str(",\n");
                     }
@@ -1319,6 +1391,9 @@ impl Transpiler {
             }
             Expression::InExpression(token, left, right) => {
                 let mut res = String::new();
+
+                println!("left: {:#?}", left.as_ref());
+                println!("right: {:#?}", right.as_ref());
 
                 res.push_str(&self.transpile_expression(right.as_ref().to_owned()));
                 res.push_str(".includes(");
@@ -1380,13 +1455,7 @@ impl Transpiler {
                     self.transpile_expression(right.as_ref().to_owned())
                 )
             }
-            Expression::NullExpression(token, left, right) => {
-                format!(
-                    "{}?{}",
-                    self.transpile_expression(left.as_ref().to_owned()),
-                    self.transpile_expression(right.as_ref().to_owned())
-                )
-            }
+            Expression::NullExpression(token) => "null".to_string(),
             Expression::DefaultIfNullExpression(token, left, right) => {
                 format!(
                     "{} ?? {}",
@@ -1405,21 +1474,35 @@ impl Transpiler {
                     self.transpile_expression(right.as_ref().to_owned())
                 )
             }
-            Expression::MacroDecleration(_, name, paramaters, body) => {
-                let macro_name: String = self.transpile_expression(name.as_ref().to_owned());
-                let macro_params = paramaters.as_ref().to_owned();
-                let macro_body = body.as_ref().to_owned();
-                self.add_macro_function(macro_name, macro_params, macro_body);
-                String::from("")
-            }
             Expression::MacroExpression(_, name, arguments) => {
                 let macro_name = self.transpile_expression(name.as_ref().to_owned());
                 let macro_arguments = arguments.as_ref().to_owned();
 
+                // parse the body first.
+                let transpiled_body = if let Some(mac) = self.macros.get(&macro_name) {
+                    // parse the macro body
+                    match &mac.body {
+                        Statement::BlockStatement(tk, stmts) => {
+                            let mut body =
+                                self.transpile_macro_block_stmt(stmts.as_ref().to_owned());
+                            body = body[0..body.len() - 1].to_string();
+
+                            if body.ends_with(';') {
+                                body = body.strip_suffix(';').unwrap().to_string();
+                            }
+
+                            body
+                        }
+                        _ => "".to_string(),
+                    }
+                } else {
+                    "".to_string()
+                };
+
                 // check if macro args are empty
                 if macro_arguments.len() == 0 {
                     if let Some(mac) = self.macros.get(&macro_name) {
-                        return mac.compile(vec![]);
+                        return mac.compile(vec![], transpiled_body);
                     }
                 }
                 let macro_arguments: Vec<String> = macro_arguments
@@ -1428,16 +1511,20 @@ impl Transpiler {
                     .collect::<Vec<String>>();
 
                 if let Some(mac) = self.macros.get(&macro_name) {
-                    mac.compile(macro_arguments)
+                    mac.compile(macro_arguments, transpiled_body)
                 } else {
                     String::from("")
                 }
             }
             Expression::SpreadExpression(tk, expression) => {
-                format!("...{}", self.transpile_expression(expression.as_ref().to_owned()))
+                format!(
+                    "...{}",
+                    self.transpile_expression(expression.as_ref().to_owned())
+                )
             }
-            Expression::EmptyExpression => { 
-                String::from("")
+            Expression::EmptyExpression => String::from(""),
+            Expression::DocCommentExpression(token, comments) => {
+                self.transpile_doc_comment_expr(token, comments)
             }
             _ => String::from(""),
         }
@@ -1460,12 +1547,17 @@ impl Transpiler {
             parsed_args.push(a.to_string());
         }
 
-        let body = self.transpile_stmt(body).expect("No body error?");
+        // let body = match body {
+        //     Statement::BlockStatement(_, stmts) => {
+        //         self.transpile_macro_block_stmt(stmts.as_ref().to_owned())
+        //     }
+        //     _ => "".to_string()
+        // };
 
         // add the body up to the last ';\n'
         self.macros.insert(
             name.to_owned(),
-            Macro::new(name, parsed_args, body[0..body.len() - 2].to_string()),
+            Macro::new(name, parsed_args, body), // Macro::new(name, parsed_args, body[0..body.len() - 1].to_string()),
         );
     }
 
@@ -1504,7 +1596,7 @@ impl Transpiler {
                 }
 
                 if is_async {
-                    res.push_str(" async ");
+                    res.push_str("async ");
                 }
                 res.push_str(format!("function({})", &params).as_str());
                 res.push_str("{");
@@ -1532,6 +1624,9 @@ impl Transpiler {
         method: ast::Expression,
     ) -> (ast::Expression, bool) {
         match method.clone() {
+            Expression::DocCommentExpression(_, _) => {
+                return (method, false);
+            }
             Expression::AsyncExpression(tk, fn_method) => {
                 let result = self.get_struct_method_function_exp(fn_method.as_ref().to_owned());
                 return (

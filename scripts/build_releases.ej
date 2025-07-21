@@ -1,0 +1,7 @@
+// Written in easyjs a build script for github realeases.
+import 'std'
+import 'sys'
+
+os = ["x86_64-pc-windows-msvc", "x86_64-unknown-linux-gnu", "x86_64-apple-darwin"]
+
+@print(runtime)
