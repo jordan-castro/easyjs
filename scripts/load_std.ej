@@ -1,0 +1,71 @@
+// This script takes the .ej files from lib directory and places them in the rust std
+// directory as strings. This will replace all current code in src/std/mod.rs
+
+import 'io'
+import 'std'
+
+fn clean_file_contents(contents) {
+    ncontents = contents.replaceAll('\t', ' ')
+    ncontents = ncontents.replaceAll('\r', ' ')
+
+    return ncontents
+}
+
+fn glob_files(dir_path, file_ending) {
+    contents = @read_dir(dir_path, false)
+
+    files = []
+
+    for file in contents {
+        if file.endsWith(file_ending) {
+            files.push(dir_path + file)
+        }
+    }
+
+    return files
+}
+
+version = @read_file('lib/version', 'utf8', false)
+
+lib_files = glob_files('lib/', '.ej')
+
+// content to write
+content = "// EasyJS STD version $version\n"
+
+name_to_source = {}
+
+for file in lib_files {
+    @print(file)
+    // Load contents of file
+    contents = clean_file_contents(@read_file(file, 'utf8', false))
+    
+    // Get the file name
+    file_name = file.replaceAll('\\', '/')
+    file_name = file_name.split('/').at(-1).split('.')[0]
+    
+    // source object is a capital format of the file
+    source = file_name.toUpperCase()
+    name_to_source[file_name] = source
+    
+    // add contents
+    content += 'const $source: &str = r##"$contents"##;\n'
+}
+
+content += "\n"
+content += "/// Load a STD library from EasyJS version $version, or an empty string if not found.\n"
+content += "pub fn load_std(name: &str) -> String {\n"
+content += "\tmatch name {\n"
+
+for key in @keys(name_to_source) {
+    value = name_to_source[key]
+    content += '\t\t"$key" => $value,\n'
+}
+content += '\t\t_ => "",\n'
+content += "\t}.to_string()\n}"
+
+// Write the contents to the file
+if @write_file('easyjsc/src/std/mod.rs', content, false) {
+    @print('Wrote to lib')
+} else {
+    @print('Could not write to lib')
+}

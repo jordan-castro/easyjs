@@ -1,16 +1,5 @@
 // EasyJS STD version 0.4.2
-const AGENTS: &str = r##"// Property of easyjs 
- 
-class Agent { 
-    name:string 
-    tools:Array<Tool> 
- 
-    fn __new(self, details) { 
-        self.name = details.name ?? '' 
-        self.tools = details.tools ?? [] 
-    } 
-}"##;
-const DATE: &str = r##"// Get the days between 2 dates 
+const Date: &str = r##"// Get the days between 2 dates 
 macro days_between_dates(d1, d2) {  
     Math.ceil(Math.abs(#d1 - #d2) / (1000 * 60 * 60 * 24))  
 } 
@@ -24,7 +13,7 @@ macro get_week_day(d) {
 macro is_weekend(d) { 
     [5,6].indexOf(#d.getDay()) != -1 
 }"##;
-const IO: &str = r##"// File/Directory reading/writing 
+const Io: &str = r##"// File/Directory reading/writing 
  
 import 'std' 
  
@@ -123,7 +112,7 @@ macro make_dir(dir_path, is_async) {
         fs.mkdirSync(#dir_path) 
     } 
 }"##;
-const MALLOC: &str = r##"native { 
+const Malloc: &str = r##"native { 
     pub fn malloc(size:int):int { 
         var ptr : int = 0 
         __set_local_to_global(0, 0) 
@@ -141,7 +130,7 @@ const MALLOC: &str = r##"native {
     } 
  
 }"##;
-const MATH: &str = r##"macro radians(degrees) { 
+const Math: &str = r##"macro radians(degrees) { 
     javascript{ 
         #degrees * (Math.PI / 180); 
     } 
@@ -152,7 +141,7 @@ macro calculate_percent(value,total) {
     Math.round((#value / #total) * 100) 
 } 
 "##;
-const RANDOM: &str = r##"// EasyJS implementation of random.uniform from Python. 
+const Random: &str = r##"// EasyJS implementation of random.uniform from Python. 
 macro uniform(a,b) { 
     Math.random() * (#b - #a + 1) + #a 
 } 
@@ -185,7 +174,7 @@ macro random_hex_color() { "#${Math.random().toString(16).slice(2, 8).padEnd(6, 
 macro random_bool() { Math.random() >= 0.5} 
  
 "##;
-const STD: &str = r##"// Get the last element of an array 
+const Std: &str = r##"// Get the last element of an array 
 macro last(array) { 
     #array[#array.length - 1] 
 } 
@@ -343,49 +332,14 @@ macro is_type(variable, type_name) {
 // log error 
 macro log_error(err) { 
     console.error(#err) 
-} 
- 
-// JS comment 
-macro jsc(comment) { 
-    javascript{ 
-        // #comment 
-    } 
-} 
- 
-// Null Dot operation 
-macro null_dot(object, field_or_method) { 
-    javascript{ 
-        #object?.#field_or_method 
-    } 
-} 
- 
-// Is null 
-macro is_null(object) { 
-    javascript{ 
-        (#object === null) 
-    } 
-} 
- 
-// Is undefined 
-macro is_undefined(object) { 
-    javascript{ 
-        (#object === undefined) 
-    } 
-} 
- 
-// Is null or undefined 
-macro is_null_undefined(object) { 
-    javascript{ 
-        (#object === null || #object === undefined) 
-    } 
 }"##;
-const STRINGS: &str = r##"// String manipulations 
+const Strings: &str = r##"// String manipulations 
  
 // Capitalize a string 
-macro make_capital(str) { 
+macro to_upper(str) { 
     "${#str.charAt(0).toUpperCase()}${#str.slice(1)}" 
 }"##;
-const SYS: &str = r##"// copywright of easyjs 
+const Sys: &str = r##"// copywright of easyjs 
  
 import 'std' 
  
@@ -393,6 +347,8 @@ import 'std'
 @const(args, process.argv.slice(2, process.argv.length)) 
 /// File name 
 @const(file_name, process.argv[1]) 
+/// runtime 
+@const(runtime, process.argv[0]) 
  
 /// Execute a shell command. 
 macro exec(command) { 
@@ -401,7 +357,7 @@ macro exec(command) {
         stdout = null 
         stderr = null 
         // use exec 
-        if ___runtime == 'deno' { 
+        if runtime == 'deno' { 
             split_command = #command.split(' ') 
             @const(command, new Deno.command(split_command[0], { 
                 args: [ 
@@ -430,15 +386,13 @@ macro exec(command) {
 /// Load a STD library from EasyJS version 0.4.2, or an empty string if not found.
 pub fn load_std(name: &str) -> String {
 	match name {
-		"agents" => AGENTS,
-		"date" => DATE,
-		"io" => IO,
-		"malloc" => MALLOC,
-		"math" => MATH,
-		"random" => RANDOM,
-		"std" => STD,
-		"strings" => STRINGS,
-		"sys" => SYS,
+		"date" => Date,
+		"io" => Io,
+		"malloc" => Malloc,
+		"math" => Math,
+		"random" => Random,
+		"std" => Std,
+		"strings" => Strings,
+		"sys" => Sys,
 		_ => "",
-	}.to_string()
-}
+	}.to_string()}

@@ -1,0 +1,41 @@
+// copywright of easyjs
+
+import 'std'
+
+/// Command line args that do not include the file_name or runtime
+@const(args, process.argv.slice(2, process.argv.length))
+/// File name
+@const(file_name, process.argv[1])
+
+/// Execute a shell command.
+macro exec(command) {
+    (async fn() {
+        err = null
+        stdout = null
+        stderr = null
+        // use exec
+        if ___runtime == 'deno' {
+            split_command = #command.split(' ')
+            @const(command, new Deno.command(split_command[0], {
+                args: [
+                    ...split_command[1..]
+                ]
+            }))
+            @const(result, await command.output())
+            err = result.code
+            stdout = result.stdout
+            stderr = result.stderr
+        } else {
+            // We use node otherwise
+            @const({exec}, require('child_process'))
+
+            exec(#command, fn(e, so, se) {
+                err = e
+                stdout = so
+                stderr = se
+            })
+        }
+
+        return { err, stdout, stderr }
+    })()
+}

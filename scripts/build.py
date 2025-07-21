@@ -66,7 +66,6 @@ Flags:
 """)
     exit(0)
 elif command == "build":
-    subprocess.call([sys.executable, "scripts/load_std.py"])
     commands = ["cargo", "build"]
     if is_release:
         commands += ["--release"]

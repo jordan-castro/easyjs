@@ -1,13 +1,6 @@
-native {
-    pub fn __get_str_len(ptr:int):int {
-        EJ_local_get(EJ_local_from_ident(ptr))
-        __i32_load_8u(0,0,0)
-        // automatically returned at the end
-    }
+// String manipulations
 
-    // concat 2 strings together, returns a new pointer!
-    pub fn __concat(ptr1:int, ptr2:int):int {
-        var string1_len = __get_str_len(ptr1)
-        var string2_len = __get_str_len(ptr2)
-    }
+// Capitalize a string
+macro make_capital(str) {
+    "${#str.charAt(0).toUpperCase()}${#str.slice(1)}"
 }

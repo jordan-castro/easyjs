@@ -7,12 +7,18 @@ pub enum NodeType {
 
 #[derive(Clone, Debug)]
 pub enum Statement {
-    EmptyStatement,                                                 // there was an issue
-    VariableStatement(tk::Token, Box<Expression>, Option<Box<Expression>>, Box<Expression>, bool), // variable = expression (bool = should_infer)
-    ReturnStatement(tk::Token, Box<Expression>),                    // return expression
+    EmptyStatement, // there was an issue
+    VariableStatement(
+        tk::Token,
+        Box<Expression>,
+        Option<Box<Expression>>,
+        Box<Expression>,
+        bool,
+    ), // variable = expression (bool = should_infer)
+    ReturnStatement(tk::Token, Box<Expression>), // return expression
     ImportStatement(tk::Token, String), // import 'path.ej' (or) import 'path'
     ExpressionStatement(tk::Token, Box<Expression>), // token expression
-    BlockStatement(tk::Token, Box<Vec<Statement>>),  // { statements }
+    BlockStatement(tk::Token, Box<Vec<Statement>>), // { statements }
     // token identifier = value
     // ConstVariableStatement(tk::Token, Box<Expression>, Option<Box<Expression>>, Box<Expression>, bool),
     // for condition { body }
@@ -22,24 +28,31 @@ pub enum Statement {
     /// ```easyjs
     /// struct Person[name,age] with GreetMixin, FarewellMixin {
     ///     MAX_AGE = 150 // static variables
-    /// 
+    ///
     ///     fn greet(self) { // methods
     ///     }
-    /// 
+    ///
     ///     fn ask_question(question) { // static methods
     ///     }
     /// }
     /// ```
-    StructStatement(tk::Token, Box<Expression>, Option<Box<Vec<Expression>>>, Option<Box<Vec<Expression>>>, Box<Vec<Statement>>, Box<Vec<Expression>>),
+    StructStatement(
+        tk::Token,
+        Box<Expression>,
+        Option<Box<Vec<Expression>>>,
+        Option<Box<Vec<Expression>>>,
+        Box<Vec<Statement>>,
+        Box<Vec<Expression>>,
+    ),
 
     /// pub fn
     /// pub struct
     /// pub var
     /// pub const
     ExportStatement(tk::Token, Box<Statement>),
-    
+
     /// Async block statement
-    /// 
+    ///
     /// async {
     ///   await this()
     ///   await that()
@@ -47,17 +60,32 @@ pub enum Statement {
     /// }
     AsyncBlockStatement(tk::Token, Box<Statement>),
 
-    /// Doc comment statement
-    DocCommentStatement(tk::Token, Vec<String>),
-
     /// Match Statement
-    MatchStatement(tk::Token, Box<Expression>, Box<Vec<(Expression, Statement)>>),
+    MatchStatement(
+        tk::Token,
+        Box<Expression>,
+        Box<Vec<(Expression, Statement)>>,
+    ),
 
     /// A native statement
     NativeStatement(tk::Token, Box<Vec<Statement>>),
-    
+
     /// A enum statement
     EnumStatement(tk::Token, String, Box<Vec<Expression>>),
+
+    /// A break statement
+    BreakStatement(tk::Token),
+
+    /// A continue statement
+    ContinueStatement(tk::Token),
+
+    /// Declaring the macro (@, ident, arguments, body as BlockStatment)
+    MacroStatement(
+        tk::Token,
+        Box<Expression>,
+        Box<Vec<Expression>>,
+        Box<Statement>,
+    ),
 }
 
 impl Statement {
@@ -78,10 +106,12 @@ impl Statement {
             Statement::StructStatement(token, _, _, _, _, _) => token,
             Statement::ExportStatement(token, _) => token,
             Statement::AsyncBlockStatement(token, _) => token,
-            Statement::DocCommentStatement(token, _) => token,
             Statement::MatchStatement(token, _, _) => token,
             Statement::NativeStatement(token, _) => token,
             Statement::EnumStatement(token, _, _) => token,
+            Statement::BreakStatement(token) => token,
+            Statement::ContinueStatement(token) => token,
+            Statement::MacroStatement(token, _, _, _) => token,
         }
     }
 
@@ -98,11 +128,14 @@ impl Statement {
             Statement::StructStatement(_, _, _, _, _, _) => "StructStatement",
             Statement::ExportStatement(_, _) => "ExportStatement",
             Statement::AsyncBlockStatement(_, _) => "AsyncBlockStatement",
-            Statement::DocCommentStatement(_, _) => "DocCommentStatement",
             Statement::MatchStatement(_, _, _) => "MatchStatement",
             Statement::NativeStatement(_, _) => "NativeStatement",
             Statement::EnumStatement(_, _, _) => "EnumStatement",
-        }.to_string()
+            Statement::BreakStatement(_) => "BreakStatement",
+            Statement::ContinueStatement(_) => "ContinueStatement",
+            Statement::MacroStatement(_, _, _, _) => "MacroDecleration",
+        }
+        .to_string()
     }
 
     pub fn eq(&self, other: Statement) -> bool {
@@ -118,14 +151,14 @@ impl Statement {
     }
 
     /// Get the final stmt of a Block.
-    /// 
+    ///
     /// If not being called on a block, it will return the current stmt.
     pub fn get_final_stmt(&self) -> &Statement {
         match self {
             Statement::BlockStatement(token, statements) => {
                 statements.last().unwrap().get_final_stmt()
-            },
-            _ => self
+            }
+            _ => self,
         }
     }
 }
@@ -188,27 +221,12 @@ pub enum Expression {
     AsExpression(tk::Token, Box<Expression>, Box<Expression>),
     /// Macro (@, ident, arguments, body)
     MacroExpression(tk::Token, Box<Expression>, Box<Vec<Expression>>),
-    /// Declaring the macro (@, ident, arguments, body as BlockStatment)
-    MacroDecleration(
-        tk::Token,
-        Box<Expression>,
-        Box<Vec<Expression>>,
-        Box<Statement>,
-    ),
     /// And expression
-    AndExpression(
-        tk::Token,
-        Box<Expression>,
-        Box<Expression>,
-    ),
+    AndExpression(tk::Token, Box<Expression>, Box<Expression>),
     /// Or expression
-    OrExpression(
-        tk::Token,
-        Box<Expression>,
-        Box<Expression>,
-    ),
+    OrExpression(tk::Token, Box<Expression>, Box<Expression>),
     /// Null Expression ?
-    NullExpression(tk::Token, Box<Expression>, Box<Expression>),
+    NullExpression(tk::Token),
     /// Default if null exp ??
     DefaultIfNullExpression(tk::Token, Box<Expression>, Box<Expression>),
     /// new Class
@@ -226,11 +244,13 @@ pub enum Expression {
     /// Type expression
     Type(tk::Token, String),
     /// IIFE
-    /// 
+    ///
     /// var a = fn { return 1 } // a = 1
     IIFE(tk::Token, Box<Statement>),
     /// ...variable
     SpreadExpression(tk::Token, Box<Expression>),
+    /// Doc comment '///'
+    DocCommentExpression(tk::Token, Vec<String>),
 }
 
 impl Expression {
@@ -267,10 +287,9 @@ impl Expression {
             Expression::NotExpression(token, _) => token,
             Expression::AsExpression(token, _, _) => token,
             Expression::MacroExpression(token, _, _) => token,
-            Expression::MacroDecleration(token, _, _, _) => token,
             Expression::AndExpression(token, _, _) => token,
             Expression::OrExpression(token, _, _) => token,
-            Expression::NullExpression(token, _, _) => token,
+            Expression::NullExpression(token) => token,
             Expression::DefaultIfNullExpression(token, _, _) => token,
             Expression::NewClassExpression(token, _) => token,
             Expression::FloatLiteral(token, _) => token,
@@ -280,7 +299,8 @@ impl Expression {
             Expression::IdentifierWithType(token, _, _) => token,
             Expression::Type(token, _) => token,
             Expression::IIFE(token, _) => token,
-            Expression::SpreadExpression(token, _) => token
+            Expression::SpreadExpression(token, _) => token,
+            Expression::DocCommentExpression(token, _) => token
         }
     }
 
@@ -313,10 +333,9 @@ impl Expression {
             Expression::NotExpression(_, _) => "NotExpression",
             Expression::AsExpression(_, _, _) => "AsExpression",
             Expression::MacroExpression(_, _, _) => "MacroExpression",
-            Expression::MacroDecleration(_, _, _, _) => "MacroDecleration",
             Expression::AndExpression(_, _, _) => "AndExpression",
             Expression::OrExpression(_, _, _) => "OrExpression",
-            Expression::NullExpression(_, _, _) => "NullExpression",
+            Expression::NullExpression(_) => "NullExpression",
             Expression::DefaultIfNullExpression(_, _, _) => "DefaultIfNullExpression",
             Expression::NewClassExpression(_, _) => "NewClassExpression",
             Expression::FloatLiteral(_, _) => "FloatLiteral",
@@ -326,7 +345,8 @@ impl Expression {
             Expression::IdentifierWithType(_, _, _) => "IdentifierWithType",
             Expression::Type(_, _) => "Type",
             Expression::IIFE(_, _) => "IIFE",
-            Expression::SpreadExpression(_, _) => "SpreadExpression"
+            Expression::SpreadExpression(_, _) => "SpreadExpression",
+            Expression::DocCommentExpression(_, _) => "DocCommentExpression"
         }
     }
 
@@ -354,5 +374,3 @@ pub fn empty_statement() -> Statement {
 pub fn empty_box_exp() -> Box<Expression> {
     Box::new(empty_expression())
 }
-
-// pub fn empty_box_stmt

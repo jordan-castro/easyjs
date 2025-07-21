@@ -1,20 +1,22 @@
-#[derive(Debug)]
+use crate::parser::ast;
+
+#[derive(Debug, Clone)]
 pub struct Macro {
     name: String,
     paramaters: Vec<String>,
-    pub body: String
+    pub body: ast::Statement
 }
 
 const DELIMITERS: &str = ".,()[]";
 
 impl Macro {
-    pub fn new(name: String, paramaters: Vec<String>, body: String) -> Macro {
+    pub fn new(name: String, paramaters: Vec<String>, body: ast::Statement) -> Macro {
         Macro { name, paramaters, body }
     }
 
     /// Compile a macro.
-    pub fn compile(&self, arguments: Vec<String>) -> String {
-        let mut body = self.body.clone();
+    pub fn compile(&self, arguments: Vec<String>, transpiled_body: String) -> String {
+        let mut body = transpiled_body.clone();
 
         if arguments.len() == 0 {
             return body;
@@ -25,9 +27,7 @@ impl Macro {
         }
 
         // The logic is:
-        // 1. Check for paramater position in the body
-        // 2. If found, verify the character before is a '#'
-        // 3. If both is true, replace '#' + paramater with arguments[i].
+        // loop through each paramater and replace it where there is a '#' infront
 
         for (i, param) in self.paramaters.iter().enumerate() {
             let replacement = arguments.get(i).cloned().unwrap_or_default();
