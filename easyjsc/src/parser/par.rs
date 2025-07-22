@@ -1154,13 +1154,30 @@ fn parse_dot_expression(p: &mut Parser, left: ast::Expression) -> ast::Expressio
         return parse_dot_if_expression(p, left);
     }
 
-    if !p.expect_peek(token::IDENT) {
+    if !p.peek_token_is(token::IDENT) && !p.peek_token_is(token::MACRO_SYMBOL) {
         return ast::Expression::EmptyExpression;
     }
+    p.next_token();
 
     let right = parse_expression(p, LOWEST);
     if right.is_empty() {
         return ast::Expression::EmptyExpression;
+    }
+
+    // If right side is a in expression we have to grab it correctly
+    match right {
+        Expression::InExpression(tk, in_left, in_right) => {
+            return Expression::InExpression(
+                tk, 
+                Box::new(Expression::DotExpression(
+                    token, 
+                    Box::new(left), 
+                    in_left
+                )), 
+                in_right
+            )
+        }
+        _ => {}
     }
 
     ast::Expression::DotExpression(token, Box::new(left), Box::new(right))

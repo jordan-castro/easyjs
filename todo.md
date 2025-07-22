@@ -13,7 +13,7 @@
 - v0.5.0 ~~Fix for loops in macros~~
 - v0.5.0 ~~Fix javascript{} token first charater~~
 - v0.5.0 Add classes
-- v0.5.0 revamp structs.
+- v0.5.0 ~~revamp structs.~~
 - v0.4.x ~~add break and continue as tokens.~~
 - v0.4.x Finish adding all operators
   - <<
@@ -25,7 +25,8 @@
 - v0.4.2 better macro features.
   - v0.4.2 Optional paramaters
   - v0.4.2 N number of paramaters
-- v0.4.2 compiler time macros
+- v0.4.2 Check vaiable scoping from imported files
+- compile time with `easyjsr`
 
 ## Commands
 - v0.4.5 Add a update command to the CLI
@@ -111,7 +112,4 @@
 - ~~Def gotta work on struct parsing.~~
 - ~~Parse doc comments better.~~
 - ~~fix the double ';' issue~~
-- we definitely want to add class support
-- gotta fix "in" keyword
-    - chunk.id in chunks => chunk.chunks.includes(id) 
-    - chunk.id in chunks => chunks.includes(chunk.id)
+- ~~gotta fix "in" keyword~~

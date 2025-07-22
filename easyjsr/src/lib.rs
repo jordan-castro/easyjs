@@ -1,22 +1,52 @@
-use deno_core::error::AnyError;
-use std::rc::Rc;
+use rquickjs::{
+    CatchResultExt, Context, Function, Object, Result, Runtime, Value,
+};
 
-pub async fn run_js(file_path: &str) -> Result<(), AnyError> {
-    let main_module = deno_core::resolve_path(file_path, &std::env::current_dir()?)?;
-    let mut js_runtime = deno_core::JsRuntime::new(deno_core::RuntimeOptions {
-        module_loader: Some(Rc::new(deno_core::FsModuleLoader)),
-        ..Default::default()
-    });
+use crate::builtins::console::add_console;
 
-    let mod_id = js_runtime.load_main_es_module(&main_module).await?;
-    let result = js_runtime.mod_evaluate(mod_id);
-    js_runtime.run_event_loop(Default::default()).await?;
-    result.await.map_err(Into::into)
+mod builtins;
+mod utils;
+
+/// Good'ole easyjs runtime. 
+pub struct EasyJSR {
+    pub rt: Runtime,
+    pub ctx: Context
 }
 
-// fn main() {
-//     let runtime = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
-//     if let Err(error) = runtime.block_on(run_js("./example.js")) {
-//         eprintln!("error: {}", error);
-//     }
-// }
+impl EasyJSR {
+    pub fn new() -> Result<EasyJSR> {
+        let rt = Runtime::new()?;
+        let ctx = Context::full(&rt)?;
+
+        let mut easyjsr = EasyJSR { rt, ctx};
+
+        easyjsr.add_internal_methods()?;
+
+        Ok(easyjsr)
+    }
+
+    fn add_internal_methods(&mut self) -> Result<()> {
+        // add console methods
+        add_console(&self.ctx)?;
+
+        Ok(())
+    }
+
+    /// Run some JS code using the easyjs runtime.
+    pub fn run_js(&mut self, js: &str) -> Result<()> {
+        // Ctx it
+        self.ctx.with(|ctx| -> Result<()> {
+            let global = ctx.globals();
+            let console: Object = global.get("console")?;
+            let js_log: Function = console.get("log")?;
+
+            ctx.eval::<Value, _>(js)
+                .and_then(|ret| js_log.call::<(Value<'_>,), ()>((ret,)))
+                .catch(&ctx)
+                .unwrap_or_else(|err| println!("{}", err));
+            Ok(())
+        })?;
+
+        Ok(())
+    }
+}

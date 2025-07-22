@@ -1392,9 +1392,6 @@ impl Transpiler {
             Expression::InExpression(token, left, right) => {
                 let mut res = String::new();
 
-                println!("left: {:#?}", left.as_ref());
-                println!("right: {:#?}", right.as_ref());
-
                 res.push_str(&self.transpile_expression(right.as_ref().to_owned()));
                 res.push_str(".includes(");
                 res.push_str(&self.transpile_expression(left.as_ref().to_owned()));

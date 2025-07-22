@@ -19,7 +19,7 @@ To install you have a few options.
 Downloand and run the installer at [easyjs](https://github.com/grupojvm/easyjs)
 
 ### GIT
-Clone this Git repo and run `cargo build --release` to build the binary. It does not take long to build since easyjs only has 4 dependencies.
+Clone this Git repo and run `cargo build --release` to build the binary.
 
 ## How to use
 You have many different options to use. 
