@@ -28,8 +28,8 @@ struct Args {
 enum Commands {
     /// open the repl
     Repl {
-        /// The runtime for the repl
-        #[arg(short, long, default_value = "node")]
+        /// The runtime for the repl. [node, deno, bun, easyjsr (default)]
+        #[arg(short, long, default_value = "easyjsr")]
         runtime: String,
 
         #[arg(short, long, action)]
@@ -61,8 +61,8 @@ enum Commands {
         /// The file path
         file: String,
 
-        /// The runtime to use.
-        #[arg(short, long, default_value = "node")]
+        /// The runtime to use. [node, deno, bun, easyjsr (default)]
+        #[arg(short, long, default_value = "easyjsr")]
         runtime: String,
 
         /// Trailing arguments

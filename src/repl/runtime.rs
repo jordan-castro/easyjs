@@ -1,5 +1,6 @@
 use crate::commands::compile;
 use easy_utils::utils;
+use easyjsr::EasyJSR;
 use std::{
     io::{BufRead, BufReader, Read, Write},
     process::{Child, ChildStdout, Command, Stdio},
@@ -10,6 +11,22 @@ use std::{
 
 const EASY_JS_CONSTANT: &str = "001101";
 
+pub trait RT {
+    fn send_command(&mut self, command: &str) -> Vec<String>;
+    fn close(&mut self);
+}
+
+/// This runtime runs with internal packages or code.
+///
+/// i.e. the easyjsr
+pub struct InternalRuntime {
+    /// EasyJSR
+    runtime: EasyJSR,
+
+    /// Should we crash on error?
+    crash_on_error: bool,
+}
+
 pub struct Runtime {
     /// Our JS runtime process
     process: Child,
@@ -18,6 +35,15 @@ pub struct Runtime {
     /// Should we crash on error?
     _crash_on_error: bool,
     stdout_reader: BufReader<ChildStdout>,
+}
+
+impl InternalRuntime {
+    pub fn new(crash_on_error: bool) -> InternalRuntime {
+        InternalRuntime {
+            crash_on_error,
+            runtime: EasyJSR::new().expect("Could not load easyjsr."),
+        }
+    }
 }
 
 impl Runtime {
@@ -35,9 +61,6 @@ impl Runtime {
                 .stdout(Stdio::piped())
                 .spawn()
                 .expect("Failed to start Deno"),
-            "easyjsr" => {
-                unimplemented!("easyjsr is not implemented yet");
-            }
             _ => {
                 panic!("Unknown runtime: {}", runtime);
             }
@@ -55,8 +78,21 @@ impl Runtime {
         runtime.send_command(&format!("const EASY_JS_CONSTANT = '{}';", EASY_JS_CONSTANT));
         runtime
     }
+}
 
-    pub fn send_command(&mut self, command: &str) -> Vec<String> {
+impl RT for InternalRuntime {
+    fn send_command(&mut self, command: &str) -> Vec<String> {
+        self.runtime.run_js(command);
+        vec![]
+    }
+
+    fn close(&mut self) {
+        println!("So long, and thanks for all the fish!");
+    }
+}
+
+impl RT for Runtime {
+    fn send_command(&mut self, command: &str) -> Vec<String> {
         let stdin = self.process.stdin.as_mut().expect("FAILED TO GET STDIN");
 
         let command_with_marker = command.to_owned() + "\n EASY_JS_CONSTANT\n";
@@ -78,7 +114,7 @@ impl Runtime {
         output
     }
 
-    pub fn close(&mut self) {
+    fn close(&mut self) {
         self.process.kill().expect("FAILED TO KILL PROCESS");
     }
 }
@@ -92,7 +128,7 @@ pub fn run_file(runtime: &str, path: &str, arguments: Vec<String>) {
     let js_file_path = format!("{}.js", utils::h::generate_hash(path));
 
     // write JS file
-    std::fs::write(&js_file_path, js_content).expect("Failed to write file.");
+    std::fs::write(&js_file_path, js_content.clone()).expect("Failed to write file.");
 
     match runtime {
         "node" => {
@@ -102,7 +138,6 @@ pub fn run_file(runtime: &str, path: &str, arguments: Vec<String>) {
                 .spawn()
                 .expect("FAILED TO RUN NODE");
             child.wait().expect("FAILED TO WAIT ON NODE");
-            std::fs::remove_file(js_file_path).expect("FAILED TO REMOVE JS FILE");
         }
         "deno" => {
             let mut child = Command::new("deno")
@@ -111,7 +146,6 @@ pub fn run_file(runtime: &str, path: &str, arguments: Vec<String>) {
                 .spawn()
                 .expect("FAILED TO RUN DENO");
             child.wait().expect("FAILED TO WAIT ON DENO");
-            std::fs::remove_file(js_file_path).expect("FAILED TO REMOVE JS FILE");
         }
         "bun" => {
             let mut child = Command::new("bun")
@@ -120,12 +154,25 @@ pub fn run_file(runtime: &str, path: &str, arguments: Vec<String>) {
                 .spawn()
                 .expect("FAILED TO RUN BUN");
             child.wait().expect("FAILED TO WAIT ON BUN");
-            std::fs::remove_file(js_file_path).expect("FAILED TO REMOVE JS FILE");
+        }
+        "easyjsr" => {
+            let mut rt = EasyJSR::new().expect("Could not create easyjs runtime.");
+            rt.run_js(&js_content)
+                .expect("Could not run js code with easyjs runtime.");
         }
         _ => {
             println!(
-                "This runtime is not currently supported. Please use (node, deno, bun) instead."
+                "This runtime is not currently supported. Please use (node, deno, bun, easyjsr) instead."
             );
         }
+    }
+    std::fs::remove_file(js_file_path).expect("FAILED TO REMOVE JS FILE");
+}
+
+pub fn create_runtime(runtime: &str, crash_on_error: bool) -> Box<dyn RT> {
+    match runtime {
+        "easyjsr" => Box::new(InternalRuntime::new(crash_on_error)),
+        "node" | "deno" => Box::new(Runtime::new(runtime, crash_on_error)),
+        _ => panic!("Unsupported runtime: {runtime}")
     }
 }

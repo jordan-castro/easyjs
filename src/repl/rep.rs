@@ -4,7 +4,7 @@ use easy_utils::utils::version;
 use easyjsc::lexer::lex;
 use easyjsc::parser::par;
 use easyjsc::compiler::transpile::Transpiler;
-use crate::repl::runtime::Runtime;
+use crate::repl::runtime::{create_runtime, Runtime, RT};
 
 /// Repl for EasyJS
 const PROMPT: &str = "> ";
@@ -19,7 +19,7 @@ const EASY_JS_ASCII:&str = "    ___       ___       ___       ___            ___
 
 
 pub fn start(runtime_option: &str, crash_on_error: bool, debug:bool) {
-    let mut runtime = Runtime::new(runtime_option, crash_on_error);
+    let mut runtime = create_runtime(runtime_option, crash_on_error);
     let mut transpiler = Transpiler::new();
     println!("{}", EASY_JS_ASCII);
     println!("EasyJS {}", version::VERSION_CODE);
@@ -52,6 +52,9 @@ pub fn start(runtime_option: &str, crash_on_error: bool, debug:bool) {
         }
 
         let js = transpiler.transpile(program);
+        if js.trim().len() == 0 {
+            continue;
+        }
 
         if debug {
             println!("{}", js);

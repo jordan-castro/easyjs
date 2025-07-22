@@ -1,5 +1,6 @@
 # easyjsr
-rust wraper of easyjsr c++.
+Default runtime for easyjs. Built on top of rquickjs[https://crates.io/crates/rquickjs/0.9.0]
+
 
 ## usage
 To use with `easyjs` you can set the runtime to `easyjsr`.
