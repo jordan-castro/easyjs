@@ -24,10 +24,17 @@ macro within(test) {
 
 @within('te')
 
-macro js_macro(error) {
+macro comment(com) {
     javascript {
-        throw new Error(#error);
+        // #com
     }
 }
 
-@js_macro('what the heck')
+macro n_number_args(...args) {
+    @print()
+}
+
+// A compile time macro has a result
+macro comptime_macro(n1, n2):string|int|float|Custom {
+    
+}

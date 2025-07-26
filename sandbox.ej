@@ -1,1 +1,34 @@
-console.log('hello world from easyjsr!')
+struct Person[name, age] with GreetMixin {
+    has_job = true
+    species = "HomoSapien"
+
+    fn set_name(self, new_name) {
+        self.name = new_name
+    }
+
+    /// gets the name. // <-- doc comments with '///'
+    fn get_name(self) {
+        return self.name
+    }
+
+    // this is a static method because it does not have self as a paramater.
+    fn static_method() {
+        console.log("This is a static method")
+    }
+}
+
+// A mixin is just another struct
+struct GreetMixin {
+    fn say_hi(self) {
+        console.log('Hello, my name is ${self.name}')
+    }
+}
+
+// Structs can be with dedicated methods or just simple data containers
+struct PersonData[name,age,diary] {} // <--a struct that accepts name, age, and diary.
+
+// To instantiate a Person
+person = Person("Jordan", 22, ["Dear Diary", "I love Julia!", "I also love EasyJS!"])
+
+// To instantiate a PersonData
+person_data = PersonData("Evelyn", 19, ["Dear Diary", "I saw that Jordan loves a girl named Julia!", "Who is she???"])

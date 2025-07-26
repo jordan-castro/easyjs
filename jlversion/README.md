@@ -13,5 +13,3 @@ This is the Julia Version. This version only reached v0.1.0 and supports
 - variable 
 - const variables
 - javascript expressions
-
-Feel free to add to the Julia version.
