@@ -5,6 +5,7 @@ use regex::Regex;
 use super::macros::Macro;
 use super::native::compile_native;
 use crate::builtins;
+use crate::compiler::runes::RuneParser;
 // use crate::interpreter::{interpret_js, is_javascript_var_defined};
 use crate::lexer::lex::{self, ALLOWED_IN_IDENT};
 use crate::lexer::token;
@@ -85,6 +86,10 @@ fn save_wasm_bin(wasm_bin: &Vec<u8>) {
 
     let mut file = std::fs::File::create("easyjs.wasm").unwrap();
     file.write(&wasm_bin).unwrap();
+}
+#[cfg(target_arch = "wasm32")]
+fn save_wasm_bin(wasm_bin: &Vec<u8>) {
+    // Empty body
 }
 
 impl Transpiler {
@@ -1043,11 +1048,8 @@ impl Transpiler {
 
                 if quote_type == "`" {
                     // extract expressions
-                    let re = Regex::new(r"\$\{([^}]*)\}").unwrap();
-                    let expressions: Vec<String> = re
-                        .captures_iter(&str_value)
-                        .map(|cap| cap[1].to_string())
-                        .collect();
+                    let rp = RuneParser::new(str_value.clone());
+                    let expressions = rp.expressions;
 
                     for expression in expressions {
                         let mut internal_t = Transpiler::new();
