@@ -14,15 +14,20 @@
 - v0.4.x Finish adding all operators
   - <<
   - ^ 
-- v0.4.2 better macro features.
-  - v0.4.2 Optional paramaters
-  - v0.4.2 N number of paramaters
-- v0.4.2 Check vaiable scoping from imported files
-- compile time with `easyjsr`
+- v0.4.5 better macro features.
+  - v0.4.5 Optional paramaters
+  - v0.4.5 N number of paramaters
+  - v0.4.5 default paramaters in macros
+- v0.4.5 Check vaiable scoping from imported files
+- v0.5.0 add templates
+  - classes via template
+  - HTML via templates
+  - compile time with `easyjsr`
+
 
 ## Commands
 - v0.4.5 Add a update command to the CLI
-- v0.4.3 allow compilation via strings
+- v0.4.5 allow compilation via strings
 
 ## WASM
 - v0.4.x Additions

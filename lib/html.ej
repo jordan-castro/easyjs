@@ -1,6 +1,8 @@
 // A full HTML DSL using macros
 macro html(elements) {
-    "<html>${#elements}</html>"
+    "<html>
+        ${#elements}
+    </html>"
 }
 
 macro head(elements) {

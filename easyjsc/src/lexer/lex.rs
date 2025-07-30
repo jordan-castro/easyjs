@@ -137,7 +137,6 @@ impl Lex {
         while self.current_char != cs && !self.is_eof() {
             // Check if is a rune
             if (self.current_char != '\\' && self.peek_char() == '$') || (run == 0 && self.current_char == '$') {
-                println!("Gonna read a rune!");
                 if run > 0 {
                     result.push(self.current_char); // consume whatever this char is
                     println!("{}", self.current_char);
@@ -147,7 +146,6 @@ impl Lex {
                 self.read_char();
 
                 let rune = self.read_rune();
-                println!("Rune {rune}, cc: {}", self.current_char);
                 result.push_str(&rune);
                 continue;
             }
