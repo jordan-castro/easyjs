@@ -880,6 +880,7 @@ impl Transpiler {
         let has_semicolon = match expression {
             Expression::FunctionLiteral(_, _, _, _, _) => false,
             Expression::DocCommentExpression(_, _) => false,
+            Expression::MacroExpression(_, _, _) => false,
             _ => true,
         };
         let res = self.transpile_expression(expression);
@@ -1196,7 +1197,9 @@ impl Transpiler {
                 }
 
                 // parse the args
-                let parsed_args = self.transpile_call_arguments(arguments.as_ref().to_owned()).join(",");
+                let parsed_args = self
+                    .transpile_call_arguments(arguments.as_ref().to_owned())
+                    .join(",");
                 res.push_str(&parsed_args);
                 res.push_str(")");
 
@@ -1435,7 +1438,7 @@ impl Transpiler {
                         Statement::BlockStatement(tk, stmts) => {
                             let mut body =
                                 self.transpile_macro_block_stmt(stmts.as_ref().to_owned());
-                            body = body[0..body.len() - 1].to_string();
+                            // body = body[0..body.len() - 1].to_string();
 
                             if body.ends_with(';') {
                                 body = body.strip_suffix(';').unwrap().to_string();
@@ -1449,19 +1452,20 @@ impl Transpiler {
                     "".to_string()
                 };
 
-                // check if macro args are empty
-                if macro_arguments.len() == 0 {
-                    if let Some(mac) = self.macros.get(&macro_name) {
-                        return mac.compile(vec![], transpiled_body);
-                    }
-                }
+                // // check if macro args are empty
+                // if macro_arguments.len() == 0 {
+                //     if let Some(mac) = self.macros.get(&macro_name) {
+                //         return mac.compile(vec![], transpiled_body);
+                //     }
+                // }
 
                 // Check for named macro arguments
 
-                let macro_arguments = self
-                    .transpile_call_arguments(macro_arguments);
+                let macro_arguments = self.transpile_call_arguments(macro_arguments);
 
                 if let Some(mac) = self.macros.get(&macro_name) {
+                    let macro_arguments =
+                        self.lineup_macro_args(macro_arguments, mac.paramaters.clone());
                     mac.compile(macro_arguments, transpiled_body)
                 } else {
                     String::from("")
@@ -1664,7 +1668,7 @@ impl Transpiler {
 
                     result.push(self.transpile_expression(argument));
                     // if i < arguments.len() - 1 {
-                        // result.push_str(",");
+                    // result.push_str(",");
                     // }
                 }
             }
@@ -1675,6 +1679,57 @@ impl Transpiler {
             result.push(named_params);
         }
 
+        result
+    }
+
+    /// Lineup macro arguments to correctly pass in:
+    ///
+    /// regular arguments
+    /// default paramaters
+    /// n number arguments.
+    fn lineup_macro_args(
+        &self,
+        macro_arguments: Vec<String>,
+        macro_params: Vec<String>,
+    ) -> Vec<String> {
+        let mut result = vec![];
+
+        for (i, param) in macro_params.iter().enumerate() {
+            if param.contains("=") {
+                // This is a default paramater
+                let value = 
+                    param
+                        .split("=")
+                        .collect::<Vec<&str>>()
+                        .get(1)
+                        .unwrap()
+                        .trim()
+                        .to_string();
+
+                if let Some(macro_param) = macro_arguments.get(i) {
+                    result.push(macro_param.to_owned());
+                } else {
+                    result.push(value);
+                }
+            } else if param.contains("...") {
+                // This is a n number of params
+                let mut n_args = String::new();
+                for j in i..macro_arguments.len() {
+                    n_args.push_str(&macro_arguments.get(j).unwrap().to_string());
+                    if j < macro_arguments.len() - 1 {
+                        n_args.push_str(",");
+                    }
+                }
+                result.push(n_args);
+            } else {
+                if macro_arguments.len() <= i {
+                    result.push(String::from("undefined"));
+                } else {
+                    // Regular
+                    result.push(macro_arguments.get(i).unwrap().to_string());
+                }
+            }
+        }
         result
     }
 }

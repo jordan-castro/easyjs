@@ -30,7 +30,9 @@ template class(name) {
 }
 
 class Test {
+    // What does the class inherit?
     inheritance {A}
+    // Class methods ofcourse!
     methods {
         fn constructor(name, age) {
             self.name = name

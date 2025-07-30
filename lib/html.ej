@@ -30,3 +30,8 @@ macro elements(els) {
         `${(#els.map(((e) => e)).join('\n'))}`
     }
 }
+
+template html[elements, options] {
+    template head[elements, options] {}
+    template body[elements, options] {}
+}

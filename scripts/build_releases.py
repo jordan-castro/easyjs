@@ -4,7 +4,7 @@ import subprocess
 from pathlib import Path
 
 # === Configuration ===
-version = "v0.4.3"
+version = "v0.4.4"
 binary_name = "easyjs"  # Change this to match your `Cargo.toml` binary name
 
 # List of targets to build

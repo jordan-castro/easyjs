@@ -6,18 +6,17 @@
   - wasm compilation (vs AssemblyScript, Dart, Rust, Go, C/C++)
   - ease of use (vs TypeScript, Dart, CoffeScript)
 - v0.5.0 type checker
-- v0.7.0 default function parameters.
-- v0.7.0 Do named paramaters better. instead of wrapping with {} actually get the position and place it correctly! 
+- v0.7.0 ~~default function parameters.~~
+- v0.7.0 ~~Do named paramaters better. instead of wrapping with {} actually get the position and place it correctly! ~~
 - v0.6.0 Add namespaces and just include with import 'file.ej' as file y ya.
 - v0.5.0 Include the wasm binary with the CLI.
 - v0.5.0 Add classes
 - v0.4.x Finish adding all operators
   - <<
   - ^ 
-- v0.4.5 better macro features.
-  - v0.4.5 Optional paramaters
-  - v0.4.5 N number of paramaters
-  - v0.4.5 default paramaters in macros
+- v0.4.5 ~~better macro features~~.
+  - v0.4.5 ~~N number of paramaters (think ...args)~~
+  - v0.4.5 ~~default paramaters in macros~~
 - v0.4.5 Check vaiable scoping from imported files
 - v0.5.0 add templates
   - classes via template
@@ -97,6 +96,9 @@
 
 ## lib
 - v0.4.x shell commands
+- v0.4.x Universal std lib:
+  - io
+  - sys
 
 ## Scripts
 - Rewrite the scripts/ folder to pure easyjs
