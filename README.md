@@ -5,10 +5,14 @@ in others. easyjs is my own personal language that I can expand as I please. It 
 I've never been a fan of JS but it has a huge ecosystem and runs natively in the browser.
 
 ## 2 things
-2 Things I want easyjs to accomplish for myself is:
+2 things easyjs is built to accomplish is:
 1. Be an easy scripting programming language with a rich standard library.
 2. Run natively in the web for easy sharing.
-3. Be embedable using the `easyjsr` runtime.
+
+## ECMAScript version
+Easyjs uses the ECMAScript 2020 version (ES11). 
+This means that new features being added to ECMAScript will not be oficially supported. But a smart person could include them in their project 
+using macros and the `javascript{}` statement.
 
 > [!WARNING]  
 > This language is still in development we are currently on v0.4.3
@@ -94,6 +98,7 @@ fn fibonacci(n):int { // <-- easyjs is optionally typed.
         return fibonacci(n - 1) + fibonacci(n - 2) 
     }
 }
+```
 
 **Making a GET request**
 ```js

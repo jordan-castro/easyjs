@@ -1,11 +1,4 @@
-fn function_with_kwarsgs(father, mother, kwargs) {
-    console.log(kwargs.name)
+fn function_with_kwargs(name, age, has_job=true) {
 }
 
-fn function_with_args(...args) {
-    console.log(args)
-}
-father = "cuper"
-mother = "kim"
-function_with_kwarsgs(father, mother, name="Jordan", age=[22,33,44])
-function_with_args('test', 1, 0, 0.121, 'a', [1,2,2], {t: 'yes'})
+function_with_kwargs("Jordan", 23, false)

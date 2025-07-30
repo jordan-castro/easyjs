@@ -7,8 +7,6 @@ pub struct Macro {
     pub body: ast::Statement
 }
 
-const DELIMITERS: &str = ".,()[]";
-
 impl Macro {
     pub fn new(name: String, paramaters: Vec<String>, body: ast::Statement) -> Macro {
         Macro { name, paramaters, body }

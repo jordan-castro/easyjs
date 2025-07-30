@@ -1196,57 +1196,8 @@ impl Transpiler {
                 }
 
                 // parse the args
-                let mut parsed_args = vec![];
-                // the named args if any
-                let mut named_args: Vec<Vec<ast::Expression>> = vec![];
-
-                // keep track if there are named parameters.
-                let mut has_named = false;
-                // ok, double check the arguments
-                for arg in arguments.as_ref().to_owned() {
-                    match arg {
-                        ast::Expression::AssignExpression(_t, left, right) => {
-                            has_named = true;
-                            named_args
-                                .push(vec![left.as_ref().to_owned(), right.as_ref().to_owned()]);
-                        }
-                        _ => {
-                            if has_named {
-                                // this is bad because you can't have non named after named
-                                panic!("Non named parameter after named parameter");
-                            } else {
-                                parsed_args.push(arg);
-                            }
-                        }
-                    }
-                }
-
-                let args = arguments.as_ref().to_owned();
-                let joined_args = parsed_args
-                    .iter()
-                    .map(|p| self.transpile_expression(p.to_owned()))
-                    .collect::<Vec<_>>()
-                    .join(",");
-                res.push_str(&joined_args);
-
-                if (has_named) {
-                    if parsed_args.len() > 0 {
-                        res.push_str(",");
-                    }
-                    res.push_str("{");
-                    for i in 0..named_args.len() {
-                        let arg = &named_args[i];
-                        res.push_str(&self.transpile_expression(arg.first().unwrap().to_owned()));
-                        res.push_str(":");
-                        res.push_str(&self.transpile_expression(arg.last().unwrap().to_owned()));
-
-                        if i < named_args.len() - 1 {
-                            res.push_str(",");
-                        }
-                    }
-                    res.push_str("}");
-                }
-
+                let parsed_args = self.transpile_call_arguments(arguments.as_ref().to_owned()).join(",");
+                res.push_str(&parsed_args);
                 res.push_str(")");
 
                 res
@@ -1504,10 +1455,11 @@ impl Transpiler {
                         return mac.compile(vec![], transpiled_body);
                     }
                 }
-                let macro_arguments: Vec<String> = macro_arguments
-                    .iter()
-                    .map(|p| self.transpile_expression(p.to_owned()))
-                    .collect::<Vec<String>>();
+
+                // Check for named macro arguments
+
+                let macro_arguments = self
+                    .transpile_call_arguments(macro_arguments);
 
                 if let Some(mac) = self.macros.get(&macro_name) {
                     mac.compile(macro_arguments, transpiled_body)
@@ -1545,13 +1497,6 @@ impl Transpiler {
         for a in pms.split(",") {
             parsed_args.push(a.to_string());
         }
-
-        // let body = match body {
-        //     Statement::BlockStatement(_, stmts) => {
-        //         self.transpile_macro_block_stmt(stmts.as_ref().to_owned())
-        //     }
-        //     _ => "".to_string()
-        // };
 
         // add the body up to the last ';\n'
         self.macros.insert(
@@ -1678,6 +1623,59 @@ impl Transpiler {
             _ => {}
         }
         (method, false)
+    }
+
+    /// Transpile the arguments in a call.
+    ///
+    /// Works for CallExpression and MacroExpression
+    fn transpile_call_arguments(&mut self, arguments: Vec<Expression>) -> Vec<String> {
+        let mut result = vec![];
+        let mut has_named = false;
+        let mut named_params = String::new();
+
+        for i in 0..arguments.len() {
+            let argument = arguments[i].clone();
+            match argument {
+                // Expression::Identifier(tk, name) => {
+                //     if has_named {
+                //         // TODO: better errors
+                //         panic!("Can not have unnmaed after named");
+                //     }
+                //     result.push_str(&name);
+                //     if i < arguments.len() - 1 {
+                //         result.push_str(",");
+                //     }
+                // }
+                Expression::AssignExpression(tk, ident, value) => {
+                    if !has_named {
+                        has_named = true;
+                        named_params.push_str("{");
+                    }
+                    let ident_parsed = self.transpile_expression(ident.as_ref().to_owned());
+                    let value_parsed = self.transpile_expression(value.as_ref().to_owned());
+
+                    named_params.push_str(format!("'{ident_parsed}': {value_parsed},").as_str());
+                }
+                _ => {
+                    if has_named {
+                        // TODO: better errors
+                        panic!("Can not have unnamed after named");
+                    }
+
+                    result.push(self.transpile_expression(argument));
+                    // if i < arguments.len() - 1 {
+                        // result.push_str(",");
+                    // }
+                }
+            }
+        }
+
+        if has_named {
+            named_params.push_str("}");
+            result.push(named_params);
+        }
+
+        result
     }
 }
 

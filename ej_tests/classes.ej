@@ -1,19 +1,43 @@
-class Person {
-    private var name : string
-    private var age : int
+template class(name) {
+    template inheritance(class) {
+        if class != undefined and class != null {
+            javascript{
+                extends class
+            }
+        } else {
+            RAW("")
+        }
+    }
+    
+    template methods {
+        result = ""
+        for expression in methods {
+            result += "
+                ${expression.name}(${expression.paramaters}) {
+                    ${expression.body}
+                }
+            "
+        }
 
-    AGE_LIMIT := 120
-
-    fn init(self, name, age) {
-        self.name = name
-        self.age = age
+        RAW(result)
     }
 
-    fn get_name(self) {
-        return self.name
+    javascript{
+        class name #inheritance {
+            #methods
+        }
     }
+}
 
-    fn get_age(self) {
-        return self.age
+class Test {
+    inheritance {A}
+    methods {
+        fn constructor(name, age) {
+            self.name = name
+            self.age = age
+        }
+        fn greet() {
+            @print(self.name)
+        }
     }
 }

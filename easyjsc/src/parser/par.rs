@@ -126,7 +126,7 @@ impl Parser {
     /// This is how we do it, run this function to call a prefix method.
     fn prefix_fns(&mut self, token_type: &str) -> ast::Expression {
         match token_type {
-            token::IDENT => parse_identifier(self, false),
+            token::IDENT => parse_identifier(self, true),
             token::SELF => parse_identifier(self, false),
             token::INT => parse_integer_literal(self),
             token::FLOAT => parse_float_literal(self),
@@ -893,21 +893,14 @@ fn parse_function_paramaters(p: &mut Parser) -> Vec<ast::Expression> {
 
     // go to first identifier
     p.next_token();
-    // Check if a spread operator
-    if p.cur_token_is(token::SPREAD) {
-        // spreads can't be typed
-        idents.push(parse_spread_expression(p));
-    } else {
-        idents.push(parse_identifier(p, true));
-    }
-
-    while p.peek_token_is(token::COMMA) {
-        p.next_token();
-        p.next_token();
-        if p.cur_token_is(token::SPREAD) {
-            idents.push(parse_spread_expression(p));
+    loop {
+        idents.push(parse_expression(p, LOWEST));
+        // Leave the loop dog!
+        if !p.peek_token_is(token::COMMA) {
+            break;
         } else {
-            idents.push(parse_identifier(p, true));
+            p.next_token(); // Comma
+            p.next_token(); // get to expression
         }
     }
 
