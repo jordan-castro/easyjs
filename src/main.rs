@@ -2,7 +2,6 @@ use core::{panic, str};
 use std::fs::read_dir;
 
 pub mod commands;
-pub mod interpreter;
 pub mod repl;
 
 use crate::commands::{repl::start_repl, install::install, compile::compile_main};
