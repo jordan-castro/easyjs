@@ -8,7 +8,6 @@
 - v0.5.0 type checker
 - v0.7.0 ~~default function parameters.~~
 - v0.7.0 ~~Do named paramaters better. instead of wrapping with {} actually get the position and place it correctly! ~~
-- v0.6.0 Add namespaces and just include with import 'file.ej' as file y ya.
 - v0.5.0 Include the wasm binary with the CLI.
 - v0.5.0 Add classes
 - v0.4.x Finish adding all operators
@@ -18,11 +17,11 @@
   - v0.4.5 ~~N number of paramaters (think ...args)~~
   - v0.4.5 ~~default paramaters in macros~~
 - v0.4.5 Check vaiable scoping from imported files
+- v0.6.0 Add namespaces and just include with import 'file.ej' as file y ya.
 - v0.5.0 add templates
   - classes via template
   - HTML via templates
   - compile time with `easyjsr`
-
 
 ## Commands
 - v0.4.5 Add a update command to the CLI

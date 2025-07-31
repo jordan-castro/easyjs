@@ -20,3 +20,5 @@ native {
 
 p = Person('Jordan', 23)
 p.say_hi()
+
+test = 4

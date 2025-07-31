@@ -12,7 +12,7 @@ I've never been a fan of JS but it has a huge ecosystem and runs natively in the
 ## ECMAScript version
 Easyjs uses the ECMAScript 2020 version (ES11). 
 This means that new features being added to ECMAScript will not be oficially supported. But a smart person could include them in their project 
-using macros and the `javascript{}` statement.
+using macros, templates and the `javascript{}` statement.
 
 > [!WARNING]  
 > This language is still in development we are currently on v0.4.4

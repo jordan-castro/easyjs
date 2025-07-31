@@ -15,6 +15,7 @@ use easy_utils::utils::{h::hash_string, js_helpers::is_javascript_keyword};
 
 use super::import::import_file;
 
+#[derive(Clone)]
 struct EasyType {
     /// The name of the type.
     type_name: String,
@@ -23,6 +24,7 @@ struct EasyType {
 }
 
 /// Variable data. (used mostly for scoping)
+#[derive(Clone)]
 struct Variable {
     name: String,
     /// Is mutable
@@ -35,6 +37,7 @@ struct Variable {
 /// Used to track native function calls.
 ///
 /// i.e. convert native() to __easyjs_native_call("native", ["params"], ["returns"], ...args);
+#[derive(Clone)]
 struct NativeFunction {
     params: Vec<String>,
     returns: Vec<String>,
@@ -43,6 +46,7 @@ struct NativeFunction {
 
 /// Used only in transpiler and type checker.
 /// Holds all native for project.
+#[derive(Clone)]
 struct NativeContext {
     functions: Vec<NativeFunction>,
     variables: Vec<String>,
@@ -224,22 +228,49 @@ impl Transpiler {
 
     /// Transpile a module.
     pub fn transpile_module(&mut self, p: ast::Program) -> String {
-        let mut t = Transpiler::new();
-        t.is_module = true;
-        let js = t.transpile(p);
-        self.native_ctx
-            .functions
-            .append(&mut t.native_ctx.functions);
-        self.native_ctx
-            .variables
-            .append(&mut t.native_ctx.variables);
-        // Have to add the imported native statements to the top first.
-        let mut native_stmts = t.native_stmts.clone();
-        native_stmts.append(&mut self.native_stmts);
-        self.native_stmts = native_stmts;
+        // Future Jordan:
+        // Here you need to implement namespaces
+        // I think the best way will be to have, like scopes, a Vec<Namespace>.
+        // Inside the Namespace you will have functions, variables, etc, etc.
+        // That means we need to know track easyjs functions.
+        // This will also work for Native logic.
+        // Example:
+        // import 'std' as ayo
+        // ayo.@print('Hello world')
+        // 
+        // The print macro will actually be set as:
+        // macro ayo_print(...args) {}
+        // instead of just
+        // macro print(...args) {}
+        // The same will be for functions and variables.
+        // For native statements I might have to revisit this logic... although I don't think so.
+        // We might need to actually keep a Transpiler inside the Namespace.
+        // Take a rest and think about it. Let's start working on Pixel Ai Dash tomorrow some more.
+        // I think we need to implement chunking and other stuff there.
+        // Goodnight, I love you!
 
-        self.macros.extend(t.macros);
-        js
+
+        // let mut t = Transpiler::new();
+        // t.is_module = true;
+
+        // // Extend the t.native_ctx, t.variable_scope
+        // t.native_ctx = self.native_ctx.clone();
+        // t.scopes = self.scopes.clone();
+
+        // let js = t.transpile(p);
+        // // self.native_ctx
+        //     // .functions
+        //     // .append(&mut t.native_ctx.functions);
+        // // self.native_ctx
+        //     // .variables
+        //     // .append(&mut t.native_ctx.variables);
+        // // Have to add the imported native statements to the top first.
+        // let mut native_stmts = t.native_stmts.clone();
+        // native_stmts.append(&mut self.native_stmts);
+        // self.native_stmts = native_stmts;
+
+        // self.macros.extend(t.macros);
+        // js
     }
 
     /// Add a new scope
