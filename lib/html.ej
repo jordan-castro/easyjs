@@ -31,7 +31,3 @@ macro elements(els) {
     }
 }
 
-template html[elements, options] {
-    template head[elements, options] {}
-    template body[elements, options] {}
-}
