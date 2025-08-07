@@ -447,16 +447,19 @@ fn parse_import_statement(p: &mut Parser) -> ast::Statement {
         return ast::empty_statement();
     }
 
+    let import_object = p.c_token.clone().literal;
+
     let mut alias = None;
     // Parse the as part
     if p.peek_token_is(token::AS) {
         // parse as
-        p.next_token();
+        p.next_token(); // take as
+        p.next_token(); // go to identifier
 
-        alias = Some(Box::new(parse_expression(p, LOWEST)));
+        alias = Some(Box::new(parse_identifier(p, false)));
     }
 
-    ast::Statement::ImportStatement(token, p.c_token.literal.clone(), alias)
+    ast::Statement::ImportStatement(token, import_object, alias)
 }
 
 fn parse_native_statement(p: &mut Parser) -> ast::Statement {

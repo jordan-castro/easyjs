@@ -99,68 +99,6 @@ impl Namespace {
         self.macros.contains_key(&name)
     }
 
-    /// Add a variable to the namespace. Will return false if variable already exists, otherwise true
-    pub fn add_variable(&mut self, name: String, is_mut: bool, val_type: StrongValType) -> bool {
-        if self.var_exits(name.clone()) {
-            return false;
-        }
-        self.variables.push(Variable {
-            name,
-            is_mut,
-            val_type,
-        });
-        true
-    }
-
-    /// Add a function to the namespace. Will return false if function already exists, otherwise true
-    pub fn add_function(
-        &mut self,
-        name: String,
-        params: Vec<Variable>,
-        return_type: StrongValType,
-    ) -> bool {
-        if self.fun_exists(name.clone()) {
-            return false;
-        }
-        self.functions.push(Function {
-            name,
-            params,
-            return_type,
-        });
-        true
-    }
-
-    /// Add a struct to the namespace. Will return false if struct already exists.
-    pub fn add_struct(
-        &mut self,
-        name: String,
-        params: Vec<Variable>,
-        variables: Vec<Variable>,
-        methods: Vec<Function>,
-        static_methods: Vec<Function>,
-    ) -> bool {
-        if self.struct_exists(name.clone()) {
-            return false;
-        }
-        self.structs.push(Struct {
-            name,
-            params,
-            variables,
-            methods,
-            static_methods,
-        });
-        true
-    }
-
-    /// Add a macro, returns false if already exists.
-    pub fn add_macro(&mut self, name: String, ej_macro: crate::compiler::macros::Macro) -> bool {
-        if self.macro_exists(name.clone()) {
-            return false;
-        }
-        self.macros.insert(name, ej_macro);
-        true
-    }
-
     /// Get the actual name of a object in this namespace.
     ///
     /// Works with variables, functions, structs, and macros.
@@ -170,7 +108,7 @@ impl Namespace {
                 obj_name.to_string()
             } else {
                 format!(
-                    "{}_{}",
+                    "__{}_{}",
                     self.id.split('.').collect::<Vec<&str>>().first().unwrap(),
                     obj_name
                 )
@@ -178,7 +116,7 @@ impl Namespace {
         } else if self.alias == "_" {
             obj_name.to_string()
         } else {
-            format!("{}_{}", self.alias, obj_name)
+            format!("__{}_{}", self.alias, obj_name)
         }
     }
 

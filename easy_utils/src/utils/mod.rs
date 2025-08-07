@@ -5,6 +5,7 @@ pub mod reader;
 pub mod js_helpers;
 pub mod input;
 pub mod ej_config;
+pub mod sanatize;
 
 use std::env;
 use std::path::PathBuf;
