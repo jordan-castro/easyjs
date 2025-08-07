@@ -1,11 +1,7 @@
-macro test(name, age, kwargs) {
-    console.log(#name, #age, #kwargs)
+macro test() {
+    console.log('test')
 }
 
-@test("Jordan", 23, has_job=true)
-
-fn test(name, age, kwargs) {
-    @test(name, age, kwargs)
+fn test() {
+    console.log('test')
 }
-
-test("Evelyn", 20, has_job=false)

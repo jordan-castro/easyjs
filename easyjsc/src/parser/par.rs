@@ -144,6 +144,7 @@ impl Parser {
             token::L_BRACKET => parse_array_literal(self),
             token::L_BRACE => parse_object_literal(self),
             token::ASYNC => parse_async_expressoin(self),
+            token::AS => parse_as_expression(self),
             token::AWAIT => parse_await_expression(self),
             token::MACRO_SYMBOL => parse_macro_expression(self),
             token::SPREAD => parse_spread_expression(self),
@@ -173,6 +174,7 @@ impl Parser {
             token::FUNCTION => true,
             token::STRING => true,
             token::COMMENT => true,
+            token::AS => true,
             token::L_BRACKET => true,
             token::L_BRACE => true,
             token::ASYNC => true,
@@ -208,7 +210,6 @@ impl Parser {
             token::IN => true,
             token::OF => true,
             token::ASSIGN => true,
-            token::AS => true,
             token::AND_SYMBOL => true,
             token::OR_SYMBOL => true,
             token::QUESTION_MARK => true,
@@ -252,7 +253,6 @@ impl Parser {
             token::MINUS_EQUALS => parse_infix_expression(self, left),
             token::SLASH_EQUALS => parse_infix_expression(self, left),
             token::ASTERISK_EQUALS => parse_infix_expression(self, left),
-            token::AS => parse_as_expression(self, left),
             token::IS => parse_is_expression(self, left),
             _ => ast::Expression::EmptyExpression,
         }
@@ -447,7 +447,16 @@ fn parse_import_statement(p: &mut Parser) -> ast::Statement {
         return ast::empty_statement();
     }
 
-    ast::Statement::ImportStatement(token, p.c_token.literal.clone())
+    let mut alias = None;
+    // Parse the as part
+    if p.peek_token_is(token::AS) {
+        // parse as
+        p.next_token();
+
+        alias = Some(Box::new(parse_expression(p, LOWEST)));
+    }
+
+    ast::Statement::ImportStatement(token, p.c_token.literal.clone(), alias)
 }
 
 fn parse_native_statement(p: &mut Parser) -> ast::Statement {
@@ -1263,7 +1272,7 @@ fn parse_not_expression(p: &mut Parser) -> ast::Expression {
     ast::Expression::NotExpression(token, Box::new(expression))
 }
 
-fn parse_as_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression {
+fn parse_as_expression(p: &mut Parser) -> ast::Expression {
     p.debug_print("parse_as_expression");
     let token = p.c_token.to_owned(); // as
 
@@ -1273,7 +1282,7 @@ fn parse_as_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression
 
     let right = parse_expression(p, LOWEST);
 
-    ast::Expression::AsExpression(token, Box::new(left), Box::new(right))
+    ast::Expression::AsExpression(token, Box::new(right))
 }
 
 fn parse_is_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression {
@@ -1294,7 +1303,15 @@ fn parse_macro_expression(p: &mut Parser) -> ast::Expression {
     if !p.expect_peek(token::IDENT) {
         return ast::empty_expression();
     }
-    let ident = parse_identifier(p, false);
+
+    let mut idents = vec![];
+    idents.push(parse_identifier(p, false));
+    // loop for '.'
+    while p.peek_token_is(token::DOT) {
+        p.next_token(); // Dot
+        p.next_token(); // skip it
+        idents.push(parse_identifier(p, false));    
+    }
 
     if !p.expect_peek(token::L_PAREN) {
         return ast::empty_expression();
@@ -1320,7 +1337,14 @@ fn parse_macro_expression(p: &mut Parser) -> ast::Expression {
         return ast::empty_expression();
     }
 
-    // let args = parse_args
+    // setup ident
+    let full_path = idents
+    .iter()
+    .map(|v| v.get_token().literal.clone())
+    .collect::<Vec<_>>()
+    .join(".");
+
+    let ident = Expression::Identifier(idents.first().unwrap().get_token().to_owned(), full_path);
     ast::Expression::MacroExpression(token, Box::new(ident), Box::new(args))
 }
 

@@ -14,6 +14,7 @@ pub enum StrongValType {
     String, // i.e. i32 (pointer to string in memory)
 }
 
+/// Get the param type for native context.
 pub fn get_param_type_by_string(string: &str) -> StrongValType {
     match string {
         "int" => StrongValType::Int,
@@ -21,6 +22,16 @@ pub fn get_param_type_by_string(string: &str) -> StrongValType {
         "float" => StrongValType::Float,
         "string" => StrongValType::String,
         _ => StrongValType::NotSupported,
+    }
+}
+
+/// Get the param type for easyjs context.
+pub fn get_param_type_by_string_ej(string: &str) -> StrongValType {
+    let result = get_param_type_by_string(string);
+    if result == StrongValType::NotSupported {
+        StrongValType::None
+    } else {
+        result
     }
 }
 
