@@ -1,5 +1,4 @@
-import 'ej_tests/import/a.ej'
-import 'ej_tests/import/b.ej'
+import 'ej_tests/import/b.ej' as _
 import 'ej_tests/import/c.ej'
 import 'std'
 

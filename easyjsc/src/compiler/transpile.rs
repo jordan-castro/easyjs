@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 
+use easy_utils::utils::sanatize;
 use regex::Regex;
 
 use super::macros::Macro;
 use super::native::compile_native;
 use crate::builtins;
-use crate::compiler::namespaces::{Function, Namespace, Variable};
+use crate::compiler::namespaces::{Function, Namespace, Struct, Variable};
 use crate::compiler::runes::RuneParser;
 use crate::emitter::utils::StrongValType;
 // use crate::interpreter::{interpret_js, is_javascript_var_defined};
@@ -235,7 +236,9 @@ impl Transpiler {
     pub fn transpile_module(&mut self, file_name: &str, alias: &str, p: ast::Program) -> String {
         let mut t = Transpiler::new();
         t.is_module = true;
-        t.namespace.id = file_name.to_string();
+        // Clean the filename
+        let cleaned_file_name = sanatize::get_filename_without_extension(file_name);
+        t.namespace.id = cleaned_file_name;
         t.namespace.alias = alias.to_string();
 
         // Transpile the code now.
@@ -244,30 +247,21 @@ impl Transpiler {
         // Add the namespace to our modules
         self.modules.push(t.namespace.clone());
 
+        // Check if this namespace goes into global scope
+        if alias == "_" {
+            self.namespace.variables.extend(t.namespace.variables);
+            // also extend variable scope
+            if let (Some(self_inner), Some(t_inner)) = (self.scopes.get_mut(0), t.scopes.get(0)) {
+                self_inner.extend(t_inner.iter().cloned());
+            }
+            
+            self.namespace.functions.extend(t.namespace.functions);
+            self.namespace.structs.extend(t.namespace.structs);
+            self.namespace.macros.extend(t.namespace.macros);
+        }
+
         // return JS code
         js
-
-        // let mut t = Transpiler::new();
-        // t.is_module = true;
-
-        // // Extend the t.native_ctx, t.variable_scope
-        // t.native_ctx = self.native_ctx.clone();
-        // t.scopes = self.scopes.clone();
-
-        // let js = t.transpile(p);
-        // // self.native_ctx
-        //     // .functions
-        //     // .append(&mut t.native_ctx.functions);
-        // // self.native_ctx
-        //     // .variables
-        //     // .append(&mut t.native_ctx.variables);
-        // // Have to add the imported native statements to the top first.
-        // let mut native_stmts = t.native_stmts.clone();
-        // native_stmts.append(&mut self.native_stmts);
-        // self.native_stmts = native_stmts;
-
-        // self.macros.extend(t.macros);
-        // js
     }
 
     /// Add a new scope
@@ -486,9 +480,11 @@ impl Transpiler {
         }
 
         // Grab the alias, if any.
-        let mut alias_string = String::from("");
+        let alias_string:String;
         if let Some(alias) = alias {
             alias_string = self.transpile_expression(alias.as_ref().to_owned());
+        } else {
+            alias_string = String::from("");
         }
 
         self.transpile_module(file_path, &alias_string, program)
@@ -722,7 +718,10 @@ impl Transpiler {
         ej_type: Option<&ast::Expression>,
         value: ast::Expression,
     ) -> String {
-        let name_string = self.transpile_expression(name.clone());
+        let transpiled_name = self.transpile_expression(name.clone());
+        let name_string = self
+            .namespace
+            .get_obj_name(&transpiled_name);
 
         // check if this already exists in scope
         let mut found = false;
@@ -756,8 +755,11 @@ impl Transpiler {
             // Add to namespace if there is only one scope i.e. global scope.
             if self.scopes.len() == 1 {
                 // Add to namespace
-                self.namespace
-                    .add_variable(name_string.clone(), true, val_type);
+                self.namespace.variables.push(Variable {
+                    name: name_string.clone(),
+                    is_mut: true,
+                    val_type: val_type,
+                });
             }
             format!(
                 "let {} = {};\n",
@@ -953,10 +955,11 @@ impl Transpiler {
         }
 
         res.push_str("function ");
-        let struct_name = self.transpile_expression(name);
+        let name_transpiled = self.transpile_expression(name);
+        let struct_name = self.namespace.get_obj_name(&name_transpiled);
 
         // Compile the actual namespaced version.
-        res.push_str(&self.namespace.get_obj_name(&struct_name).as_str());
+        res.push_str(&struct_name);
         // res.push_str(&struct_name);
         res.push_str("(");
 
@@ -1147,13 +1150,14 @@ impl Transpiler {
         // }\n
 
         // add struct to namespace
-        self.namespace.add_struct(
-            struct_name,
-            struct_params,
-            struct_variables,
-            struct_methods,
-            struct_static_methods,
-        );
+        self.namespace.structs.push(Struct {
+            name: struct_name,
+            params: struct_params,
+            variables: struct_variables,
+            methods: struct_methods,
+            static_methods: struct_static_methods,
+        });
+
         res
     }
 
@@ -1365,7 +1369,7 @@ impl Transpiler {
                 let left_side = self.transpile_expression(left.as_ref().to_owned());
                 let right_side = self.transpile_expression(right.as_ref().to_owned());
                 for namespace in self.modules.iter() {
-                    if namespace.alias == left_side {
+                    if namespace.has_name(&left_side) {
                         // It is a namespace!
                         res.push_str(format!("{}", namespace.get_obj_name(&right_side)).as_str());
                         break;
@@ -1373,7 +1377,7 @@ impl Transpiler {
                 }
 
                 // Otherwise it is a regular dot expression.
-                if res.len() > 0 {
+                if res.len() == 0 {
                     res.push_str(&left_side);
                     res.push_str(".");
                     let mut r = right_side.clone();
@@ -1572,26 +1576,6 @@ impl Transpiler {
                 // Check if this has a namespace
                 let mut macro_namespace: Namespace = self.namespace.clone();
 
-                // match name.as_ref() {
-                //     Expression::Identifier(_, identifier) => {
-                //         macro_namespace = self.namespace.clone();
-                //         macro_name = identifier.to_owned();
-                //     }
-                //     Expression::DotExpression(_, left, right) => {
-                //         let nsp = self.transpile_expression(left.as_ref().to_owned());
-                //         macro_name = self.transpile_expression(right.as_ref().to_owned());
-                //         for namespace in &self.modules {
-                //             if namespace.has_name(&nsp) {
-                //                 macro_namespace = namespace.clone();
-                //                 break;
-                //             }
-                //         }
-                //     }
-                //     _ => {
-                //         unimplemented!();
-                //     }
-                // }
-
                 // Check macro namespace is correct, or udapet it
                 let full_macro_name = self.transpile_expression(name.as_ref().to_owned());
 
@@ -1616,12 +1600,13 @@ impl Transpiler {
                 } else {
                     macro_name = full_macro_name.clone();
                 }
-                println!("full name: {full_macro_name}, macro_name: {macro_name}");
                 let macro_arguments = arguments.as_ref().to_owned();
-                println!("namespace: {:#?}, parsed name: {}", macro_namespace, macro_namespace.get_obj_name(&macro_name));
 
                 // parse the body first.
-                let transpiled_body = if let Some(mac) = macro_namespace.macros.get(&macro_namespace.get_obj_name(&macro_name)) {
+                let transpiled_body = if let Some(mac) = macro_namespace
+                    .macros
+                    .get(&macro_namespace.get_obj_name(&macro_name))
+                {
                     // parse the macro body
                     match &mac.body {
                         Statement::BlockStatement(tk, stmts) => {
@@ -1645,7 +1630,10 @@ impl Transpiler {
 
                 let macro_arguments = self.transpile_call_arguments(macro_arguments);
 
-                if let Some(mac) = macro_namespace.macros.get(&macro_name) {
+                if let Some(mac) = macro_namespace
+                    .macros
+                    .get(&macro_namespace.get_obj_name(&macro_name))
+                {
                     let macro_arguments =
                         self.lineup_macro_args(macro_arguments, mac.paramaters.clone());
                     mac.compile(macro_arguments, transpiled_body)
@@ -1681,7 +1669,6 @@ impl Transpiler {
         let mut parsed_args = vec![];
 
         let macro_name = self.namespace.get_obj_name(&name);
-        println!("Macro being added is: {}", macro_name);
         for a in pms.split(",") {
             parsed_args.push(a.to_string());
         }
@@ -1931,8 +1918,15 @@ impl Transpiler {
             }
         };
 
+        let fn_name: String;
+        if !name.contains('.') {
+            fn_name = self.namespace.get_obj_name(name);
+        } else {
+            fn_name = name.to_owned();
+        }
+
         Function {
-            name: name.to_owned(),
+            name: fn_name,
             params: params
                 .as_ref()
                 .to_owned()
