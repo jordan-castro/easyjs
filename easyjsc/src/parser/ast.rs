@@ -16,7 +16,7 @@ pub enum Statement {
         bool,
     ), // variable = expression (bool = should_infer)
     ReturnStatement(tk::Token, Box<Expression>), // return expression
-    ImportStatement(tk::Token, String), // import 'path.ej' (or) import 'path'
+    ImportStatement(tk::Token, String, Option<Box<Expression>>), // import 'path.ej' (or) import 'path'
     ExpressionStatement(tk::Token, Box<Expression>), // token expression
     BlockStatement(tk::Token, Box<Vec<Statement>>), // { statements }
     // token identifier = value
@@ -98,7 +98,7 @@ impl Statement {
             }
             Statement::VariableStatement(token, _, _, _, _) => token,
             Statement::ReturnStatement(token, _) => token,
-            Statement::ImportStatement(token, _) => token,
+            Statement::ImportStatement(token, _, _) => token,
             Statement::ExpressionStatement(token, _) => token,
             Statement::BlockStatement(token, _) => token,
             Statement::ForStatement(token, _, _) => token,
@@ -121,7 +121,7 @@ impl Statement {
             Statement::VariableStatement(_, _, _, _, _) => "VariableStatement",
             Statement::ReturnStatement(_, _) => "ReturnStatement",
             Statement::ExpressionStatement(_, _) => "ExpressionStatement",
-            Statement::ImportStatement(_, _) => "ImportStatement",
+            Statement::ImportStatement(_, _, _) => "ImportStatement",
             Statement::BlockStatement(_, _) => "BlockStatement",
             Statement::ForStatement(_, _, _) => "ForStatement",
             Statement::JavaScriptStatement(_, _) => "JavaScriptStatement",
@@ -218,7 +218,7 @@ pub enum Expression {
     /// not expression
     NotExpression(tk::Token, Box<Expression>),
     /// left as right
-    AsExpression(tk::Token, Box<Expression>, Box<Expression>),
+    AsExpression(tk::Token, Box<Expression>),
     /// Macro (@, ident, arguments, body)
     MacroExpression(tk::Token, Box<Expression>, Box<Vec<Expression>>),
     /// And expression
@@ -285,7 +285,7 @@ impl Expression {
             Expression::ObjectLiteral(token, _) => token,
             Expression::AssignExpression(token, _, _) => token,
             Expression::NotExpression(token, _) => token,
-            Expression::AsExpression(token, _, _) => token,
+            Expression::AsExpression(token, _) => token,
             Expression::MacroExpression(token, _, _) => token,
             Expression::AndExpression(token, _, _) => token,
             Expression::OrExpression(token, _, _) => token,
@@ -331,7 +331,7 @@ impl Expression {
             Expression::ObjectLiteral(_, _) => "ObjectLiteral",
             Expression::AssignExpression(_, _, _) => "AssignExpression",
             Expression::NotExpression(_, _) => "NotExpression",
-            Expression::AsExpression(_, _, _) => "AsExpression",
+            Expression::AsExpression(_, _) => "AsExpression",
             Expression::MacroExpression(_, _, _) => "MacroExpression",
             Expression::AndExpression(_, _, _) => "AndExpression",
             Expression::OrExpression(_, _, _) => "OrExpression",
