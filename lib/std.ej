@@ -3,7 +3,7 @@ macro last(array) {
     #array[#array.length - 1]
 }
 
-macro print(msg) {
+macro print(...msg) {
     console.log(#msg)
 }
 

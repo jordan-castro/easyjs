@@ -9,18 +9,16 @@ use crate::{
             STR_INDEX_IDX, STR_STORE_BYTE_IDX,
         },
         instruction_generator::{
-            EasyInstructions, call_wasm_core_function, is_wasm_core, set_local_string,
+            call_wasm_core_function, is_wasm_core, set_local_string, EasyInstructions
         },
         signatures::{
-            EasyNativeBlock, EasyNativeFN, EasyNativeVar, FunctionSignature, create_type_section,
+            create_type_section, EasyNativeBlock, EasyNativeFN, EasyNativeVar, FunctionSignature
         },
         strings::{
             allocate_string, native_str_char_code_at, native_str_concat, native_str_get_len,
             native_str_index, native_str_store_byte, store_string_length,
         },
-        utils::{
-            StrongValType, expression_is_ident, get_param_type_by_string, get_val_type_from_strong,
-        },
+        utils::expression_is_ident,
     },
     errors::{
         native_can_not_compile_raw_expression, native_can_not_get_value_from_expression,
@@ -34,7 +32,7 @@ use crate::{
         native_unsupported_statement,
     },
     lexer::token::{self, Token},
-    parser::ast::{Expression, Statement},
+    parser::ast::{Expression, Statement}, typechecker::{get_param_type_by_string, get_val_type_from_strong, StrongValType},
 };
 use wasm_encoder::{
     BlockType, ConstExpr, ExportKind, Function, FunctionSection, GlobalType, Instruction,

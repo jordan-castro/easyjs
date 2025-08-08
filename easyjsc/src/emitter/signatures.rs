@@ -3,7 +3,7 @@ use wasm_encoder::{
     CodeSection, ConstExpr, Function, FunctionSection, Instruction, Module, TypeSection, ValType
 };
 
-use super::utils::StrongValType;
+use crate::typechecker::StrongValType;
 
 /// A function that is represented only via instructions (not via easyjs code.)
 #[derive(Debug, Clone, PartialEq, Eq)]

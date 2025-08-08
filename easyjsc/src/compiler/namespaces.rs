@@ -14,7 +14,7 @@
 
 use std::collections::HashMap;
 
-use crate::emitter::utils::StrongValType;
+use crate::typechecker::StrongValType;
 
 #[derive(Debug, Clone)]
 /// easyjs variables. Not native variables.
@@ -53,6 +53,25 @@ pub struct Struct {
     pub static_methods: Vec<Function>,
 }
 
+// /// Used only in transpiler and type checker.
+// /// Used to track native function calls.
+// ///
+// /// i.e. convert native() to __easyjs_native_call("native", ["params"], ["returns"], ...args);
+// #[derive(Debug, Clone)]
+// pub struct NativeFunction {
+//     params: Vec<StrongValType>,
+//     returns: Vec<StrongValType>,
+//     name: String,
+// }
+
+/// Used only in transpiler and type checker.
+/// Holds all native for project.
+#[derive(Debug, Clone)]
+pub struct NativeContext {
+    pub functions: Vec<Function>,
+    pub variables: Vec<Variable>,
+}
+
 #[derive(Debug, Clone)]
 /// easyjs namespace. File based
 pub struct Namespace {
@@ -68,6 +87,8 @@ pub struct Namespace {
     pub structs: Vec<Struct>,
     /// The macros associated with the namespace. In order to access a macro you have to use id.@macro
     pub macros: HashMap<String, crate::compiler::macros::Macro>,
+    /// The native context of this namespace
+    pub native_ctx: NativeContext,
 }
 
 impl Namespace {
@@ -80,6 +101,10 @@ impl Namespace {
             functions: vec![],
             structs: vec![],
             macros: HashMap::new(),
+            native_ctx: NativeContext {
+                functions: vec![],
+                variables: vec![],
+            },
         }
     }
 
@@ -122,7 +147,8 @@ impl Namespace {
 
     /// Check if this namespace has said name
     pub fn has_name(&self, name: &String) -> bool {
-        if &self.alias == name || self.id.split('.').collect::<Vec<&str>>().first().unwrap() == name {
+        if &self.alias == name || self.id.split('.').collect::<Vec<&str>>().first().unwrap() == name
+        {
             true
         } else {
             false

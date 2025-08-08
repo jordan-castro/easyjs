@@ -7,7 +7,7 @@ use crate::{
         STR_CONCAT_NAME, STR_GET_LEN_IDX, STR_GET_LEN_NAME, STR_INDEX_IDX, STR_INDEX_NAME,
         STR_STORE_BYTE_IDX, STR_STORE_BYTE_NAME,
     },
-    new_function_with_instructions, set_string_byte_in_loop,
+    new_function_with_instructions, set_string_byte_in_loop, typechecker::StrongValType,
 };
 
 use super::{
@@ -16,7 +16,6 @@ use super::{
         set_local_to_global,
     },
     signatures::{EasyNativeFN, FunctionSignature},
-    utils::StrongValType,
 };
 
 // /// Generate a Native function for concating 2 strings together.
