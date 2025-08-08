@@ -1,7 +1,14 @@
-macro test() {
-    console.log('test')
+native {
+    pub fn get_name():string {
+        return "Jordan"
+    }
+
+    pub fn add_strings(string1: string):string {
+        return string1 + " <- has been added to this string"
+    }
 }
 
-fn test() {
-    console.log('test')
-}
+import 'std'
+
+@std.print(get_name())
+@std.print(add_strings("This"))

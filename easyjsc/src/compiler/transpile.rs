@@ -8,52 +8,17 @@ use super::native::compile_native;
 use crate::builtins;
 use crate::compiler::namespaces::{Function, Namespace, Struct, Variable};
 use crate::compiler::runes::RuneParser;
-use crate::emitter::utils::StrongValType;
 // use crate::interpreter::{interpret_js, is_javascript_var_defined};
 use crate::lexer::lex::{self, ALLOWED_IN_IDENT};
 use crate::lexer::token;
 use crate::parser::ast::{Expression, Statement};
 use crate::parser::{ast, par};
+use crate::typechecker::{
+    StrongValType, get_param_type_by_string, get_param_type_by_string_ej, get_string_rep_of_type,
+};
 use easy_utils::utils::{h::hash_string, js_helpers::is_javascript_keyword};
 
 use super::import::import_file;
-
-// #[derive(Clone)]
-// struct EasyType {
-//     /// The name of the type.
-//     type_name: String,
-//     // TODO: a type_schema.
-//     // type_schema: String
-// }
-
-// /// Variable data. (used mostly for scoping)
-// #[derive(Clone)]
-// struct Variable {
-//     name: String,
-//     /// Is mutable
-//     is_mutable: bool,
-//     /// Variable type
-//     easy_type: Option<EasyType>,
-// }
-
-/// Used only in transpiler and type checker.
-/// Used to track native function calls.
-///
-/// i.e. convert native() to __easyjs_native_call("native", ["params"], ["returns"], ...args);
-#[derive(Clone)]
-struct NativeFunction {
-    params: Vec<String>,
-    returns: Vec<String>,
-    name: String,
-}
-
-/// Used only in transpiler and type checker.
-/// Holds all native for project.
-#[derive(Clone)]
-struct NativeContext {
-    functions: Vec<NativeFunction>,
-    variables: Vec<String>,
-}
 
 pub struct Transpiler {
     /// Stmt by Stmt
@@ -63,23 +28,12 @@ pub struct Transpiler {
 
     /// All internal modules/namespaces.
     pub modules: Vec<Namespace>,
-    // /// All EasyJS macros
-    // pub macros: HashMap<String, Macro>,
-    // /// All declared EasyJS functions
-    // pub functions: Vec<String>,
-    // /// All declared EasyJS structs.
-    // pub structs: Vec<String>,
 
-    // /// All declares structs within modules.
-    // pub structs_in_modules: Vec<String>,
     /// Keep a list of all scopes the EasyJS code has.
     scopes: Vec<Vec<Variable>>,
 
     /// Track all native statements
     native_stmts: Vec<Statement>,
-
-    /// Track native variables and functions
-    native_ctx: NativeContext,
 
     /// Are we in debug mode?
     pub debug_mode: bool,
@@ -106,19 +60,9 @@ impl Transpiler {
             scripts: vec![],
             namespace: Namespace::new("".to_string(), "_".to_string()),
             modules: vec![],
-            // functions: vec![],
-            // macros: HashMap::new(),
-            // context: Context::default(),
-            // structs: vec![],
             scopes: vec![],
-            // structs_in_modules: vec![],
             native_stmts: vec![],
-            native_ctx: NativeContext {
-                functions: vec![],
-                variables: vec![],
-            },
             debug_mode: false,
-            // imported_modules: Vec::new(),
             is_module: false,
         };
 
@@ -215,12 +159,19 @@ impl Transpiler {
                     }
                 };
 
-                // add to ctx
-                self.native_ctx.functions.push(NativeFunction {
-                    params: param_types,
-                    returns: vec![return_types],
-                    name: fn_name,
-                });
+                // add to native ctx
+                self.namespace.native_ctx.functions.push(Function {
+                    name: self.namespace.get_obj_name(&fn_name),
+                    params: param_types
+                        .iter()
+                        .map(|v| Variable {
+                            name: String::from(""),
+                            is_mut: true,
+                            val_type: get_param_type_by_string(v),
+                        })
+                        .collect::<Vec<Variable>>(),
+                    return_type: get_param_type_by_string(&return_types),
+                })
             }
             _ => {
                 return;
@@ -254,7 +205,7 @@ impl Transpiler {
             if let (Some(self_inner), Some(t_inner)) = (self.scopes.get_mut(0), t.scopes.get(0)) {
                 self_inner.extend(t_inner.iter().cloned());
             }
-            
+
             self.namespace.functions.extend(t.namespace.functions);
             self.namespace.structs.extend(t.namespace.structs);
             self.namespace.macros.extend(t.namespace.macros);
@@ -480,7 +431,7 @@ impl Transpiler {
         }
 
         // Grab the alias, if any.
-        let alias_string:String;
+        let alias_string: String;
         if let Some(alias) = alias {
             alias_string = self.transpile_expression(alias.as_ref().to_owned());
         } else {
@@ -719,9 +670,7 @@ impl Transpiler {
         value: ast::Expression,
     ) -> String {
         let transpiled_name = self.transpile_expression(name.clone());
-        let name_string = self
-            .namespace
-            .get_obj_name(&transpiled_name);
+        let name_string = self.namespace.get_obj_name(&transpiled_name);
 
         // check if this already exists in scope
         let mut found = false;
@@ -743,7 +692,7 @@ impl Transpiler {
             if let Some(ej_type) = ej_type {
                 // transpile
                 let type_name = self.transpile_expression(ej_type.to_owned());
-                val_type = crate::emitter::utils::get_param_type_by_string_ej(&type_name);
+                val_type = get_param_type_by_string_ej(&type_name);
             }
 
             // Add to scope
@@ -977,7 +926,7 @@ impl Transpiler {
                     }
                     Expression::IdentifierWithType(_, name, var_type) => {
                         var_name = name.to_owned();
-                        val_type = crate::emitter::utils::get_param_type_by_string_ej(
+                        val_type = get_param_type_by_string_ej(
                             &self.transpile_expression(var_type.as_ref().to_owned()),
                         );
                     }
@@ -1020,7 +969,7 @@ impl Transpiler {
 
                     match name.as_ref() {
                         Expression::IdentifierWithType(_, _, var_type) => {
-                            val_type = crate::emitter::utils::get_param_type_by_string_ej(
+                            val_type = get_param_type_by_string_ej(
                                 &self.transpile_expression(var_type.as_ref().to_owned()),
                             );
                         }
@@ -1299,37 +1248,17 @@ impl Transpiler {
 
                 // check if name_exp exists in native_ctx
                 let native_fn = self
+                    .namespace
                     .native_ctx
                     .functions
                     .iter()
                     .find(|f| f.name == name_exp);
                 if native_fn.is_some() {
-                    let native_fn = native_fn.unwrap();
-                    // native call
-                    res.push_str("__easyjs_native_call(");
-                    // add name
-                    res.push_str(format!("'{}',", native_fn.name).as_str());
-
-                    // add param_types
-                    res.push_str("[");
-                    for param_type in native_fn.params.iter() {
-                        res.push_str(format!("'{}'", param_type).as_str());
-                        res.push_str(",");
-                    }
-                    res.push_str("],");
-
-                    // add return types
-                    res.push_str("[");
-                    for return_type in native_fn.returns.iter() {
-                        res.push_str(format!("'{}'", return_type).as_str());
-                        res.push_str(",");
-                    }
-                    res.push_str("]");
-
-                    // check if we need to add a ','
-                    if arguments.as_ref().len() > 0 {
-                        res.push_str(",");
-                    }
+                    res.push_str(&self.transpile_native_function_with_args(
+                        &self.namespace,
+                        &self.namespace.get_obj_name(&name_exp),
+                        arguments.as_ref().to_owned(),
+                    ));
                 } else {
                     res.push_str(&name_exp);
                     res.push_str("(");
@@ -1371,7 +1300,45 @@ impl Transpiler {
                 for namespace in self.modules.iter() {
                     if namespace.has_name(&left_side) {
                         // It is a namespace!
-                        res.push_str(format!("{}", namespace.get_obj_name(&right_side)).as_str());
+                        match right.as_ref() {
+                            Expression::CallExpression(_, identifier, args) => {
+                                // Check if this is a native expression
+                                let identifier_transpiled = match identifier.as_ref() {
+                                    Expression::Identifier(_, ina) => ina.to_owned(),
+                                    _ => "".to_string(),
+                                };
+                                if namespace
+                                    .native_ctx
+                                    .functions
+                                    .iter()
+                                    .find(|v| {
+                                        v.name == namespace.get_obj_name(&identifier_transpiled)
+                                    })
+                                    .is_some()
+                                {
+                                    // This is a native function
+                                    res.push_str(&self.transpile_native_function_with_args(
+                                        namespace,
+                                        &namespace.get_obj_name(&identifier_transpiled),
+                                        args.as_ref().to_owned(),
+                                    ));
+                                    // TODO: args here!
+                                    res.push_str("(");
+                                    for arg in args.as_ref().to_owned() {
+                                        res.push_str()
+                                    }
+                                } else {
+                                    res.push_str(
+                                        format!("{}", namespace.get_obj_name(&right_side)).as_str(),
+                                    );
+                                }
+                            }
+                            _ => {
+                                res.push_str(
+                                    format!("{}", namespace.get_obj_name(&right_side)).as_str(),
+                                );
+                            }
+                        }
                         break;
                     }
                 }
@@ -1910,7 +1877,7 @@ impl Transpiler {
     ) -> Function {
         let function_type = {
             if let Some(return_type) = return_type {
-                crate::emitter::utils::get_param_type_by_string_ej(
+                get_param_type_by_string_ej(
                     &self.transpile_expression(return_type.as_ref().to_owned()),
                 )
             } else {
@@ -1940,7 +1907,7 @@ impl Transpiler {
                     Expression::IdentifierWithType(_, name, type_name) => Variable {
                         name: name.to_owned(),
                         is_mut: true,
-                        val_type: crate::emitter::utils::get_param_type_by_string_ej(
+                        val_type: get_param_type_by_string_ej(
                             &self.transpile_expression(type_name.as_ref().to_owned()),
                         ),
                     },
@@ -1951,6 +1918,55 @@ impl Transpiler {
                 .collect(),
             return_type: function_type,
         }
+    }
+
+    /// Transpile a native function call with arguments.
+    ///
+    /// Arguments can be empty.
+    ///
+    /// Function name MUST ALREADY BE created!!!
+    fn transpile_native_function_with_args(
+        &self,
+        namespace: &Namespace,
+        fn_name: &str,
+        args: Vec<Expression>,
+    ) -> String {
+        let mut res = String::new();
+        // Get native function
+        let native_fn = namespace
+            .native_ctx
+            .functions
+            .iter()
+            .find(|v| v.name == fn_name);
+        if native_fn.is_some() {
+            let native_fn = native_fn.unwrap();
+            res.push_str("__easyjs_native_call(");
+            // add name
+            res.push_str(format!("'{}',", native_fn.name).as_str());
+
+            // add param types
+            res.push_str("[");
+            for param_type in native_fn.params.iter() {
+                res.push_str(&format!(
+                    "'{}'",
+                    get_string_rep_of_type(&param_type.val_type)
+                ));
+                res.push_str(",");
+            }
+            res.push_str("], ");
+
+            // add return types
+            res.push_str("[");
+            res.push_str(format!("'{}'", get_string_rep_of_type(&native_fn.return_type)).as_str());
+            res.push_str("]");
+
+            // Not sure I need this?
+            if args.len() > 0 {
+                res.push_str(",");
+            }
+        }
+
+        res
     }
 }
 
