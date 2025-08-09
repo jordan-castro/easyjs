@@ -7,8 +7,3 @@ native {
         return string1 + " <- has been added to this string"
     }
 }
-
-import 'std'
-
-@std.print(get_name())
-@std.print(add_strings("This"))

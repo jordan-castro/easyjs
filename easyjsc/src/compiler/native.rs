@@ -3,16 +3,17 @@
 use std::{collections::HashMap, string, vec};
 
 use crate::{
+    compiler::namespaces::{Function as EJFunction, Namespace, Variable as EJVariable},
     emitter::{
         builtins::{
             ALLOCATE_STRING_IDX, STORE_STRING_LENGTH_IDX, STR_CONCAT_IDX, STR_GET_LEN_IDX,
             STR_INDEX_IDX, STR_STORE_BYTE_IDX,
         },
         instruction_generator::{
-            call_wasm_core_function, is_wasm_core, set_local_string, EasyInstructions
+            EasyInstructions, call_wasm_core_function, is_wasm_core, set_local_string,
         },
         signatures::{
-            create_type_section, EasyNativeBlock, EasyNativeFN, EasyNativeVar, FunctionSignature
+            EasyNativeBlock, EasyNativeFN, EasyNativeVar, FunctionSignature, create_type_section,
         },
         strings::{
             allocate_string, native_str_char_code_at, native_str_concat, native_str_get_len,
@@ -32,7 +33,11 @@ use crate::{
         native_unsupported_statement,
     },
     lexer::token::{self, Token},
-    parser::ast::{Expression, Statement}, typechecker::{get_param_type_by_string, get_val_type_from_strong, StrongValType},
+    parser::ast::{Expression, Statement},
+    typechecker::{
+        StrongValType, get_param_type_by_named_expression, get_param_type_by_string,
+        get_val_type_from_strong,
+    },
 };
 use wasm_encoder::{
     BlockType, ConstExpr, ExportKind, Function, FunctionSection, GlobalType, Instruction,
@@ -66,12 +71,12 @@ macro_rules! get_left_side_idx {
 }
 
 /// For generating instructions for operators:
-/// 
-/// - += 
+///
+/// - +=
 /// - -=
 /// - *=
 /// - /*
-/// 
+///
 /// Params:
 /// - `left:Expression` The left side expression
 /// - `instruction:Instruction` The instruction to generate. i.e. I32Add, F32Add, etc
@@ -79,32 +84,27 @@ macro_rules! generate_n_assign_instructions {
     ($left:expr, $instruction:expr) => {{
         let (is_global, idx) = get_left_side_idx!(&$left);
         if is_global {
-            vec![
-                $instruction,
-                Instruction::GlobalSet(idx as u32)
-            ]
+            vec![$instruction, Instruction::GlobalSet(idx as u32)]
         } else {
-            vec![
-                $instruction,
-                Instruction::LocalSet(idx as u32)
-            ]
+            vec![$instruction, Instruction::LocalSet(idx as u32)]
         }
     }};
 }
-                        // "int" => {
-                        //     let (is_global, left_idx) = get_left_side_idx!(left);
-                        //     if is_global {
-                        //         instructions.append(&mut vec![
-                        //             Instruction::I32Add,
-                        //             Instruction::GlobalSet(left_idx as u32)
-                        //         ]);
-                        //     } else {
-                        //         instructions.append(&mut vec![
-                        //             Instruction::I32Add,
-                        //             Instruction::LocalSet(left_idx as u32)
-                        //         ]);
-                        //     }
-                        // }
+
+// "int" => {
+//     let (is_global, left_idx) = get_left_side_idx!(left);
+//     if is_global {
+//         instructions.append(&mut vec![
+//             Instruction::I32Add,
+//             Instruction::GlobalSet(left_idx as u32)
+//         ]);
+//     } else {
+//         instructions.append(&mut vec![
+//             Instruction::I32Add,
+//             Instruction::LocalSet(left_idx as u32)
+//         ]);
+//     }
+// }
 
 /// easyjs native is a bare bones language feature. Think of it as C for the web.
 /// To use easyjs native features, wrap your easyjs code in a native block like so:
@@ -153,9 +153,15 @@ macro_rules! generate_n_assign_instructions {
 ///
 /// `native` only supports functions, variables [global and local], math, and strings [only raw and concat]. To add to any of those you would have to
 /// use the builtin raw instructions.
-pub fn compile_native(stmts: &Vec<Statement>) -> Result<Vec<u8>, String> {
+pub fn compile_native(
+    stmts: &Vec<Statement>,
+    module_namespace: &Namespace,
+    imported_modules: &Vec<Namespace>,
+) -> Result<Vec<u8>, String> {
     // Setup context
     let mut ctx = NativeContext::new();
+    ctx.namespace = module_namespace.clone();
+    ctx.imported_modules = imported_modules.clone();
 
     // Builtin functions
     let mut builtin_fns = vec![
@@ -310,6 +316,12 @@ struct NativeContext {
 
     /// Block scope
     block_scope: Vec<Vec<EasyNativeBlock>>,
+
+    /// The current namespace.
+    namespace: Namespace,
+
+    /// The current imported modules
+    imported_modules: Vec<Namespace>,
 }
 
 impl NativeContext {
@@ -324,6 +336,8 @@ impl NativeContext {
             instructions: HashMap::new(),
             is_pub: false,
             block_scope: Vec::new(),
+            namespace: Namespace::new("".to_string(), "_".to_string()),
+            imported_modules: vec![],
         }
     }
 
@@ -440,12 +454,18 @@ impl NativeContext {
             let parsed = self.compile_global_variable_stmt(value);
             // add to variable
             self.variable_scope[0].push(EasyNativeVar {
-                name: var_name,
+                name: self.namespace.get_obj_name(&var_name.clone()),
                 idx: self.next_var_idx,
                 is_global: true,
                 value: parsed,
-                val_type: strong_val_type,
+                val_type: strong_val_type.clone(),
                 is_mut,
+            });
+            // Save to namespace, you may have noticed we only save the global variables.
+            self.namespace.native_ctx.variables.push(EJVariable {
+                name: self.namespace.get_obj_name(&var_name.clone()),
+                is_mut: is_mut,
+                val_type: strong_val_type.clone(),
             });
         } else {
             // add to variable scope
@@ -635,15 +655,20 @@ impl NativeContext {
                     },
                     token::PLUS_EQUALS => match instruction_type {
                         "int" => {
-                            let mut n_assign = generate_n_assign_instructions!(left, Instruction::I32Add);
+                            let mut n_assign =
+                                generate_n_assign_instructions!(left, Instruction::I32Add);
                             instructions.append(&mut n_assign);
                         }
                         "float" => {
-                            let mut n_assign = generate_n_assign_instructions!(left, Instruction::F32Add);
+                            let mut n_assign =
+                                generate_n_assign_instructions!(left, Instruction::F32Add);
                             instructions.append(&mut n_assign);
                         }
                         "string" => {
-                            let mut n_assign = generate_n_assign_instructions!(left, Instruction::Call(STR_CONCAT_IDX));
+                            let mut n_assign = generate_n_assign_instructions!(
+                                left,
+                                Instruction::Call(STR_CONCAT_IDX)
+                            );
                             instructions.append(&mut n_assign);
                         }
                         _ => {}
@@ -663,6 +688,8 @@ impl NativeContext {
             }
             Expression::CallExpression(_, name, arguments) => {
                 let name = self.compile_raw_expression(name);
+                // get namespace defined name.
+                let name = self.namespace.get_obj_name(&name);
 
                 let fun_idx = self.get_fun_idx_from_name(&name);
                 if fun_idx.is_none() {
@@ -694,11 +721,29 @@ impl NativeContext {
             Expression::DotExpression(tk, left, right) => {
                 let mut instructions = vec![];
 
-                // compile left side
-                instructions.append(&mut self.compile_expression(left.as_ref()));
-                // compile right side.
-                instructions.append(&mut self.compile_expression(right.as_ref()));
+                // Check if we have a namespace to the left
+                let left_side_as_string = self.compile_raw_expression(left.as_ref());
+                // clone namespaces to appease borrow checker
+                let cloned_namespaces = self.imported_modules.clone();
+                // Check if this is a namespace.
+                for namespace in cloned_namespaces.iter() {
+                    if namespace.has_name(&left_side_as_string) {
+                        // We have a namespace, change the instruction to use the correct name
+                        // There are only 3 possibilities for the right side:
+                        // - A call expression
+                        // - A identifier
+                        // - A dot expression
+                        let new_right = self.convert_namespaced_dot_expression(namespace, &right);
+                        instructions.append(&mut self.compile_expression(&new_right));
+                    }
+                }
 
+                if instructions.len() == 0 {
+                    // compile left side
+                    instructions.append(&mut self.compile_expression(left.as_ref()));
+                    // compile right side.
+                    instructions.append(&mut self.compile_expression(right.as_ref()));
+                }
                 instructions
             }
             Expression::StringLiteral(_, literal) => {
@@ -891,6 +936,9 @@ impl NativeContext {
     ) {
         // get name and params first...
         let name = self.compile_raw_expression(name);
+        // get fn_name based on namespace
+        let name = self.namespace.get_obj_name(&name);
+
         let param_names = params
             .iter()
             .map(|p| self.compile_raw_expression(p))
@@ -905,6 +953,22 @@ impl NativeContext {
             .collect::<Vec<ValType>>();
         // lets get the type too
         let return_type = self.get_val_type_from_expression(val_type);
+        // For namespace
+        let mut variables = vec![];
+        for (param_n, param_t) in param_names.iter().zip(param_types.iter()) {
+            variables.push(EJVariable {
+                name: param_n.to_owned(),
+                is_mut: true,
+                val_type: param_t.to_owned(),
+            });
+        }
+        // save function to namespace
+        self.namespace.native_ctx.functions.push(EJFunction {
+            name: name.clone(),
+            params: variables,
+            return_type: return_type.clone(),
+        });
+
         // Get the block type
         // let block = {
         //     if let Some(return_val_type) = get_val_type_from_strong(&return_type) {
@@ -1088,9 +1152,7 @@ impl NativeContext {
             Expression::InfixExpression(tk, left, infix, right) => {
                 self.get_val_type_from_expression(left)
             }
-            Expression::FloatLiteral(tk, literal) => {
-                StrongValType::Float                
-            }
+            Expression::FloatLiteral(tk, literal) => StrongValType::Float,
             _ => {
                 // add error
                 self.errors
@@ -1211,5 +1273,52 @@ impl NativeContext {
         }
 
         new_block_type
+    }
+
+    /// Convert a namespaced DotExpression.
+    ///
+    /// This is for when a namespaced dot expressions right side is another dot expression.
+    ///
+    /// We could have:
+    /// import 'c.ej'
+    /// import 'std'
+    ///
+    /// native {
+    ///    fn test() {
+    ///       @std.print(c.variable)
+    ///       // or
+    ///       @std.print(c.method().x)
+    ///    }
+    /// }
+    fn convert_namespaced_dot_expression(
+        &mut self,
+        namespace: &Namespace,
+        expression: &Expression,
+    ) -> Expression {
+        match expression {
+            Expression::Identifier(token, name) => {
+                Expression::Identifier(token.to_owned(), namespace.get_obj_name(name))
+            }
+            Expression::CallExpression(token, name, args) => {
+                let name_as_string = self.compile_raw_expression(name);
+                Expression::CallExpression(
+                    token.to_owned(),
+                    Box::new(Expression::Identifier(
+                        name.get_token().to_owned(),
+                        namespace.get_obj_name(&name_as_string),
+                    )),
+                    args.to_owned(),
+                )
+            }
+            Expression::DotExpression(token, left, right) => {
+                let new_left = self.convert_namespaced_dot_expression(namespace, left);
+                Expression::DotExpression(token.to_owned(), Box::new(new_left), right.to_owned())
+            }
+            Expression::AssignExpression(tk, left, right) => {
+                let new_left = self.convert_namespaced_dot_expression(namespace, &left);
+                Expression::AssignExpression(tk.to_owned(), Box::new(new_left), right.to_owned())
+            }
+            _ => expression.to_owned(),
+        }
     }
 }

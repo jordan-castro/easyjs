@@ -1,6 +1,4 @@
 // No native in this file. Just expses the assert for easier access later all
-import 'std'
-
 javascript{
     const assert = require('assert').strict;
 }

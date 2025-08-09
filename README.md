@@ -15,7 +15,7 @@ This means that new features being added to ECMAScript will not be oficially sup
 using macros, templates and the `javascript{}` statement.
 
 > [!WARNING]  
-> This language is still in development we are currently on v0.4.4
+> This language is still in development we are currently on v0.4.5
 
 ## Install
 To install you have a few options.
