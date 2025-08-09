@@ -81,6 +81,69 @@ impl Transpiler {
         t
     }
 
+    /// Apply Namespace mangling to native statement.
+    ///
+    /// Call this to get the correct NativeStatement.
+    fn apply_namespace_mangling_to_native(&self, stmt: &Statement) -> Statement {
+        match stmt {
+            Statement::ExportStatement(tk, stmt) => Statement::ExportStatement(
+                tk.to_owned(),
+                Box::new(self.apply_namespace_mangling_to_native(stmt)),
+            ),
+            Statement::ExpressionStatement(tk, expr) => Statement::ExpressionStatement(
+                tk.to_owned(),
+                Box::new(self.apply_namespace_mangling_to_native_expr(&expr)),
+            ),
+            Statement::VariableStatement(tk, name, val_type, value, infer_type) => {
+                let name_identifier = match name.as_ref() {
+                    Expression::Identifier(tk, name) => (tk, name),
+                    _ => {
+                        unreachable!("It is not possible to reach this in a varaible statement.")
+                    }
+                };
+                Statement::VariableStatement(
+                    tk.to_owned(),
+                    Box::new(Expression::Identifier(
+                        name_identifier.0.to_owned(),
+                        self.namespace.get_obj_name(name_identifier.1),
+                    )),
+                    val_type.to_owned(),
+                    value.to_owned(),
+                    *infer_type,
+                )
+            }
+            _ => stmt.to_owned(),
+        }
+    }
+
+    /// Apply Namespace mangling to native expressions.
+    ///
+    /// Call this to get the correct Expression.
+    fn apply_namespace_mangling_to_native_expr(&self, expression: &Expression) -> Expression {
+        match expression {
+            Expression::FunctionLiteral(tk, name, params, return_type, body) => {
+                let name_transpiled = match name.as_ref() {
+                    Expression::Identifier(tk, identifier) => (tk, identifier),
+                    _ => {
+                        panic!("Not possible that function name is not a IDENTIFIER")
+                    }
+                };
+                let name_expression = Expression::Identifier(
+                    name_transpiled.0.to_owned(),
+                    self.namespace.get_obj_name(name_transpiled.1),
+                );
+                Expression::FunctionLiteral(
+                    tk.to_owned(),
+                    Box::new(name_expression),
+                    params.to_owned(),
+                    return_type.to_owned(),
+                    body.to_owned(),
+                )
+            }
+            _ => expression.to_owned(),
+        }
+    }
+
     /// Add a statement to the native context.
     ///
     /// Only adds `pub` statements.
@@ -161,7 +224,7 @@ impl Transpiler {
 
                 // add to native ctx
                 self.namespace.native_ctx.functions.push(Function {
-                    name: self.namespace.get_obj_name(&fn_name),
+                    name: fn_name,
                     params: param_types
                         .iter()
                         .map(|v| Variable {
@@ -209,6 +272,24 @@ impl Transpiler {
             self.namespace.functions.extend(t.namespace.functions);
             self.namespace.structs.extend(t.namespace.structs);
             self.namespace.macros.extend(t.namespace.macros);
+        }
+
+        if t.native_stmts.len() > 0 {
+            // extend native_stmts
+            let mut new_native_stmts = t.native_stmts.clone();
+            new_native_stmts.extend(self.native_stmts.clone());
+            self.native_stmts = new_native_stmts;
+
+            // also extend native_ctx
+            // This will always go to the global scope ma G.
+            self.namespace
+                .native_ctx
+                .functions
+                .extend(t.namespace.native_ctx.functions);
+            self.namespace
+                .native_ctx
+                .variables
+                .extend(t.namespace.native_ctx.variables);
         }
 
         // return JS code
@@ -282,11 +363,12 @@ impl Transpiler {
                 Statement::NativeStatement(_, stmts) => {
                     // loop through body
                     for stmt in stmts.as_ref() {
+                        let mangled_stmt = self.apply_namespace_mangling_to_native(stmt);
                         // add to native_stmts
-                        self.native_stmts.push(stmt.clone());
+                        self.native_stmts.push(mangled_stmt.clone());
 
                         // add to context
-                        self.add_stmt_to_native_ctx(stmt, false);
+                        self.add_stmt_to_native_ctx(&mangled_stmt.clone(), false);
                     }
                 }
                 _ => {
@@ -443,7 +525,7 @@ impl Transpiler {
 
     fn transpile_native_stmts(&mut self) -> String {
         let mut res = String::new();
-        let easy_wasm = compile_native(&self.native_stmts);
+        let easy_wasm = compile_native(&self.native_stmts, &self.namespace, &self.modules);
         if easy_wasm.is_err() {
             println!("Error: {}", easy_wasm.err().unwrap());
             // TODO: add error
@@ -1245,6 +1327,9 @@ impl Transpiler {
                 let mut res = String::new();
 
                 let name_exp = self.transpile_expression(name.as_ref().to_owned());
+                let name_exp = self.namespace.get_obj_name(&name_exp);
+
+                println!("{:#?}", self.namespace.native_ctx);
 
                 // check if name_exp exists in native_ctx
                 let native_fn = self
@@ -1296,55 +1381,22 @@ impl Transpiler {
 
                 // Check if the left side transpiled is actually a namespace.
                 let left_side = self.transpile_expression(left.as_ref().to_owned());
-                let right_side = self.transpile_expression(right.as_ref().to_owned());
-                for namespace in self.modules.iter() {
+                let cloned_modules = self.modules.clone();
+                for namespace in cloned_modules.iter() {
                     if namespace.has_name(&left_side) {
                         // It is a namespace!
-                        match right.as_ref() {
-                            Expression::CallExpression(_, identifier, args) => {
-                                // Check if this is a native expression
-                                let identifier_transpiled = match identifier.as_ref() {
-                                    Expression::Identifier(_, ina) => ina.to_owned(),
-                                    _ => "".to_string(),
-                                };
-                                if namespace
-                                    .native_ctx
-                                    .functions
-                                    .iter()
-                                    .find(|v| {
-                                        v.name == namespace.get_obj_name(&identifier_transpiled)
-                                    })
-                                    .is_some()
-                                {
-                                    // This is a native function
-                                    res.push_str(&self.transpile_native_function_with_args(
-                                        namespace,
-                                        &namespace.get_obj_name(&identifier_transpiled),
-                                        args.as_ref().to_owned(),
-                                    ));
-                                    // TODO: args here!
-                                    res.push_str("(");
-                                    for arg in args.as_ref().to_owned() {
-                                        res.push_str()
-                                    }
-                                } else {
-                                    res.push_str(
-                                        format!("{}", namespace.get_obj_name(&right_side)).as_str(),
-                                    );
-                                }
-                            }
-                            _ => {
-                                res.push_str(
-                                    format!("{}", namespace.get_obj_name(&right_side)).as_str(),
-                                );
-                            }
-                        }
-                        break;
+                        // There are only 3 possibilities for the right side:
+                        // - A call expression
+                        // - A identifier
+                        // - A dot expression
+                        let new_right = self.convert_namespaced_dot_expression(namespace, &right);
+                        res.push_str(&self.transpile_expression(new_right));
                     }
                 }
 
                 // Otherwise it is a regular dot expression.
                 if res.len() == 0 {
+                    let right_side = self.transpile_expression(right.as_ref().to_owned());
                     res.push_str(&left_side);
                     res.push_str(".");
                     let mut r = right_side.clone();
@@ -1967,6 +2019,53 @@ impl Transpiler {
         }
 
         res
+    }
+
+    /// Convert a namespaced DotExpression.
+    ///
+    /// This is for when a namespaced dot expressions right side is another dot expression.
+    ///
+    /// We could have:
+    /// import 'c.ej'
+    /// import 'std'
+    ///
+    /// native {
+    ///    fn test() {
+    ///       @std.print(c.variable)
+    ///       // or
+    ///       @std.print(c.method().x)
+    ///    }
+    /// }
+    fn convert_namespaced_dot_expression(
+        &mut self,
+        namespace: &Namespace,
+        expression: &Expression,
+    ) -> Expression {
+        match expression {
+            Expression::Identifier(token, name) => {
+                Expression::Identifier(token.to_owned(), namespace.get_obj_name(name))
+            }
+            Expression::CallExpression(token, name, args) => {
+                let name_as_string = self.transpile_expression(name.as_ref().to_owned());
+                Expression::CallExpression(
+                    token.to_owned(),
+                    Box::new(Expression::Identifier(
+                        name.get_token().to_owned(),
+                        namespace.get_obj_name(&name_as_string),
+                    )),
+                    args.to_owned(),
+                )
+            }
+            Expression::DotExpression(token, left, right) => {
+                let new_left = self.convert_namespaced_dot_expression(namespace, left);
+                Expression::DotExpression(token.to_owned(), Box::new(new_left), right.to_owned())
+            }
+            Expression::AssignExpression(tk, left, right) => {
+                let new_left = self.convert_namespaced_dot_expression(namespace, &left);
+                Expression::AssignExpression(tk.to_owned(), Box::new(new_left), right.to_owned())
+            }
+            _ => expression.to_owned(),
+        }
     }
 }
 

@@ -67,7 +67,7 @@ pub struct Struct {
 /// Used only in transpiler and type checker.
 /// Holds all native for project.
 #[derive(Debug, Clone)]
-pub struct NativeContext {
+pub struct Native {
     pub functions: Vec<Function>,
     pub variables: Vec<Variable>,
 }
@@ -88,7 +88,7 @@ pub struct Namespace {
     /// The macros associated with the namespace. In order to access a macro you have to use id.@macro
     pub macros: HashMap<String, crate::compiler::macros::Macro>,
     /// The native context of this namespace
-    pub native_ctx: NativeContext,
+    pub native_ctx: Native,
 }
 
 impl Namespace {
@@ -101,7 +101,7 @@ impl Namespace {
             functions: vec![],
             structs: vec![],
             macros: HashMap::new(),
-            native_ctx: NativeContext {
+            native_ctx: Native {
                 functions: vec![],
                 variables: vec![],
             },

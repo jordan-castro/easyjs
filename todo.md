@@ -22,12 +22,14 @@
   - classes via template
   - HTML via templates
   - compile time with `easyjsr`
+- v0.4.0 allow non string keys in objects.
+- v0.4.0 Allow "as _" in modules.
 
 ## Commands
 - v0.4.5 Add a update command to the CLI
 - v0.4.5 allow compilation via strings
 
-## WASM
+## Native (WASM)
 - v0.4.x Additions
   - instruction generator
   - smart memory
@@ -73,8 +75,7 @@
     - dot expression
   - classes
   - structs
-- v0.6.0 
-  - GC
+- v0.4.0 Allow for calling functions from client easyjs in native. i.e. easyjs function/variable/struct used within native block.
 - v0.6.0 explore multi threaded wasm.
 - v0.6.0 add shared memory support
 - v0.4.x Generate WAT for debugging purposes.
