@@ -1,5 +1,1 @@
-utils = use_mod("./utils.ej")
-
-person = new utils.Person("Jordan")
-
-console.log(person.name)
+import 'sandbox.ej'

@@ -689,9 +689,9 @@ impl NativeContext {
             Expression::CallExpression(_, name, arguments) => {
                 let name = self.compile_raw_expression(name);
                 // get namespace defined name.
-                let name = self.namespace.get_obj_name(&name);
+                let mangled_name = self.namespace.get_obj_name(&name);
 
-                let fun_idx = self.get_fun_idx_from_name(&name);
+                let fun_idx = self.get_fun_idx_from_name(&mangled_name);
                 if fun_idx.is_none() {
                     // Check if this is a wasm core function
                     if !is_wasm_core(name.as_str()) {
@@ -700,7 +700,7 @@ impl NativeContext {
                         return vec![];
                     } else {
                         // We have a core function. Call it and pass back the instructions
-                        return call_wasm_core_function(&mut self.errors, name.as_str(), arguments);
+                        return call_wasm_core_function(&mut self.errors, mangled_name.as_str(), arguments);
                     }
                 }
                 let fun_idx = fun_idx.unwrap();

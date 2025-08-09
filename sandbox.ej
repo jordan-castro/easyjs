@@ -1,9 +1,3 @@
-native {
-    pub fn get_name():string {
-        return "Jordan"
-    }
+import "std"
 
-    pub fn add_strings(string1: string):string {
-        return string1 + " <- has been added to this string"
-    }
-}
+@std.print('sandbox.ej')
