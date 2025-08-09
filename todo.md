@@ -17,7 +17,7 @@
   - v0.4.5 ~~N number of paramaters (think ...args)~~
   - v0.4.5 ~~default paramaters in macros~~
 - v0.4.5 Check vaiable scoping from imported files
-- v0.6.0 Add namespaces and just include with import 'file.ej' as file y ya.
+- ~~v0.6.0 Add namespaces and just include with import 'file.ej' as file y ya.~~
 - v0.5.0 add templates
   - classes via template
   - HTML via templates

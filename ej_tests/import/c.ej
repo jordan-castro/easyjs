@@ -4,4 +4,4 @@ native {
     }
 }
 
-test = 3
+test = add(1,2)

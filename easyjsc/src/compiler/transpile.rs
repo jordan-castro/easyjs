@@ -1327,9 +1327,6 @@ impl Transpiler {
                 let mut res = String::new();
 
                 let name_exp = self.transpile_expression(name.as_ref().to_owned());
-                let name_exp = self.namespace.get_obj_name(&name_exp);
-
-                println!("{:#?}", self.namespace.native_ctx);
 
                 // check if name_exp exists in native_ctx
                 let native_fn = self
@@ -1337,7 +1334,7 @@ impl Transpiler {
                     .native_ctx
                     .functions
                     .iter()
-                    .find(|f| f.name == name_exp);
+                    .find(|f| f.name == self.namespace.get_obj_name(&name_exp));
                 if native_fn.is_some() {
                     res.push_str(&self.transpile_native_function_with_args(
                         &self.namespace,
@@ -1593,72 +1590,65 @@ impl Transpiler {
             }
             Expression::MacroExpression(_, name, arguments) => {
                 // Check if this has a namespace
-                let mut macro_namespace: Namespace = self.namespace.clone();
+                let mut macro_object: Option<Macro> = None;
 
                 // Check macro namespace is correct, or udapet it
                 let full_macro_name = self.transpile_expression(name.as_ref().to_owned());
 
-                let macro_name: String;
                 if full_macro_name.contains('.') {
                     let parts: Vec<&str> = full_macro_name.split('.').collect();
 
                     if let (Some(ns), Some(name_part)) = (parts.first(), parts.get(1)) {
-                        macro_name = name_part.to_string();
-
                         if let Some(found_namespace) = self
                             .modules
                             .iter()
                             .find(|namespace| namespace.has_name(&ns.to_string()))
                         {
-                            macro_namespace = found_namespace.clone();
+                            // Set the macro object.
+                            if let Some(found_macro) = found_namespace
+                                .macros
+                                .get(&found_namespace.get_obj_name(&name_part.to_string()))
+                            {
+                                macro_object = Some(found_macro.clone());
+                            }
                         }
                     } else {
+                        unreachable!("How can this be reached in Macros?")
                         // Fallback if split failed
-                        macro_name = full_macro_name.clone();
+                        // if let Some(found_macro) = self.namespace.macros.get
                     }
                 } else {
-                    macro_name = full_macro_name.clone();
+                    if let Some(found_macro) = self.namespace.macros.get(&full_macro_name) {
+                        macro_object = Some(found_macro.clone());
+                    }
                 }
+                if macro_object.is_none() {
+                    return "".to_string();
+                }
+                let macro_object = macro_object.unwrap();
                 let macro_arguments = arguments.as_ref().to_owned();
 
                 // parse the body first.
-                let transpiled_body = if let Some(mac) = macro_namespace
-                    .macros
-                    .get(&macro_namespace.get_obj_name(&macro_name))
-                {
-                    // parse the macro body
-                    match &mac.body {
-                        Statement::BlockStatement(tk, stmts) => {
-                            let mut body =
-                                self.transpile_macro_block_stmt(stmts.as_ref().to_owned());
-                            // body = body[0..body.len() - 1].to_string();
+                let transpiled_body = match &macro_object.body {
+                    Statement::BlockStatement(tk, stmts) => {
+                        let mut body = self.transpile_macro_block_stmt(stmts.as_ref().to_owned());
+                        // body = body[0..body.len() - 1].to_string();
 
-                            if body.ends_with(';') {
-                                body = body.strip_suffix(';').unwrap().to_string();
-                            }
-
-                            body
+                        if body.ends_with(';') {
+                            body = body.strip_suffix(';').unwrap().to_string();
                         }
-                        _ => "".to_string(),
+
+                        body
                     }
-                } else {
-                    "".to_string()
+                    _ => "".to_string(),
                 };
 
                 // Check for named macro arguments
-
                 let macro_arguments = self.transpile_call_arguments(macro_arguments);
 
-                if let Some(mac) = macro_namespace
-                    .macros
-                    .get(&macro_namespace.get_obj_name(&macro_name))
-                {
-                    let macro_arguments =
-                        self.lineup_macro_args(macro_arguments, mac.paramaters.clone());
-                    mac.compile(macro_arguments, transpiled_body)
-                } else {
-                    String::from("")
-                }
+                let macro_arguments =
+                    self.lineup_macro_args(macro_arguments, macro_object.paramaters.clone());
+                macro_object.compile(macro_arguments, transpiled_body)
             }
             Expression::SpreadExpression(tk, expression) => {
                 format!(
