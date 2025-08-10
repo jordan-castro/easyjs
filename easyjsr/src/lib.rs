@@ -2,7 +2,7 @@ use rquickjs::{
     CatchResultExt, Context, Function, Object, Result, Runtime, Value,
 };
 
-use crate::builtins::console::add_console;
+use crate::builtins::{console::add_console, text_encoder::add_text_encoder};
 
 mod builtins;
 mod utils;
@@ -28,6 +28,7 @@ impl EasyJSR {
     fn add_internal_methods(&mut self) -> Result<()> {
         // add console methods
         add_console(&self.ctx)?;
+        add_text_encoder(&self.ctx)?;
 
         Ok(())
     }

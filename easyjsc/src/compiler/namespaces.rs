@@ -133,7 +133,7 @@ impl Namespace {
                 obj_name.to_string()
             } else {
                 format!(
-                    "__{}_{}",
+                    "_{}_{}",
                     self.id.split('.').collect::<Vec<&str>>().first().unwrap(),
                     obj_name
                 )
@@ -141,7 +141,7 @@ impl Namespace {
         } else if self.alias == "_" {
             obj_name.to_string()
         } else {
-            format!("__{}_{}", self.alias, obj_name)
+            format!("_{}_{}", self.alias, obj_name)
         }
     }
 

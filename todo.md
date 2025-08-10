@@ -1,29 +1,22 @@
 # TODO
 
 ## Compiler
-- v0.6.0 Add benchmarks for:
+- v0.6 Add benchmarks for:
   - compilation (vs TypeScript, Dart, Nim, other to JS options)
   - wasm compilation (vs AssemblyScript, Dart, Rust, Go, C/C++)
   - ease of use (vs TypeScript, Dart, CoffeScript)
-- v0.5.0 type checker
-- v0.7.0 ~~default function parameters.~~
-- v0.7.0 ~~Do named paramaters better. instead of wrapping with {} actually get the position and place it correctly! ~~
-- v0.5.0 Include the wasm binary with the CLI.
-- v0.5.0 Add classes
-- v0.4.x Finish adding all operators
+- v0.5 type checker
+- v0.5 Include the wasm binary with the CLI.
+- v0.5 Add classes
+- v0.4 Finish adding all operators
   - <<
   - ^ 
-- v0.4.5 ~~better macro features~~.
-  - v0.4.5 ~~N number of paramaters (think ...args)~~
-  - v0.4.5 ~~default paramaters in macros~~
-- v0.4.5 Check vaiable scoping from imported files
-- ~~v0.6.0 Add namespaces and just include with import 'file.ej' as file y ya.~~
-- v0.5.0 add templates
+- v0.5 add templates
   - classes via template
   - HTML via templates
   - compile time with `easyjsr`
-- v0.4.0 allow non string keys in objects.
-- v0.4.0 Allow "as _" in modules.
+- v0.4 allow non string keys in objects.
+- v0.4 update namespace to just use 1 '_' instead of 2
 
 ## Commands
 - v0.4.5 Add a update command to the CLI
