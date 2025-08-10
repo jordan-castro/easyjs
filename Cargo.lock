@@ -255,6 +255,7 @@ dependencies = [
 name = "easyjsr"
 version = "0.1.0"
 dependencies = [
+ "encoding_rs",
  "rquickjs",
  "tokio",
 ]
