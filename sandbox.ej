@@ -1,3 +1,7 @@
-import "std"
+javascript {
+    import { NAME } from 't.js'
+}
 
-@std.print('sandbox.ej')
+import 'std'
+
+@std.print(NAME)

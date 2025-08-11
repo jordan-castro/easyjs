@@ -11,4 +11,4 @@ easyjs repl --runtime easyjsr
 > @print('Hello World')
 ```
 
-This is not ready yet and only supports VERY BASIC JS.
+Realize there is still a bit missing in the easyjs runtime. To have a look at what is missing vs what has been implemented check: implemented.md
