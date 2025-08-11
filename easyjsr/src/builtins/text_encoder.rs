@@ -6,6 +6,8 @@ use rquickjs::{
     prelude::This,
 };
 
+use crate::add_struct_to_quickjs;
+
 /// A TextEncoder for easyjsr.
 ///
 /// Supports:
@@ -37,34 +39,9 @@ impl TextEncoder {
         // TypedArray::new(ctx, vec) constructs a TypedArray backed by those bytes.
         TypedArray::<u8>::new(ctx, bytes)
     }
-
-    /// Decode a string.
-    pub fn decode<'js>(&self, ctx: Ctx<'js>, input: TypedArray<u8>) -> Result<String> {
-        // Decript
-        let result = self.encoding.decode(input)
-
-        Ok("".to_string())
-    }
 }
 
-impl<'js> Trace<'js> for TextEncoder {
-    fn trace<'a>(&self, _tracer: Tracer<'a, 'js>) {}
-}
-
-impl<'js> IntoJs<'js> for TextEncoder {
-    fn into_js(self, ctx: &Ctx<'js>) -> Result<rquickjs::Value<'js>> {
-        Class::instance(ctx.clone(), self).into_js(ctx)
-    }
-}
-
-impl<'js> FromJs<'js> for TextEncoder {
-    fn from_js(ctx: &Ctx<'js>, value: rquickjs::Value<'js>) -> Result<Self> {
-        Ok(*Class::<TextEncoder>::from_js(ctx, value)?.try_borrow()?)
-    }
-}
-unsafe impl<'js> JsLifetime<'js> for TextEncoder {
-    type Changed<'to> = TextEncoder;
-}
+add_struct_to_quickjs!(TextEncoder);
 
 impl<'js> JsClass<'js> for TextEncoder {
     const NAME: &'static str = "TextEncoder";
@@ -73,20 +50,20 @@ impl<'js> JsClass<'js> for TextEncoder {
 
     fn constructor(ctx: &Ctx<'js>) -> Result<Option<rquickjs::function::Constructor<'js>>> {
         let constr =
-            Constructor::new_class::<TextEncoder, _, _>(ctx.clone(), |encoding_name: String| {
-                TextEncoder::new(Some(encoding_name))
+            Constructor::new_class::<TextEncoder, _, _>(ctx.clone(), |encoding_name: Option<String>| {
+                TextEncoder::new(encoding_name)
             })?;
 
         Ok(Some(constr))
     }
     fn prototype(ctx: &Ctx<'js>) -> Result<Option<rquickjs::Object<'js>>> {
         let proto = Object::new(ctx.clone())?;
-        let func = Function::new(ctx.clone(), |ctx: Ctx<'js>, this: This<TextEncoder>, input: String| {
+        let encode_func = Function::new(ctx.clone(), |ctx: Ctx<'js>, this: This<TextEncoder>, input: String| {
             this.encode(ctx, input)
         })?
         .with_name("encode")?;
 
-        proto.set("encode", func)?;
+        proto.set("encode", encode_func)?;
         Ok(Some(proto))
     }
 }

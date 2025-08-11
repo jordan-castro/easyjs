@@ -6,7 +6,6 @@
   - wasm compilation (vs AssemblyScript, Dart, Rust, Go, C/C++)
   - ease of use (vs TypeScript, Dart, CoffeScript)
 - v0.5 type checker
-- v0.5 Include the wasm binary with the CLI.
 - v0.5 Add classes
 - v0.4 Finish adding all operators
   - <<
@@ -16,7 +15,7 @@
   - HTML via templates
   - compile time with `easyjsr`
 - v0.4 allow non string keys in objects.
-- v0.4 update namespace to just use 1 '_' instead of 2
+- ~~v0.4 update namespace to just use 1 '_' instead of 2~~
 
 ## Commands
 - v0.4.5 Add a update command to the CLI
@@ -89,9 +88,7 @@
 
 ## lib
 - v0.4.x shell commands
-- v0.4.x Universal std lib:
-  - io
-  - sys
+- v0.4 Update lib to be specific to easyjsr.
 
 ## Scripts
 - Rewrite the scripts/ folder to pure easyjs
