@@ -14,5 +14,6 @@ If something is striked out that means it has been implemented.
     - ignoreBOM
 
 - WebAssembly[https://developer.mozilla.org/en-US/docs/WebAssembly]
+    - TODO!!!
 
 - ~~JS imports~~

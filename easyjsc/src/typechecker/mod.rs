@@ -2,22 +2,33 @@ use wasm_encoder::ValType;
 
 use crate::parser::ast::Expression;
 
+/// = Native::i32
+pub const I32_TYPE_IDX: i32 = 0;
+/// = Native::f32
+pub const F32_TYPE_IDX: i32 = 1;
+/// = Native::String
+pub const STRING_TYPE_IDX: i32 = 2;
+/// = Native::Array
+pub const ARRAY_TYPE_IDX: i32 = 3;
+
 /// A Type Value.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum StrongValType {
-    /// i.e. any
+    /// any/unknown/void
     None, 
-    /// i.e. easyjs: Number, native: i32
+    /// js: Number, native: i32
     Int,
-    /// i.e. easyjs: Number, native: f32
+    /// js: Number, native: f32
     Float,
-    /// i.e. easyjs: bool, native: i32
+    /// js: bool, native: i32
     Bool,
     /// Custom schema type. TODO
     Custom,
     NotSupported, // i.e. THROW AN ERROR
-    /// i.e. easyjs: string, native: i32 (pointer to string in memory)
+    /// js: string, native: i32 (pointer to string in memory)
     String,
+    /// js: Array, native: i32 (pointer to array in memory)
+    Array,
 }
 
 /// String representation of type
@@ -29,6 +40,7 @@ pub fn get_string_rep_of_type(strong: &StrongValType) -> String {
         StrongValType::Float => "float",
         StrongValType::String => "string",
         StrongValType::Int => "int",
+        StrongValType::Array => "array",
         _ => "" // ?
     }.to_string()
 }
@@ -40,6 +52,7 @@ pub fn get_param_type_by_string(string: &str) -> StrongValType {
         "bool" => StrongValType::Bool,
         "float" => StrongValType::Float,
         "string" => StrongValType::String,
+        "array" => StrongValType::Array,
         _ => StrongValType::NotSupported,
     }
 }
@@ -74,6 +87,7 @@ pub fn get_val_type_from_strong(strong: &StrongValType) -> Option<ValType> {
         StrongValType::Float => Some(ValType::F32),
         StrongValType::Bool => Some(ValType::I32),
         StrongValType::String => Some(ValType::I32),
+        StrongValType::Array => Some(ValType::I32),
         // TODO: Implement StrongValType::None
         _ => None,
     }

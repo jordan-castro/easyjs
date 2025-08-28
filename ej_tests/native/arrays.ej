@@ -1,0 +1,29 @@
+import "ej_tests/native/TEST_UTILS.ej" as _
+import "std" as _
+
+native {
+    pub fn new_array():array {
+        return [1,2,3]
+    }
+
+    pub fn return_length():int {
+        return __arr_get_len([1,2,3])
+    }
+
+    pub fn return_cap():int {
+        return __arr_get_cap([1,2,3])
+    }
+
+    pub fn return_first():int {
+        arr = [1,2,3]
+        retur arr[0]
+    }
+}
+
+@print(new_array())
+@print(return_length())
+@print(return_cap())
+
+// @assert(new_array(), [1,2,3])
+
+// @print('All tests passed')

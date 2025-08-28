@@ -5,21 +5,16 @@ use std::{collections::HashMap, string, vec};
 use crate::{
     compiler::namespaces::{Function as EJFunction, Namespace, Variable as EJVariable},
     emitter::{
-        builtins::{
-            ALLOCATE_STRING_IDX, STORE_STRING_LENGTH_IDX, STR_CONCAT_IDX, STR_GET_LEN_IDX,
-            STR_INDEX_IDX, STR_STORE_BYTE_IDX,
-        },
-        instruction_generator::{
-            EasyInstructions, call_wasm_core_function, is_wasm_core, set_local_string,
-        },
-        signatures::{
-            EasyNativeBlock, EasyNativeFN, EasyNativeVar, FunctionSignature, create_type_section,
-        },
-        strings::{
+        arrays::{native_allocate_array, native_arr_get_cap, native_arr_get_item, native_arr_get_len, native_arr_push_array, native_arr_push_float, native_arr_push_int, native_arr_push_string, native_arr_reallocate, native_arr_store_capacity, native_arr_store_length}, builtins::{
+            ALLOCATE_STRING_IDX, ARR_ALLOCATE_IDX, ARR_GET_ITEM_IDX, ARR_PUSH_ARRAY_IDX, ARR_PUSH_FLOAT_IDX, ARR_PUSH_INT_IDX, ARR_PUSH_STRING_IDX, ARR_STORE_CAPACITY_IDX, ARR_STORE_LENGTH_IDX, STORE_STRING_LENGTH_IDX, STR_CONCAT_IDX, STR_GET_LEN_IDX, STR_INDEX_IDX, STR_STORE_BYTE_IDX
+        }, instruction_generator::{
+            call_wasm_core_function, is_wasm_core, set_local_string, EasyInstructions
+        }, signatures::{
+            create_type_section, EasyNativeBlock, EasyNativeFN, EasyNativeVar, FunctionSignature
+        }, strings::{
             allocate_string, native_str_char_code_at, native_str_concat, native_str_get_len,
             native_str_index, native_str_store_byte, store_string_length,
-        },
-        utils::expression_is_ident,
+        }, utils::expression_is_ident
     },
     errors::{
         native_can_not_compile_raw_expression, native_can_not_get_value_from_expression,
@@ -28,15 +23,14 @@ use crate::{
         native_no_function_provided_for_variable_scope,
         native_return_value_does_not_match_function, native_unsupported_builtin_call,
         native_unsupported_expression, native_unsupported_expression_as_value_for_global_variable,
-        native_unsupported_index_expression, native_unsupported_operation,
-        native_unsupported_operator, native_unsupported_prefix_expression,
-        native_unsupported_statement,
+        native_unsupported_expression_in_array, native_unsupported_index_expression,
+        native_unsupported_operation, native_unsupported_operator,
+        native_unsupported_prefix_expression, native_unsupported_statement,
     },
     lexer::token::{self, Token},
     parser::ast::{Expression, Statement},
     typechecker::{
-        StrongValType, get_param_type_by_named_expression, get_param_type_by_string,
-        get_val_type_from_strong,
+        get_param_type_by_named_expression, get_param_type_by_string, get_val_type_from_strong, StrongValType, I32_TYPE_IDX
     },
 };
 use wasm_encoder::{
@@ -173,6 +167,18 @@ pub fn compile_native(
         native_str_concat(),
         native_str_index(),
         native_str_char_code_at(),
+        // ARRAY METHODS
+        native_allocate_array(),
+        native_arr_store_length(),
+        native_arr_store_capacity(),
+        native_arr_get_len(),
+        native_arr_get_cap(),
+        native_arr_reallocate(),
+        native_arr_push_int(),
+        native_arr_push_float(),
+        native_arr_push_string(),
+        native_arr_push_array(),
+        native_arr_get_item()
     ];
     // add to native context.
     ctx.functions.append(&mut builtin_fns);
@@ -231,6 +237,7 @@ pub fn compile_native(
     let mut global_section = wasm_encoder::GlobalSection::new();
     // TODO: dynamic global setting
     global_section.global(
+        // This is the heap
         GlobalType {
             mutable: true,
             shared: false,
@@ -586,6 +593,11 @@ impl NativeContext {
                     (StrongValType::Bool, StrongValType::Bool) => "int",
                     (StrongValType::Int, StrongValType::Bool) => "int",
                     (StrongValType::Bool, StrongValType::Int) => "int",
+                    (StrongValType::Array, StrongValType::Int) => "array-int",
+                    (StrongValType::Array, StrongValType::Float) => "array-float",
+                    (StrongValType::Array, StrongValType::String) => "array-string",
+                    (StrongValType::Array, StrongValType::Array) => "array",
+                    (StrongValType::Array, StrongValType::Bool) => "array-bool",
                     (_, _) => {
                         self.errors.push(native_unsupported_operation(
                             expr.get_token(),
@@ -671,6 +683,41 @@ impl NativeContext {
                             );
                             instructions.append(&mut n_assign);
                         }
+                        "array-int" => {
+                            let mut n_assign = generate_n_assign_instructions!(
+                                left,
+                                Instruction::Call(ARR_PUSH_INT_IDX)
+                            );
+                            instructions.append(&mut n_assign);
+                        }
+                        "array-float" => {
+                            let mut n_assign = generate_n_assign_instructions!(
+                                left,
+                                Instruction::Call(ARR_PUSH_FLOAT_IDX)
+                            );
+                            instructions.append(&mut n_assign);
+                        }
+                        "array-string" => {
+                            let mut n_assign = generate_n_assign_instructions!(
+                                left,
+                                Instruction::Call(ARR_PUSH_STRING_IDX)
+                            );
+                            instructions.append(&mut n_assign);
+                        }
+                        "array-bool" => {
+                            let mut n_assign = generate_n_assign_instructions!(
+                                left,
+                                Instruction::Call(ARR_PUSH_INT_IDX)
+                            );
+                            instructions.append(&mut n_assign);
+                        }
+                        "array" => {
+                            let mut n_assign = generate_n_assign_instructions!(
+                                left,
+                                Instruction::Call(ARR_PUSH_ARRAY_IDX)
+                            );
+                            instructions.append(&mut n_assign);
+                        }
                         _ => {}
                     },
                     _ => {
@@ -700,7 +747,11 @@ impl NativeContext {
                         return vec![];
                     } else {
                         // We have a core function. Call it and pass back the instructions
-                        return call_wasm_core_function(&mut self.errors, mangled_name.as_str(), arguments);
+                        return call_wasm_core_function(
+                            &mut self.errors,
+                            mangled_name.as_str(),
+                            arguments,
+                        );
                     }
                 }
                 let fun_idx = fun_idx.unwrap();
@@ -779,6 +830,21 @@ impl NativeContext {
                             StrongValType::Int => {
                                 // Call __str_index
                                 instructions.push(Instruction::Call(STR_INDEX_IDX));
+                            }
+                            _ => self
+                                .errors
+                                .push(native_unsupported_index_expression(index.get_token())),
+                        }
+                    }
+                    StrongValType::Array => {
+                        instructions.append(&mut self.compile_expression(index));
+                        match index_type {
+                            StrongValType::Int => {
+                                // Call __arr_get_item
+                                instructions.append(&mut vec![
+                                    Instruction::Call(ARR_GET_ITEM_IDX),
+                                ]);
+                                // instructions.push(Instruction::Call(ARR_GET_ITEM_IDX));
                             }
                             _ => self
                                 .errors
@@ -913,6 +979,64 @@ impl NativeContext {
                 // Now we can remove the block scope
                 self.poop_block_scope();
                 vec![]
+            }
+            Expression::ArrayLiteral(token, items) => {
+                // Add to variable scope
+                let array_var_idx = self.next_var_idx;
+                // update idx
+                self.next_var_idx += 1;
+                self.variable_scope.get_mut(1).unwrap().push(EasyNativeVar {
+                    name: format!("{}{}", items.as_ref().len(), self.next_var_idx),
+                    idx: array_var_idx,
+                    is_global: false,
+                    value: ConstExpr::empty(),
+                    val_type: StrongValType::Array,
+                    is_mut: true,
+                });
+                let items = items.as_ref();
+                let mut instructions = vec![];
+                // Set the PTR to the array
+                instructions.push(Instruction::I32Const((items.len() * 2) as i32)); // set capicity to current size * 2.
+                instructions.push(Instruction::Call(ARR_ALLOCATE_IDX));
+                instructions.push(Instruction::LocalSet(array_var_idx));
+                // Set length
+                instructions.push(Instruction::LocalGet(array_var_idx));
+                instructions.push(Instruction::I32Const(items.len() as i32));
+                instructions.push(Instruction::Call(ARR_STORE_LENGTH_IDX));
+                // Store capacity
+                instructions.push(Instruction::LocalGet(array_var_idx));
+                instructions.push(Instruction::I32Const((items.len() * 2) as i32));
+                instructions.push(Instruction::Call(ARR_STORE_CAPACITY_IDX));
+
+                // Loop through items, each is added differently
+                for item in items {
+                    // we need our ptr
+                    instructions.push(Instruction::LocalGet(array_var_idx));
+                    // compile expression and add instructions
+                    instructions.append(&mut self.compile_expression(item));
+
+                    // Match push type
+                    match item {
+                        Expression::StringLiteral(_, _) => {
+                            instructions.push(Instruction::Call(ARR_PUSH_STRING_IDX));
+                        }
+                        // Booleans are just ints.
+                        Expression::IntegerLiteral(_, _) | Expression::Boolean(_, _) => {
+                            instructions.push(Instruction::Call(ARR_PUSH_INT_IDX));
+                        }
+                        Expression::FloatLiteral(_, _) => {
+                            instructions.push(Instruction::Call(ARR_PUSH_FLOAT_IDX));
+                        }
+                        Expression::ArrayLiteral(_, _) => {
+                            instructions.push(Instruction::Call(ARR_PUSH_ARRAY_IDX));
+                        }
+                        _ => self
+                            .errors
+                            .push(native_unsupported_expression_in_array(item)),
+                    }
+                }
+
+                instructions
             }
             Expression::EmptyExpression => {
                 vec![]

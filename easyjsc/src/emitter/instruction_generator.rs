@@ -101,6 +101,7 @@ pub fn is_wasm_core(fn_name: &str) -> bool {
         "__i32_add" => true,
         "__i32_load" => true,
         "__i32_load8u" => true,
+        "__call" => true,
         _ => false,
     }
 }
@@ -212,6 +213,10 @@ pub fn call_wasm_core_function(
                 errors
             );
             vec![Instruction::GlobalSet(args[0])]
+        }
+        "__call" => {
+            let mut args = wasm_core_args!(arguments, "__call", "Expected number as argument", errors);
+            vec![Instruction::Call(args[0])]
         }
         _ => {
             vec![Instruction::Unreachable]

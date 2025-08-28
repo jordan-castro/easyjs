@@ -1,5 +1,5 @@
 use rquickjs::{loader::{
-    BuiltinLoader, BuiltinResolver, FileResolver, ModuleLoader, NativeLoader, ScriptLoader,
+    FileResolver, ModuleLoader, NativeLoader, ScriptLoader,
 }, Runtime};
 
 
