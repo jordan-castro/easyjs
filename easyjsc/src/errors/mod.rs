@@ -78,3 +78,8 @@ pub fn native_no_function_provided_for_variable_scope(token: &Token) -> String {
 pub fn native_return_value_does_not_match_function(token: &Token) -> String {
     make_native_error(token, "return value does not match function return type")
 }
+
+/// ERROR Native: Unsupported expression in array
+pub fn native_unsupported_expression_in_array(expression: &Expression) -> String {
+    make_native_error(expression.get_token(), format!("Unsupported expression in array: {:#?}", expression).as_str())
+}

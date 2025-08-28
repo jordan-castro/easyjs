@@ -10,12 +10,9 @@
 - v0.4 Finish adding all operators
   - <<
   - ^ 
-- v0.5 add templates
-  - classes via template
-  - HTML via templates
-  - compile time with `easyjsr`
 - v0.4 allow non string keys in objects.
 - ~~v0.4 update namespace to just use 1 '_' instead of 2~~
+- v0.5.0 Small Interepteter for templates
 
 ## Commands
 - v0.4.5 Add a update command to the CLI
@@ -45,6 +42,8 @@
   - import functions from external.
   - loops
   - ~~if statements~~
+    - or
+    - and
   - operators
     - ~~>~~
     - ~~<~~
@@ -54,12 +53,14 @@
     - ~~+~~
     - ~~-~~
     - ~~*~~
-    - ~~\~~
+    - ~~ \ ~~
     - ~~%~~
     - ~~+=~~
     - -=
     - *=
     - /=
+    - |
+    - &
 - v0.4.0
   - dicts
     - key, value
@@ -72,6 +73,10 @@
 - v0.6.0 add shared memory support
 - v0.4.x Generate WAT for debugging purposes.
 - v0.4.0 Run a optomizer on the wasm byte code before transpiling.
+- v0.4.0 Check () work
+- v0.5.0 GC add a garbage collector OR a free method.
+- v0.5.0 Allow for multiple return types in JS side
+- v0.5.0 Dot methods
 
 ## Website
 - v0.4.0 Links
@@ -97,3 +102,6 @@
   - build
   - buildwasm
   - move_to_bin
+
+## Tests
+- add tests.
