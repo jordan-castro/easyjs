@@ -1,5 +1,5 @@
 use crate::commands::compile;
-use easy_utils::utils;
+use easyjs_utils::utils;
 use easyjsr::EasyJSR;
 use std::{
     io::{BufRead, BufReader, Read, Write},
@@ -173,6 +173,6 @@ pub fn create_runtime(runtime: &str, crash_on_error: bool) -> Box<dyn RT> {
     match runtime {
         "easyjsr" => Box::new(InternalRuntime::new(crash_on_error)),
         "node" | "deno" => Box::new(Runtime::new(runtime, crash_on_error)),
-        _ => panic!("Unsupported runtime: {runtime}")
+        _ => panic!("Unsupported runtime: {runtime}"),
     }
 }

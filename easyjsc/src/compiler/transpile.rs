@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use easy_utils::utils::sanatize;
+use easyjs_utils::utils::sanatize;
 use regex::Regex;
 
 use super::macros::Macro;
@@ -16,7 +16,7 @@ use crate::parser::{ast, par};
 use crate::typechecker::{
     StrongValType, get_param_type_by_string, get_param_type_by_string_ej, get_string_rep_of_type,
 };
-use easy_utils::utils::{h::hash_string, js_helpers::is_javascript_keyword};
+use easyjs_utils::utils::{h::hash_string, js_helpers::is_javascript_keyword};
 
 use super::import::import_file;
 

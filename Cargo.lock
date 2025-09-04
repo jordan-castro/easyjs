@@ -266,19 +266,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "easy_utils"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "easyjs"
 version = "0.4.2"
 dependencies = [
  "clap",
- "easy_utils",
+ "easyjs_utils",
  "easyjsc",
  "easyjsr",
  "git2",
@@ -291,10 +283,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "easyjs_utils"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "easyjsc"
 version = "0.1.0"
 dependencies = [
- "easy_utils",
+ "easyjs_utils",
  "regex",
  "wasm-bindgen",
  "wasm-encoder",

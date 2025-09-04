@@ -1,5 +1,5 @@
 use crate::std::load_std;
-use easy_utils::utils::reader::read_file;
+use easyjs_utils::utils::reader::read_file;
 
 /// Import a `easyjs` file.
 pub fn import_file(file_path: &str) -> String {
