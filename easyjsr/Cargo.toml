@@ -2,6 +2,12 @@
 name = "easyjsr"
 version = "0.1.0"
 edition = "2024"
+license = "Apache-2.0"
+keywords = ["javascript", "runtime", "language"]
+description = "easyjs internal JS runtime"
+homepage = "https://jordanmcastro.com/easyjs"
+repository = "https://github.com/jordan-castro/easyjs"
+readme = "README.md"
 
 [dependencies]
 rquickjs = { version = "=0.9.0", default-features = false, features = ["futures", "rust-alloc", "loader", "dyn-load"]}
