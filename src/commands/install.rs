@@ -1,11 +1,11 @@
 // use crate::compile_easy_js;
 use easyjsc::compile_easy_js;
-use easy_utils::utils::ej_config::{get_ej_config, parse_ej_config, EJConfig};
+use easyjs_utils::utils::ej_config::{get_ej_config, parse_ej_config, EJConfig};
 use git2::Repository;
 use std::path::Path;
 use tempfile::tempdir;
 
-use easy_utils::utils::{
+use easyjs_utils::utils::{
     get_exe_dir,
     reader::{read_file, write_file},
 };

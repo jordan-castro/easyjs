@@ -1,6 +1,6 @@
 use std::io::Write;
 
-use easy_utils::utils::version;
+use easyjs_utils::utils::version;
 use easyjsc::lexer::lex;
 use easyjsc::parser::par;
 use easyjsc::compiler::transpile::Transpiler;
