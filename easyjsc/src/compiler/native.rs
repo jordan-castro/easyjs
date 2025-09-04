@@ -1277,6 +1277,7 @@ impl NativeContext {
                 self.get_val_type_from_expression(left)
             }
             Expression::FloatLiteral(tk, literal) => StrongValType::Float,
+            Expression::ArrayLiteral(_, _) => StrongValType::Array,
             _ => {
                 // add error
                 self.errors

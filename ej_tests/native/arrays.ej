@@ -16,13 +16,18 @@ native {
 
     pub fn return_first():int {
         arr = [1,2,3]
-        retur arr[0]
+        return arr[0]
+    }
+
+    pub fn add_one(cur:array):array {
+        return cur += 4
     }
 }
 
 @print(new_array())
 @print(return_length())
 @print(return_cap())
+@print(add_one([1,2,3]))
 
 // @assert(new_array(), [1,2,3])
 
