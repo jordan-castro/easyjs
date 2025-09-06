@@ -7,7 +7,7 @@ fn log(s: String) {
     println!("{s}");
 }
 
-// console.error
+/// console.error
 fn error(msg:String) {
     println!("ERROR: {msg}");
 }

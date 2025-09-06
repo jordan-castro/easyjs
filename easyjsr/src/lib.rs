@@ -1,3 +1,5 @@
+use std::iter::Map;
+
 use rquickjs::{CatchResultExt, Context, Function, Module, Object, Result, Runtime, Value};
 
 use crate::{
@@ -9,7 +11,7 @@ use crate::{
 
 mod builtins;
 mod modules;
-mod utils;
+pub mod utils;
 
 /// Good'ole easyjs runtime.
 pub struct EasyJSR {

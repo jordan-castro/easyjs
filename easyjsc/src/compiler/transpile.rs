@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::iter::Map;
 
 use easyjs_utils::utils::sanatize;
 use regex::Regex;
@@ -40,6 +41,9 @@ pub struct Transpiler {
 
     /// Is this being compiled as a module
     is_module: bool,
+
+    /// Custom libraries
+    custom_libs: HashMap<String, String>
 }
 /// Non Wasm specific (if running in non wasm enviroment, optionally save the wasm binary)
 #[cfg(not(target_arch = "wasm32"))]
@@ -64,6 +68,7 @@ impl Transpiler {
             native_stmts: vec![],
             debug_mode: false,
             is_module: false,
+            custom_libs: HashMap::new()
         };
 
         // Check the EASYJS_DEBUG variable
@@ -78,6 +83,14 @@ impl Transpiler {
 
         // add the first scope. This scope will never be popped.
         t.add_scope();
+        t
+    }
+
+    /// Create a transpiler with custom libs
+    pub fn with_custom_libs(custom_libs: HashMap<String, String>) -> Self {
+        let mut t = Transpiler::new();
+        t.custom_libs = custom_libs;
+
         t
     }
 
@@ -495,7 +508,7 @@ impl Transpiler {
             return "".to_string();
         }
         // Load contents
-        let contents = import_file(file_path);
+        let contents = import_file(file_path, self.custom_libs);
         if contents == "".to_string() {
             return "".to_string();
         }
