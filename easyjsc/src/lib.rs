@@ -18,7 +18,7 @@ pub fn compile_easy_js(input: String) -> String {
     transpiler.transpile_from_string(input)
 }
 
-#[wasm_bindgen]
 pub fn compile_easy_js_with_custom_libs(input: String, custom_libs: HashMap<String, String>) -> String {
-    let mut transpiler = Transpiler::new
+    let mut transpiler = Transpiler::with_custom_libs(custom_libs);
+    transpiler.transpile_from_string(input)
 }
