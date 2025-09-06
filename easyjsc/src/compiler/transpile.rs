@@ -508,7 +508,7 @@ impl Transpiler {
             return "".to_string();
         }
         // Load contents
-        let contents = import_file(file_path, self.custom_libs);
+        let contents = import_file(file_path, &self.custom_libs);
         if contents == "".to_string() {
             return "".to_string();
         }
