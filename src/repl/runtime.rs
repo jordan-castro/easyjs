@@ -82,7 +82,7 @@ impl Runtime {
 
 impl RT for InternalRuntime {
     fn send_command(&mut self, command: &str) -> Vec<String> {
-        self.runtime.run_js(command);
+        self.runtime.run(command);
         vec![]
     }
 
@@ -157,7 +157,7 @@ pub fn run_file(runtime: &str, path: &str, arguments: Vec<String>) {
         }
         "easyjsr" => {
             let mut rt = EasyJSR::new().expect("Could not create easyjs runtime.");
-            rt.run_js(&js_content)
+            rt.run(&js_content)
                 .expect("Could not run js code with easyjs runtime.");
         }
         _ => {

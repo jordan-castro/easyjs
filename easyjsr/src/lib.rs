@@ -1,6 +1,4 @@
-use std::iter::Map;
-
-use rquickjs::{CatchResultExt, Context, Function, Module, Object, Result, Runtime, Value};
+use rquickjs::{prelude::Func, CatchResultExt, Context, Function, Module, Object, Persistent, Result, Runtime, Value};
 
 use crate::{
     builtins::{
@@ -12,6 +10,11 @@ use crate::{
 mod builtins;
 mod modules;
 pub mod utils;
+
+/// For power users, if you need access to the lower level quickjs apis.
+pub mod raw {
+    pub use rquickjs::*;
+}
 
 /// Good'ole easyjs runtime.
 pub struct EasyJSR {
@@ -44,18 +47,12 @@ impl EasyJSR {
     }
 
     /// Run some JS code using the easyjs runtime.
-    pub fn run_js(&mut self, js: &str) -> Result<()> {
+    pub fn run(&mut self, js: &str) -> Result<()> {
         // Ctx it
         self.ctx.with(|ctx| -> Result<()> {
             let global = ctx.globals();
             let console: Object = global.get("console")?;
             let js_log: Function = console.get("log")?;
-
-            // ctx.eval::<Value, _>(js)
-            //     .and_then(|ret| js_log.call::<(Value<'_>,), ()>((ret,)))
-            //     .catch(&ctx)
-            //     .unwrap_or_else(|err| println!("{}", err));
-            // Ok(())
 
             Module::evaluate(ctx.clone(), "easyjs", js)
                 .unwrap()
@@ -68,4 +65,5 @@ impl EasyJSR {
 
         Ok(())
     }
+
 }
