@@ -1,0 +1,12 @@
+// Property of easyjs
+
+template new_class(name, ext, vars, methods) {
+    extension_string = ""
+    if ext.length > 0 {
+        
+    }
+
+    javascript {
+        class #name {}
+    }
+}

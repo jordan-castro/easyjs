@@ -1,7 +1,8 @@
 #[cfg(test)]
 mod tests {
+    use easyjsr::run_js;
+
     fn test_run() {
-        let mut has_err = false;
-        assert!(has_err != true);
+        assert!(run_js("1 + 1") == 0);
     }
 }

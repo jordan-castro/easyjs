@@ -1,69 +1,89 @@
-use rquickjs::{prelude::Func, CatchResultExt, Context, Function, Module, Object, Persistent, Result, Runtime, Value};
+use crate::ffi::EJR;
 
-use crate::{
-    builtins::{
-        console::add_console, text_decoder::add_text_decoder, text_encoder::add_text_encoder,
-    },
-    modules::set_easyjsr_module_loader,
-};
+mod ffi;
 
-mod builtins;
-mod modules;
-pub mod utils;
+pub fn run_js(js: &str) -> i32 {
+    let ejr = EJR::new();
 
-/// For power users, if you need access to the lower level quickjs apis.
-pub mod raw {
-    pub use rquickjs::*;
+    // Run some JS
+    let value = ejr.eval_script(js, "<test>");
+    // ejr gets freed here...
+
+    return value;
 }
 
-/// Good'ole easyjs runtime.
-pub struct EasyJSR {
-    pub rt: Runtime,
-    pub ctx: Context,
-}
+// use crate::{
+//     builtins::{
+//         console::add_console, text_decoder::add_text_decoder, text_encoder::add_text_encoder,
+//     },
+//     modules::set_easyjsr_module_loader,
+// };
 
-impl EasyJSR {
-    pub fn new() -> Result<EasyJSR> {
-        let rt = Runtime::new()?;
-        let ctx = Context::full(&rt)?;
+// mod builtins;
+// mod modules;
+// pub mod utils;
 
-        let mut easyjsr = EasyJSR { rt, ctx };
+// /// For power users, if you need access to the lower level quickjs apis.
+// pub mod raw {
+//     pub use rquickjs::*;
+// }
 
-        easyjsr.add_internal_methods()?;
+// /// Good'ole easyjs runtime.
+// pub struct EasyJSR {
+//     pub rt: Runtime,
+//     pub ctx: Context,
+// }
 
-        Ok(easyjsr)
-    }
+// impl EasyJSR {
+//     pub fn new() -> Result<EasyJSR> {
+//         let rt = Runtime::new()?;
+//         let ctx = Context::full(&rt)?;
 
-    fn add_internal_methods(&mut self) -> Result<()> {
-        // add modules
-        set_easyjsr_module_loader(&self.rt);
+//         let easyjsr = EasyJSR { rt, ctx };
 
-        // add console methods
-        add_console(&self.ctx)?;
-        add_text_encoder(&self.ctx)?;
-        add_text_decoder(&self.ctx)?;
+//         Ok(easyjsr)
+//     }
 
-        Ok(())
-    }
+//     /// Optionally add the internal methods in builtins/
+//     pub fn add_internal_methods(&mut self) -> Result<()> {
+//         // add console methods
+//         add_console(&self.ctx)?;
+//         add_text_encoder(&self.ctx)?;
+//         add_text_decoder(&self.ctx)?;
 
-    /// Run some JS code using the easyjs runtime.
-    pub fn run(&mut self, js: &str) -> Result<()> {
-        // Ctx it
-        self.ctx.with(|ctx| -> Result<()> {
-            let global = ctx.globals();
-            let console: Object = global.get("console")?;
-            let js_log: Function = console.get("log")?;
+//         Ok(())
+//     }
 
-            Module::evaluate(ctx.clone(), "easyjs", js)
-                .unwrap()
-                .finish()
-                .and_then(|ret: Value| js_log.call::<(Value<'_>,), ()>((ret.into(),)))
-                .catch(&ctx)
-                .unwrap_or_else(|err| println!("{}", err));
-            Ok(())
-        })?;
+//     /// Optionally add support for modules
+//     pub fn add_support_for_modules(&mut self) {
+//         set_easyjsr_module_loader(&self.rt);
+//     }
 
-        Ok(())
-    }
+//     /// Run some JS code using the easyjs runtime.
+//     /// 
+//     /// Returns a String result.
+//     pub fn eval(&mut self, js: &str) -> Result<String> {
+//         // Ctx it
+//         let result = self.ctx.with(|ctx| -> Result<String> {
+//             let promise = Module::evaluate(ctx.clone(), "<eval>", js)?;
+//             let result = promise.finish::<Value>()?;
 
-}
+//             Ok(convert_value_to_string!(result))
+//         })?;
+
+//         Ok(result)
+//     }
+
+//     /// Call a specific function from a object in the runtime.
+//     pub fn call_function(&mut self, object_name: &str, fn_name: &str, args: Args) where Args: IntoArgs<'js>, Ret: FromJs {
+//         self.ctx.with(|ctx| -> Result<()> {
+//             let globals = ctx.globals();
+//             let object: Object = globals.get(object_name)?;
+//             let function: Function = object.get(fn_name)?;
+
+//             function.call(args);
+
+//             Ok(())
+//         });
+//     }
+// }

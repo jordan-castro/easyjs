@@ -1,4 +1,4 @@
-// EasyJS STD version 0.4.2
+// EasyJS STD version 0.4.5
 const AGENTS: &str = r##"// Property of easyjs 
  
 class Agent { 
@@ -8,6 +8,18 @@ class Agent {
     fn __new(self, details) { 
         self.name = details.name ?? '' 
         self.tools = details.tools ?? [] 
+    } 
+}"##;
+const CLASSES: &str = r##"// Property of easyjs 
+ 
+template new_class(name, ext, vars, methods) { 
+    extension_string = "" 
+    if ext.length > 0 { 
+         
+    } 
+ 
+    javascript { 
+        class #name {} 
     } 
 }"##;
 const DATE: &str = r##"// Get the days between 2 dates 
@@ -24,6 +36,40 @@ macro get_week_day(d) {
 macro is_weekend(d) { 
     [5,6].indexOf(#d.getDay()) != -1 
 }"##;
+const HTML: &str = r##"// A full HTML DSL using macros 
+macro html(elements) { 
+    "<html> 
+        ${#elements} 
+    </html>" 
+} 
+ 
+macro head(elements) { 
+    "<head>${#elements}</head>" 
+} 
+ 
+macro title(title) { 
+    "<title>${#title}</title>" 
+} 
+ 
+macro body(elements, kwargs) { 
+    javascript{ 
+        <body style='${#kwargs?.style ?? ""}'> 
+            #elements 
+        </body> 
+    } 
+} 
+ 
+macro h1(inner, kwargs) { 
+    "<h1 style='${#kwargs.style}'>${#inner}</h1>" 
+} 
+ 
+macro elements(els) { 
+    javascript{ 
+        `${(#els.map(((e) => e)).join('\n'))}` 
+    } 
+} 
+ 
+"##;
 const IO: &str = r##"// File/Directory reading/writing 
  
 import 'std' 
@@ -190,7 +236,7 @@ macro last(array) {
     #array[#array.length - 1] 
 } 
  
-macro print(msg) { 
+macro print(...msg) { 
     console.log(#msg) 
 } 
  
@@ -427,11 +473,13 @@ macro exec(command) {
     })() 
 }"##;
 
-/// Load a STD library from EasyJS version 0.4.2, or an empty string if not found.
+/// Load a STD library from EasyJS version 0.4.5, or an empty string if not found.
 pub fn load_std(name: &str) -> String {
 	match name {
 		"agents" => AGENTS,
+		"classes" => CLASSES,
 		"date" => DATE,
+		"html" => HTML,
 		"io" => IO,
 		"malloc" => MALLOC,
 		"math" => MATH,

@@ -10,6 +10,8 @@ repository = "https://github.com/jordan-castro/easyjs"
 readme = "README.md"
 
 [dependencies]
-rquickjs = { version = "=0.9.0", default-features = false, features = ["futures", "rust-alloc", "loader", "dyn-load"]}
 tokio = { version = "1.45.1", features = ["full"] }
 encoding_rs = "0.8.35"
+
+[build-dependencies]
+bindgen = "0.71.0"

@@ -13,6 +13,11 @@
 - v0.4 allow non string keys in objects.
 - ~~v0.4 update namespace to just use 1 '_' instead of 2~~
 - v0.5.0 Small Interepteter for templates
+- v0.5.0 Update tests
+- v0.5.0 Add FFI options...
+
+## Runtime
+- Use ejr instead.
 
 ## Commands
 - v0.4.5 Add a update command to the CLI
