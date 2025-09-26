@@ -1,8 +1,8 @@
 # easyjsr
-Default runtime for easyjs. Built on top of rquickjs[https://crates.io/crates/rquickjs/0.9.0]
+Default runtime for easyjs. Rust wrapper of [ejr](https://github.com/jordan-castro/ejr).
 
 ## usage
-To use with `easyjs` you can set the runtime to `easyjsr`.
+To use with `easyjs` you can set the runtime to `easyjsr`. It is also the default runtime.
 
 ```bash
 easyjs repl --runtime easyjsr
@@ -11,7 +11,13 @@ easyjs repl --runtime easyjsr
 ```
 
 ## For developers
-This is a really easy to use runtime for FFI and embedding.
+This is a really easy to use runtime for embedding in rust projects. Important thing to note is that it does not currently support MSVC builds. 
+Only GNU/Clang. So if using windows make sure to install the correct build system.
+```bash
+rustup target add x86_64-pc-windows-gnu
+# And build with
+cargo build --target x86_64-pc-windows-gnu
+```
 
 ### Evaluating JS
 ```rust

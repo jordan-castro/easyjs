@@ -1,6 +1,6 @@
 use crate::commands::compile;
 use easyjs_utils::utils;
-use easyjsr::EasyJSR;
+// use easyjsr::EJR;
 use std::{
     io::{BufRead, BufReader, Read, Write},
     process::{Child, ChildStdout, Command, Stdio},

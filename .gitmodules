@@ -1,0 +1,3 @@
+[submodule "easyjsr/ejr_lib"]
+	path = easyjsr/ejr_lib
+	url = https://github.com/jordan-castro/ejr.git
