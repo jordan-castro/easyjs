@@ -193,7 +193,7 @@ pub enum Expression {
         Option<Box<Expression>>,
         Box<Statement>,
     ),
-    // fn(params) {statement}
+    // fn(params) {statement} OR fn(params) stmt
     LambdaLiteral(tk::Token, Box<Vec<Expression>>, Box<Statement>),
     // ( caller params
     CallExpression(tk::Token, Box<Expression>, Box<Vec<Expression>>),

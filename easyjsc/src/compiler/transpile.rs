@@ -1310,6 +1310,7 @@ impl Transpiler {
                 res.push_str(") => {\n");
                 let stmt = self.transpile_stmt(body.as_ref().to_owned());
                 if let Some(stmt) = stmt {
+                    res.push_str("return ");
                     res.push_str(&stmt);
                 }
                 res.push_str("}");

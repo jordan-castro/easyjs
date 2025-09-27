@@ -935,9 +935,27 @@ fn parse_lambda_literal(p: &mut Parser) -> ast::Expression {
     // params
     let paramaters = parse_function_paramaters(p);
 
-    if !p.expect_peek(token::L_BRACE) {
-        return ast::Expression::EmptyExpression;
+    // If not a brace that is ok...
+    if !p.peek_token_is(token::L_BRACE) {
+        // try and parse the expression
+        p.next_token();
+        let body = parse_expression(p, LOWEST);
+        if body.is_empty() {
+            p.add_error("Could not parse One-Line lambda, next statement must be a Expression statement.");
+            return ast::Expression::EmptyExpression;
+        }
+
+        return ast::Expression::LambdaLiteral(
+            token.to_owned(),
+            Box::new(paramaters),
+            Box::new(ast::Statement::ExpressionStatement(
+                body.get_token().clone(),
+                Box::new(body),
+            )),
+        );
     }
+    // Is a brace, go to next
+    p.next_token();
 
     let body = parse_block_statement(p);
 
@@ -1173,14 +1191,10 @@ fn parse_dot_expression(p: &mut Parser, left: ast::Expression) -> ast::Expressio
     match right {
         Expression::InExpression(tk, in_left, in_right) => {
             return Expression::InExpression(
-                tk, 
-                Box::new(Expression::DotExpression(
-                    token, 
-                    Box::new(left), 
-                    in_left
-                )), 
-                in_right
-            )
+                tk,
+                Box::new(Expression::DotExpression(token, Box::new(left), in_left)),
+                in_right,
+            );
         }
         _ => {}
     }
@@ -1313,7 +1327,7 @@ fn parse_macro_expression(p: &mut Parser) -> ast::Expression {
     while p.peek_token_is(token::DOT) {
         p.next_token(); // Dot
         p.next_token(); // skip it
-        idents.push(parse_identifier(p, false));    
+        idents.push(parse_identifier(p, false));
     }
 
     if !p.expect_peek(token::L_PAREN) {
@@ -1342,10 +1356,10 @@ fn parse_macro_expression(p: &mut Parser) -> ast::Expression {
 
     // setup ident
     let full_path = idents
-    .iter()
-    .map(|v| v.get_token().literal.clone())
-    .collect::<Vec<_>>()
-    .join(".");
+        .iter()
+        .map(|v| v.get_token().literal.clone())
+        .collect::<Vec<_>>()
+        .join(".");
 
     let ident = Expression::Identifier(idents.first().unwrap().get_token().to_owned(), full_path);
     ast::Expression::MacroExpression(token, Box::new(ident), Box::new(args))
@@ -1493,7 +1507,10 @@ fn parse_struct_statement(p: &mut Parser) -> ast::Statement {
     }
 
     // what else could this be???
-    if !p.peek_token_is(token::FUNCTION) && !p.peek_token_is(token::ASYNC) && !p.peek_token_is(token::DOC_COMMENT) {
+    if !p.peek_token_is(token::FUNCTION)
+        && !p.peek_token_is(token::ASYNC)
+        && !p.peek_token_is(token::DOC_COMMENT)
+    {
         return ast::empty_statement();
     }
     p.next_token();

@@ -51,6 +51,7 @@ fn main() {
     if !c_sources.is_empty() {
         let mut c_build = cc::Build::new();
         c_build.compiler(&c_compiler);
+        c_build.warnings(false);
         c_build.files(&c_sources);
         c_build.include(&include_dir);
         c_build.include(&lib_dir);

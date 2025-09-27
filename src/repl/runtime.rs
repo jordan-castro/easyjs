@@ -7,6 +7,7 @@ use std::{
     thread::sleep,
     time::Duration,
 };
+use crate::repl::easyjsr::EasyJSR;
 // use easyjsr::run_js;
 
 const EASY_JS_CONSTANT: &str = "001101";
@@ -41,7 +42,7 @@ impl InternalRuntime {
     pub fn new(crash_on_error: bool) -> InternalRuntime {
         InternalRuntime {
             crash_on_error,
-            runtime: EasyJSR::new().expect("Could not load easyjsr."),
+            runtime: EasyJSR::new(),
         }
     }
 }
@@ -156,9 +157,8 @@ pub fn run_file(runtime: &str, path: &str, arguments: Vec<String>) {
             child.wait().expect("FAILED TO WAIT ON BUN");
         }
         "easyjsr" => {
-            let mut rt = EasyJSR::new().expect("Could not create easyjs runtime.");
-            rt.run(&js_content)
-                .expect("Could not run js code with easyjs runtime.");
+            let mut rt = EasyJSR::new();
+            rt.run(&js_content);
         }
         _ => {
             println!(

@@ -1,29 +1,32 @@
-use easyjsr::{derefernce_jsarg, JSArg, JSArgResult, JSArgType, Opaque, EJR};
+use easyjsr::{EJR};
 
-struct EasyJSR {
+use crate::repl::builtins::console::include_console;
+
+pub struct EasyJSR {
     ejr: EJR,
-    // EasyJSR::new()
-    // rt.run(js_content)
 }
 
-/// Console.log
-fn ___print(args: Vec<JSArg>, opaque: Opaque) -> JSArgResult {
-    if args.len() == 0 {
-        return None;
-    }
-
-    let first = derefernce_jsarg(args[0]);
-    if first.type_ == JSArgType::
-}
 
 impl EasyJSR {
     pub fn new() -> Self {
-        let mut ejr = EJR::new();
-        
+        let ejr = EJR::new();
 
-
-        Self {
+        let mut s = Self {
             ejr: ejr
-        }
+        };
+
+        println!("Including console..");
+        include_console(&mut s.ejr);
+
+        s
+    }
+    pub fn run(&self, js: &str) {
+        let result = self.ejr.eval_script(js, "<repl>");
+        
+        // Print result
+        println!("{}", self.ejr.val_to_string(result));
+
+        // Free JSValue
+        self.ejr.free_jsvalue(result);
     }
 }

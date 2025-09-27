@@ -6,17 +6,34 @@ mod ejr {
 use std::{any::Any, collections::HashMap, ffi::{CStr, CString}, os::raw::{c_char, c_void}, ptr::{slice_from_raw_parts, slice_from_raw_parts_mut}};
 
 // TYPES
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum JSArgType {
+    Int = 0,
+    Double = 1,
+    String = 2,
+    Float = 3,
+    Bool = 4,
+    Int64 = 5,
+    Uint32 = 6,
+    CArray = 7,
+    Null = 8,
+}
 
-// pub enum JSA
-// pub const JSArgType_JSARG_TYPE_INT: JSArgType = 0;
-// pub const JSArgType_JSARG_TYPE_DOUBLE: JSArgType = 1;
-// pub const JSArgType_JSARG_TYPE_STRING: JSArgType = 2;
-// pub const JSArgType_JSARG_TYPE_FLOAT: JSArgType = 3;
-// pub const JSArgType_JSARG_TYPE_BOOL: JSArgType = 4;
-// pub const JSArgType_JSARG_TYPE_INT64_T: JSArgType = 5;
-// pub const JSArgType_JSARG_TYPE_UINT32_T: JSArgType = 6;
-// pub const JSArgType_JSARG_TYPE_C_ARRAY: JSArgType = 7;
-// pub const JSArgType_JSARG_TYPE_NULL: JSArgType = 8;
+impl JSArgType {
+    pub fn c_val(&self) -> ejr::JSArgType {
+        match self {
+            JSArgType::Int => ejr::JSArgType_JSARG_TYPE_INT,
+            JSArgType::Double => ejr::JSArgType_JSARG_TYPE_DOUBLE,
+            JSArgType::String => ejr::JSArgType_JSARG_TYPE_STRING,
+            JSArgType::Float => ejr::JSArgType_JSARG_TYPE_FLOAT,
+            JSArgType::Bool => ejr::JSArgType_JSARG_TYPE_BOOL,
+            JSArgType::Int64 => ejr::JSArgType_JSARG_TYPE_INT64_T,
+            JSArgType::Uint32 => ejr::JSArgType_JSARG_TYPE_UINT32_T,
+            JSArgType::CArray => ejr::JSArgType_JSARG_TYPE_C_ARRAY,
+            JSArgType::Null => ejr::JSArgType_JSARG_TYPE_NULL,
+        }
+    }
+}
 
 /// Type for Loader function
 type LoaderFn = fn (String) -> String;
@@ -24,7 +41,7 @@ pub type JSArg = *mut ejr::JSArg;
 pub type Opaque = *mut c_void;
 pub type JSArgResult = Option<JSArg>;
 /// Type for Rust callbacks
-type RustCallbackFn = fn (Vec<JSArg>, Opaque) -> Option<*mut ejr::JSArg>;
+type RustCallbackFn = Box<dyn Fn(Vec<JSArg>, Opaque) -> Option<*mut ejr::JSArg>>;
 
 /// EJR wrapper
 pub struct EJR {
@@ -51,7 +68,7 @@ pub struct OpaqueObject {
     /// Callback id
     cb_id: u32,
     /// id of Custom user defined data
-    user_data: u32
+    user_data: i32
 }
 
 /// JSMethod wrapper
@@ -63,8 +80,14 @@ pub struct JSMethod {
 }
 
 /// Convert a Rust &str into a CString
-fn str_to_cstr(val: &str) -> CString {
+pub fn str_to_cstr(val: &str) -> CString {
     CString::new(val).expect("Could not convert val into cString")
+}
+
+pub fn cstr_to_string(val: *mut i8) -> String {
+    unsafe {
+        CString::from_raw(val).to_string_lossy().to_string()
+    }
 }
 
 /// Convert a Vec<mut* ejr::JSArg> ito *mut *mut ejr::JSArg.
@@ -183,24 +206,37 @@ unsafe extern "C" fn global_static_file_loader(file_path: *const c_char, opaque:
 
 /// Global(static) function for calling a callback
 unsafe extern "C" fn global_static_callback_wrappper(args: *mut *mut ejr::JSArg, argc: usize, opaque: *mut c_void) -> *mut ejr::JSArg {
+    println!("Here 0");
     // Get EJR
     let oo = unsafe { &mut *(opaque as *mut OpaqueObject)};
     let ejr: &mut EJR = unsafe { &mut *oo.ejr };
+    println!("Here 0.1");
+    println!("oo.ejr = {:p}", oo.ejr);
+
+    println!("cb_id: {}", oo.cb_id);
+    println!("next cb id: {}", ejr.next_cb_fn_id);
+    println!("Size of cb_fns: {}", ejr.cb_fns.len());
 
     // Call fn
     let cb_fn = ejr.cb_fns.get(&oo.cb_id);
-    if cb_fn == None {
+    println!("Here 0.001");
+    if cb_fn.is_none() {
+        println!("CB is null?");
         return jsarg_null();
     }
+    println!("Here 0.2");
 
     let cb_fn = cb_fn.unwrap();
+    println!("Here 0.3");
 
     // RS Conversion
     let args_rs = unsafe {std::slice::from_raw_parts(args, argc) };
+    println!("Here 0.4");
 
     let result = (cb_fn)(args_rs.to_vec(), opaque);
+    println!("Here 0.5");
 
-    if result == None {
+    if result.is_none() {
         return jsarg_null();
     }
 
@@ -348,17 +384,25 @@ impl EJR {
     }
 
     /// Register a Rust callback in JS.
-    pub fn register_callback(&mut self, func_name: &str, cb: RustCallbackFn, opaque: Box<dyn Any>) {
+    pub fn register_callback(&mut self, func_name: &str, cb: RustCallbackFn, opaque: Option<Box<dyn Any>>) {
         // C conversion
         let func_name_cstr = str_to_cstr(func_name);
 
         // Save CB and opaque data
         let cb_id = self.insert_cb(cb);
-        let user_data_id = self.insert_user_data(opaque);
+        let user_data_id = {
+            if let Some(op) = opaque {
+                self.insert_user_data(op) as i32
+            } else {
+                -1
+            }
+        };
+
+        let ejr_ptr: *mut EJR = self;
 
         // Create opaque object
         let oo = Box::new(OpaqueObject{
-            ejr: self as *mut _,
+            ejr: ejr_ptr,
             cb_id: cb_id,
             user_data: user_data_id
         });
@@ -379,16 +423,22 @@ impl EJR {
     }
 
     /// Register a JS Module with Rust callbacks
-    pub fn register_module(&mut self, module_name: &str, methods: Vec<JSMethod>, user_data: Box<dyn Any>) {
+    pub fn register_module(&mut self, module_name: &str, methods: Vec<JSMethod>, user_data: Option<Box<dyn Any>>) {
         // C conversions
         let module_name_cstr = str_to_cstr(module_name);
         let mut methods_ptrs = vec![];
         let mut name_cstrs = vec![];
+        
+        let method_length = methods.len();
         // Save user_data
-        let user_data_id = self.insert_user_data(user_data);
-        let ejr_ptr = self as *mut _;
+        let user_data_id = {
+            if let Some(ud) = user_data {
+            self.insert_user_data(ud) as i32} else {-1}};
+            
+        // Create ptr to EJR
+        let ejr_ptr: *mut EJR = self;
 
-        for m in methods.iter() {
+        for m in methods {
             let name_cstr = str_to_cstr(m.name.as_str());
             // save in name_cstrs to not free yet
             name_cstrs.push(name_cstr);
@@ -416,7 +466,7 @@ impl EJR {
         let ptr = methods_box.as_mut_ptr();
 
         unsafe {
-            ejr::ejr_register_module(self.rt, module_name_cstr.as_ptr(), ptr, methods.len());
+            ejr::ejr_register_module(self.rt, module_name_cstr.as_ptr(), ptr, method_length);
         }
     }
 

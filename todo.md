@@ -15,11 +15,15 @@
 - v0.5.0 Small Interepteter for templates
 - v0.5.0 Update tests
 - v0.5.0 Add FFI options...
+- v0.5.0 Add fn(args) expression TO (args) => expression
 
 ## Runtime
-- Use ejr instead.
+- ~~Use ejr instead.~~
+- Add Into for Strings, int, chars => JSArg.
 
 ## Commands
+- v0.5.0 Remove the install command. Keep that with ezpkg.
+  - ezpkg should be written mostly in native easyjs with Rust backed runtime features.
 - v0.4.5 Add a update command to the CLI
 - v0.4.5 allow compilation via strings
 
