@@ -15,11 +15,17 @@
 - v0.5.0 Small Interepteter for templates
 - v0.5.0 Update tests
 - v0.5.0 Add FFI options...
-- v0.5.0 Add fn(args) expression TO (args) => expression
+- ~~v0.5.0 Add fn(args) expression TO (args) => expression~~
+- v0.5.0 Add macro(args) expression TO (args) => macro
+- v0.5.0 Add extensions
+  - macro extensions
+  - non macro extensions
+- v0.5.0 Doc comments for macros.
+- Allow block statements in macros?
 
 ## Runtime
 - ~~Use ejr instead.~~
-- Add Into for Strings, int, chars => JSArg.
+- v0.5.0 Update to use jsarg_make_list and jsarg_free_all instaed of creating *mut *mut
 
 ## Commands
 - v0.5.0 Remove the install command. Keep that with ezpkg.
@@ -101,8 +107,7 @@
 - Write better documentation
 
 ## lib
-- v0.4.x shell commands
-- v0.4 Update lib to be specific to easyjsr.
+- v0.5.0 Start on a JS -> EJ lib conversion.
 
 ## Scripts
 - Rewrite the scripts/ folder to pure easyjs

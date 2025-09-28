@@ -15,18 +15,20 @@ impl EasyJSR {
             ejr: ejr
         };
 
-        println!("Including console..");
         include_console(&mut s.ejr);
 
         s
     }
     pub fn run(&self, js: &str) {
         let result = self.ejr.eval_script(js, "<repl>");
-        
-        // Print result
-        println!("{}", self.ejr.val_to_string(result));
+        println!("result id: {}", result);
 
-        // Free JSValue
-        self.ejr.free_jsvalue(result);
+        // Print result
+        let str = self.ejr.val_to_string(result);
+        if let Some(str) = str {
+            println!("{}", str);
+            // Free JSValue
+            self.ejr.free_jsvalue(result);
+        }
     }
 }

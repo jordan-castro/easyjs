@@ -1,20 +1,8 @@
-// print macro test
-macro print(...message) {
-    console.log(#message)
+macro print(n) {
+    console.log(#n)
 }
 
-macro n_number_args(...args) {
-    @print(#args)
-}
-@n_number_args(1, 2, 3, 4, 5, 6)
+Print = macro(n) console.log(#n)
 
-// This is what I am expecting.
-// console.log(1, 2, 3, 4, 5, 6)
-
-macro default_params(one=true, two=false) {
-    @print(#one, #two)
-}
-
-@default_params(false, true)
-@default_params()
-
+@print('test')
+@Print('test')

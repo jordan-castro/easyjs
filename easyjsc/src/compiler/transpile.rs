@@ -1308,11 +1308,21 @@ impl Transpiler {
                     .join(",");
                 res.push_str(&joined_params);
                 res.push_str(") => {\n");
-                let stmt = self.transpile_stmt(body.as_ref().to_owned());
-                if let Some(stmt) = stmt {
-                    res.push_str("return ");
-                    res.push_str(&stmt);
-                }
+                res.push_str(match body.as_ref() {
+                    Statement::EmptyStatement => String::from(" return undefined; "),
+                    Statement::ExpressionStatement(token, expression) => {
+                        let mut finish = String::from("return ");
+                        let compiled = self.transpile_expression(expression.as_ref().to_owned());
+                        finish.push_str(&compiled);
+                        finish
+                    },
+                    Statement::BlockStatement(token, statements) => {
+                        let stmt = self.transpile_stmt(body.as_ref().to_owned()).unwrap();
+                        stmt
+                    },
+                    _ => unimplemented!()
+                }.as_str());
+
                 res.push_str("}");
 
                 res
@@ -1532,6 +1542,9 @@ impl Transpiler {
 
                         body
                     }
+                    Statement::ExpressionStatement(tk, macro_expro) => {
+                        self.transpile_expression(macro_expro.as_ref().to_owned())
+                    }
                     _ => "".to_string(),
                 };
 
@@ -1737,9 +1750,6 @@ impl Transpiler {
                     }
 
                     result.push(self.transpile_expression(argument));
-                    // if i < arguments.len() - 1 {
-                    // result.push_str(",");
-                    // }
                 }
             }
         }

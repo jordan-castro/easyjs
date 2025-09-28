@@ -1,0 +1,21 @@
+import "std" as _
+
+WebAssemblyModule = fn(mod) new WebAssembly.Module(mod)
+WebAssemblyInstance = fn(instance) new WebAssembly.Instance(instance)
+TextEncoderUTf8 = fn(str) new TextEncoder('utf8').encode(str)
+
+@const(__easyjs_native, WebAssemblyModule(__easyjs_native_module))
+@const(__easyjs_native_instance, WebAssemblyInstance(__easyjs_native))
+@const(__easyjs_native_i32_type, 0)
+@const(__easyjs_native_f32_type,1)
+@const(__easyjs_native_string_type, 2)
+@const(__easyjs_native_array_type, 3)
+
+class ____EasyJSNativeInterop {
+    fn convert_string_to_native(instance:WebAssembly.Instance, str:string) {
+        str_len = @len(str)
+        str_bytes = TextEncoder('utf-8').encode(str)
+
+        ptr = instance.exports.__str_alloc(str_len)
+    }
+}

@@ -1,28 +1,24 @@
-use easyjsr::{cstr_to_string, derefernce_jsarg, JSArg, JSArgResult, JSArgType, Opaque, EJR};
+use easyjsr::{cstr_to_string, derefernce_jsarg, jsarg_undefined, JSArg, JSArgResult, JSArgType, Opaque, EJR};
 
 /// Console.log
 fn ___print(args: Vec<JSArg>, opaque: Opaque) -> JSArgResult {
     if args.len() == 0 {
-        return None;
+        return Some(jsarg_undefined());
     }
-
-    println!("Here 1");
 
     let first = derefernce_jsarg(&args[0]);
     if first.type_ != JSArgType::String.c_val() {
-        return None;
+        return Some(jsarg_undefined());
     }
-    println!("Here 2");
 
     // We have a string in position 0
     let cstr = unsafe { first.value.str_val };
     let rs_str = cstr_to_string(cstr.cast_mut());
-    println!("Here 3");
 
     // Done!
     println!("{rs_str}");
 
-    None
+    Some(jsarg_undefined())
 }
 
 /// Console.error

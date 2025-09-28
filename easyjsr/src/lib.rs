@@ -3,7 +3,11 @@
 mod ejr {
     include!("../bindings.rs");
 }
-use std::{any::Any, collections::HashMap, ffi::{CStr, CString}, os::raw::{c_char, c_void}, ptr::{slice_from_raw_parts, slice_from_raw_parts_mut}};
+use std::{any::Any, collections::HashMap, ffi::{CStr, CString}, os::raw::{c_char, c_void}, ptr::{slice_from_raw_parts, slice_from_raw_parts_mut, NonNull}, sync::{Arc, Mutex}};
+
+lazy_static::lazy_static! {
+    static ref RUNTIME_REGISTRY: Mutex<RTGlobalContext> = Mutex::new(RTGlobalContext::new());
+}
 
 // TYPES
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -36,39 +40,38 @@ impl JSArgType {
 }
 
 /// Type for Loader function
-type LoaderFn = fn (String) -> String;
+type LoaderFn = Box<fn (String) -> String>;
 pub type JSArg = *mut ejr::JSArg;
 pub type Opaque = *mut c_void;
+pub type OpaqueUserData = Arc<dyn Any + Send + Sync>;
 pub type JSArgResult = Option<JSArg>;
 /// Type for Rust callbacks
-type RustCallbackFn = Box<dyn Fn(Vec<JSArg>, Opaque) -> Option<*mut ejr::JSArg>>;
+type RustCallbackFn = Box<dyn Fn(Vec<JSArg>, Opaque) -> Option<*mut ejr::JSArg> + Send + Sync>;
 
 /// EJR wrapper
 pub struct EJR {
     /// the actual runtime
     rt: *mut ejr::EasyJSRHandle,
-    /// The file_loader function
-    file_loader_fn: LoaderFn,
-    /// id => rust callback fn
-    cb_fns: HashMap<u32, RustCallbackFn>,
-    /// id => user data for functions.
-    user_data: HashMap<u32, Box<dyn Any>>,
-    /// <OpaqueObject>[]
-    opaque_objects: Vec<*mut c_void>, 
-    /// Next user data id... 
-    next_user_data_id: u32,
-    /// Next callback id
-    next_cb_fn_id: u32,
+    /// Position in the global runtime.
+    ptr: u32,
+    /// Callback ptrs
+    ptrs: Vec<*mut CallbackData>,
+}
+
+/// Data for callbacks
+struct CallbackData {
+    /// Runtime id
+    rtctx_id: u32,
+    /// OpaqueObject id
+    opaque_object_id: u32
 }
 
 /// Opaque Object
 pub struct OpaqueObject {
-    /// Pointer to runtime
-    ejr: *mut EJR,
-    /// Callback id
-    cb_id: u32,
-    /// id of Custom user defined data
-    user_data: i32
+    /// Callback
+    cb: RustCallbackFn,
+    /// Custom user defined data
+    user_data: Option<OpaqueUserData>
 }
 
 /// JSMethod wrapper
@@ -79,6 +82,87 @@ pub struct JSMethod {
     method: RustCallbackFn,
 }
 
+/// Runtime context
+struct RuntimeContext {
+    opaque_map: HashMap<u32, OpaqueObject>,
+    next_opaque_id: u32,
+
+    file_loader: LoaderFn
+}
+
+/// Global context
+struct RTGlobalContext {
+    runtimes_map: HashMap<u32, RuntimeContext>,
+    next_runtime_id: u32
+}
+
+impl RuntimeContext {
+    fn new() -> Self {
+        Self {
+            file_loader: Box::new(|_| -> String {"".to_string()}),
+            next_opaque_id: 0,
+            opaque_map: HashMap::new()
+        }
+    }
+
+    fn add_opaque(&mut self, opaque: OpaqueObject) -> u32 {
+        let id = self.next_opaque_id;
+        self.opaque_map.insert(id, opaque);
+        self.next_opaque_id += 1;
+        id
+    }
+
+    fn get_opaque(&self, id: u32) -> Option<&OpaqueObject> {
+        if id >= self.next_opaque_id {
+            None
+        } else {
+            self.opaque_map.get(&id)
+        }
+    }
+
+    fn set_file_loader(&mut self, func: LoaderFn) {
+        self.file_loader = func;
+    }
+
+    fn free(&mut self) {
+        self.opaque_map.clear();
+        self.next_opaque_id = 0;
+    }
+}
+
+impl RTGlobalContext {
+    fn new() -> Self {
+        Self {
+            next_runtime_id: 0,
+            runtimes_map: HashMap::new()
+        }
+    }
+
+    fn add_runtime(&mut self, rt: RuntimeContext) -> u32 {
+        let id = self.next_runtime_id;
+        self.runtimes_map.insert(id, rt);
+        self.next_runtime_id += 1;
+        id
+    }
+
+    fn get_runtime(&mut self, id: u32) -> &mut RuntimeContext {
+        self.runtimes_map.get_mut(&id)
+            .expect("Runtime ID not found")
+    }
+
+    fn delete_runtime(&mut self, id: u32) {
+        self.runtimes_map.remove(&id);
+    }
+
+    fn free(&mut self) {
+        for (_, rt) in self.runtimes_map.iter_mut() {
+            rt.free();
+        }
+        self.runtimes_map.clear();
+        self.next_runtime_id = 0;
+    }
+}
+
 /// Convert a Rust &str into a CString
 pub fn str_to_cstr(val: &str) -> CString {
     CString::new(val).expect("Could not convert val into cString")
@@ -86,8 +170,14 @@ pub fn str_to_cstr(val: &str) -> CString {
 
 pub fn cstr_to_string(val: *mut i8) -> String {
     unsafe {
-        CString::from_raw(val).to_string_lossy().to_string()
+        CStr::from_ptr(val).to_string_lossy().into_owned()
     }
+}
+
+/// Get Opaque Object
+pub fn get_opaque_object<'a>(opaque: *mut c_void) -> &'a mut OpaqueObject {
+    assert!(!opaque.is_null(), "opaque is null");
+    unsafe { &mut *(opaque as *mut OpaqueObject) }
 }
 
 /// Convert a Vec<mut* ejr::JSArg> ito *mut *mut ejr::JSArg.
@@ -169,6 +259,13 @@ pub fn jsarg_null() -> *mut ejr::JSArg {
     }
 }
 
+/// Create a JSArg value of Undefined
+pub fn jsarg_undefined() -> *mut ejr::JSArg {
+    unsafe {
+        ejr::jsarg_undefined()
+    }
+}
+
 /// Free a JSArg.
 pub fn free_jsarg_owned(value: *mut ejr::JSArg) {
     unsafe {
@@ -192,13 +289,15 @@ unsafe extern "C" fn global_static_file_loader(file_path: *const c_char, opaque:
     }
 
     // Get Opaque
-    let ejr = unsafe { &mut *(opaque as *mut EJR) };
+    let rtctx_id = unsafe { *(opaque as *const u32) };
+    let mut reg = RUNTIME_REGISTRY.lock().unwrap();
+    let mut rtctx = reg.get_runtime(rtctx_id);
 
     // Rust Conversion
     let file_path_rs = unsafe { CStr::from_ptr(file_path).to_string_lossy().into_owned()};
 
     // Run
-    let result = (ejr.file_loader_fn)(file_path_rs);
+    let result = (rtctx.file_loader)(file_path_rs);
 
     // Convert result to *mut c_char
     CString::new(result).unwrap().into_raw()
@@ -206,35 +305,22 @@ unsafe extern "C" fn global_static_file_loader(file_path: *const c_char, opaque:
 
 /// Global(static) function for calling a callback
 unsafe extern "C" fn global_static_callback_wrappper(args: *mut *mut ejr::JSArg, argc: usize, opaque: *mut c_void) -> *mut ejr::JSArg {
-    println!("Here 0");
-    // Get EJR
-    let oo = unsafe { &mut *(opaque as *mut OpaqueObject)};
-    let ejr: &mut EJR = unsafe { &mut *oo.ejr };
-    println!("Here 0.1");
-    println!("oo.ejr = {:p}", oo.ejr);
+    // Get RTCX
+    let cb_data: &CallbackData = &*(opaque as *mut CallbackData);
 
-    println!("cb_id: {}", oo.cb_id);
-    println!("next cb id: {}", ejr.next_cb_fn_id);
-    println!("Size of cb_fns: {}", ejr.cb_fns.len());
+    let mut reg = RUNTIME_REGISTRY.lock().unwrap();
+    let mut rtctx = reg.get_runtime(cb_data.rtctx_id);
 
+    // Get OO
+    let oo = rtctx.get_opaque(cb_data.opaque_object_id).unwrap();
+    
     // Call fn
-    let cb_fn = ejr.cb_fns.get(&oo.cb_id);
-    println!("Here 0.001");
-    if cb_fn.is_none() {
-        println!("CB is null?");
-        return jsarg_null();
-    }
-    println!("Here 0.2");
-
-    let cb_fn = cb_fn.unwrap();
-    println!("Here 0.3");
+    let cb_fn = &oo.cb;
 
     // RS Conversion
     let args_rs = unsafe {std::slice::from_raw_parts(args, argc) };
-    println!("Here 0.4");
 
     let result = (cb_fn)(args_rs.to_vec(), opaque);
-    println!("Here 0.5");
 
     if result.is_none() {
         return jsarg_null();
@@ -250,57 +336,63 @@ impl EJR {
             ejr::ejr_new()
         };
 
+        let rt_ctx = RuntimeContext::new();
+        let mut reg = RUNTIME_REGISTRY.lock().unwrap();
+        let mut rt_id = reg.add_runtime(rt_ctx);
         let mut ejr = Self {
-            rt: instance, 
-            file_loader_fn: |_| -> String {"".to_string()},
-            cb_fns: HashMap::new(),
-            user_data: HashMap::new(),
-            next_user_data_id: 0,
-            next_cb_fn_id: 0,
-            opaque_objects: Vec::new()
+            ptr: rt_id,
+            rt: instance,
+            ptrs: vec![]
         };
+        let ptr = &mut rt_id as *mut u32;
 
         unsafe {
-            ejr::ejr_set_file_loader(ejr.rt, Some(global_static_file_loader), &mut ejr as *mut _ as *mut c_void);
+            ejr::ejr_set_file_loader(ejr.rt, Some(global_static_file_loader), ejr.get_ptr());
         }
         ejr
     }
 
+    fn get_ptr(&mut self) -> *mut c_void {
+        self.ptr as usize as *mut c_void
+    }
+
     // Rust first methods
     
-    /// Get from user_data
-    pub fn get_user_data<T: 'static>(&self, id: u32) -> Option<&T> {
-        self.user_data.get(&id)?.downcast_ref::<T>()
-    }
+    // /// Get from user_data
+    // pub fn get_user_data<T: 'static>(&self, id: u32) -> Option<&T> {
+    //     self.user_data.get(&id)?.downcast_ref::<T>()
+    // }
 
-    /// Get mut from user_data
-    pub fn get_user_data_mut<T: 'static>(&mut self, id: u32) -> Option<&mut T> {
-        self.user_data.get_mut(&id)?.downcast_mut::<T>()
-    }
+    // /// Get mut from user_data
+    // pub fn get_user_data_mut<T: 'static>(&mut self, id: u32) -> Option<&mut T> {
+    //     self.user_data.get_mut(&id)?.downcast_mut::<T>()
+    // }
 
-    fn insert_user_data<T: 'static>(&mut self, data: T) -> u32 {
-        let id = self.next_user_data_id;
-        self.user_data.insert(id, Box::new(data));
-        self.next_user_data_id += 1;
+    // fn insert_user_data<T: 'static>(&mut self, data: T) -> u32 {
+    //     let id = self.next_user_data_id;
+    //     self.user_data.insert(id, Box::new(data));
+    //     self.next_user_data_id += 1;
 
-        id
-    }
+    //     id
+    // }
 
-    fn insert_cb(&mut self, cb: RustCallbackFn) -> u32 {
-        let id = self.next_cb_fn_id;
-        self.cb_fns.insert(id, cb);
-        self.next_cb_fn_id += 1;
+    // fn insert_cb(&mut self, cb: RustCallbackFn) -> u32 {
+    //     let id = self.next_cb_fn_id;
+    //     self.cb_fns.insert(id, cb);
+    //     self.next_cb_fn_id += 1;
         
-        id
-    }
+    //     id
+    // }
 
-    fn add_oo(&mut self, oo: *mut c_void) {
-        self.opaque_objects.push(oo);
-    }
+    // fn add_oo(&mut self, oo: *mut c_void) {
+    //     self.opaque_objects.push(oo);
+    // }
 
     /// Setup the file loader.
-    pub fn set_file_loader(&mut self, func: LoaderFn) {
-        self.file_loader_fn = func;
+    pub fn set_file_loader(&self, func: LoaderFn) {
+        let mut reg = RUNTIME_REGISTRY.lock().unwrap();
+        let mut rt_ctx = reg.get_runtime(self.ptr);
+        rt_ctx.file_loader = func;
     }
 
     /// Evaluate a JS script.
@@ -341,10 +433,14 @@ impl EJR {
     }
 
     /// Convert a JSValue into a String.
-    pub fn val_to_string(&self, value_id: i32) -> String {
+    pub fn val_to_string(&self, value_id: i32) -> Option<String> {
         unsafe {
             let result = ejr::ejr_val_to_string(self.rt, value_id);
-            CString::from_raw(result).to_string_lossy().to_string()
+            if result.is_null() {
+                None
+            } else {
+                Some(CString::from_raw(result).to_string_lossy().to_string())
+            }
         }
     }
 
@@ -384,80 +480,80 @@ impl EJR {
     }
 
     /// Register a Rust callback in JS.
-    pub fn register_callback(&mut self, func_name: &str, cb: RustCallbackFn, opaque: Option<Box<dyn Any>>) {
+    pub fn register_callback(&mut self, func_name: &str, cb: RustCallbackFn, opaque: Option<OpaqueUserData>) {
         // C conversion
         let func_name_cstr = str_to_cstr(func_name);
 
-        // Save CB and opaque data
-        let cb_id = self.insert_cb(cb);
-        let user_data_id = {
-            if let Some(op) = opaque {
-                self.insert_user_data(op) as i32
-            } else {
-                -1
-            }
+        // Get the Runtime context
+        let mut binding = RUNTIME_REGISTRY.lock().unwrap();
+        let mut rtctx = binding.get_runtime(self.ptr);
+        // Save callback and opaque
+        let oo = OpaqueObject{
+            cb: cb,
+            user_data: opaque
         };
 
-        let ejr_ptr: *mut EJR = self;
+        // Add oo to runtime
+        let oo_id = rtctx.add_opaque(oo);
 
-        // Create opaque object
-        let oo = Box::new(OpaqueObject{
-            ejr: ejr_ptr,
-            cb_id: cb_id,
-            user_data: user_data_id
-        });
+        let cb_data = CallbackData{
+            opaque_object_id: oo_id,
+            rtctx_id: self.ptr
+        };
 
-        // Save opaque object
-        let oo_ptr = Box::into_raw(oo)as *mut c_void;
+        // Convert cb_data into PTR
+        let cb_box = Box::new(cb_data);
+        let cb_ptr = Box::into_raw(cb_box);
 
-        self.add_oo(oo_ptr);
+        self.ptrs.push(cb_ptr);
 
         unsafe {
             ejr::ejr_register_callback(
                 self.rt, 
                 func_name_cstr.as_ptr(), 
                 Some(global_static_callback_wrappper), 
-                oo_ptr
+                cb_ptr as *mut c_void
             );
         }
     }
 
     /// Register a JS Module with Rust callbacks
-    pub fn register_module(&mut self, module_name: &str, methods: Vec<JSMethod>, user_data: Option<Box<dyn Any>>) {
+    pub fn register_module(&mut self, module_name: &str, methods: Vec<JSMethod>, user_data: Option<OpaqueUserData>) {
         // C conversions
         let module_name_cstr = str_to_cstr(module_name);
         let mut methods_ptrs = vec![];
         let mut name_cstrs = vec![];
         
-        let method_length = methods.len();
-        // Save user_data
-        let user_data_id = {
-            if let Some(ud) = user_data {
-            self.insert_user_data(ud) as i32} else {-1}};
-            
-        // Create ptr to EJR
-        let ejr_ptr: *mut EJR = self;
+        // Get runtime context
+        let mut binding = RUNTIME_REGISTRY.lock().unwrap();
+        let mut rtctx = binding.get_runtime(self.ptr);
 
+        let method_length = methods.len();
+            
         for m in methods {
             let name_cstr = str_to_cstr(m.name.as_str());
             // save in name_cstrs to not free yet
             name_cstrs.push(name_cstr);
             // Save callback
-            let cb_id = self.insert_cb(m.method);
+            let oo = OpaqueObject{
+                cb: m.method,
+                user_data: user_data.clone()
+            };
+            let ooid =rtctx.add_opaque(oo);
 
-            let oo = Box::new(OpaqueObject{
-                ejr: ejr_ptr,
-                cb_id: cb_id,
-                user_data: user_data_id
-            });
-            let oo_ptr = Box::into_raw(oo) as *mut c_void;
-            self.add_oo(oo_ptr);
+            let cb_data = CallbackData{
+                opaque_object_id: ooid,
+                rtctx_id: self.ptr
+            };
+            let cb_box = Box::new(cb_data);
+            let cb_ptr = Box::into_raw(cb_box);
+            self.ptrs.push(cb_ptr);
 
             // Add new method ptr
             methods_ptrs.push(ejr::JSMethod{
                 cb: Some(global_static_callback_wrappper),
                 name: name_cstrs.last().unwrap().as_ptr(),
-                opaque: oo_ptr
+                opaque: cb_ptr as *mut c_void
             });
         }
 
@@ -482,6 +578,13 @@ impl EJR {
             ejr::jsarg_from_jsvalue(self.rt, value)
         }
     }
+
+    /// Free a C String
+    pub fn free_string(&self, val: *mut i8) {
+        unsafe {
+            ejr::ejr_free_string(val);
+        }
+    }
 }
 
 impl Drop for EJR {
@@ -490,15 +593,15 @@ impl Drop for EJR {
             ejr::ejr_free(self.rt);
         }
 
-        // Free oo_ptrs
-        for &ptr in self.opaque_objects.iter() {
-            if !ptr.is_null() {
-                unsafe {
-                    let oo_ptr = ptr as *mut OpaqueObject;
-                    let _ = Box::from_raw(oo_ptr); 
-                }
+        // Delete ptrs
+        for cb_ptr in self.ptrs.clone() {
+            unsafe {
+                let cb_box = Box::from_raw(cb_ptr);
             }
         }
-        self.opaque_objects.clear();
+
+        // Delete from global
+        let mut binding = RUNTIME_REGISTRY.lock().unwrap();
+        binding.delete_runtime(self.ptr);
     }
 }

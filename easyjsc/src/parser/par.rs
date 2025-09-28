@@ -1058,7 +1058,9 @@ fn parse_object_literal(p: &mut Parser) -> ast::Expression {
             }
         }
 
-        let key = parse_expression(p, LOWEST);
+        // Key has to be either string or identifier
+        let key = parse_key_expression(p);
+        // let key = parse_expression(p, LOWEST);
         // check if key : value
         if p.peek_token_is(token::COLON) {
             p.next_token(); // move out of key
@@ -1399,9 +1401,21 @@ fn parse_macro_decleration(p: &mut Parser) -> ast::Statement {
         return ast::empty_statement();
     }
 
-    if !p.expect_peek(token::L_BRACE) {
-        return ast::empty_statement();
+    // Does not need to be a {
+    // Similar concept to fn(n) expression
+    if !p.peek_token_is(token::L_BRACE) {
+        p.next_token();
+
+        let expression = parse_expression_statement(p);
+        if expression.is_empty() {
+            p.add_error("Could not get expression statement for inline macro.");
+            return ast::Statement::EmptyStatement;
+        }
+
+        return ast::Statement::MacroStatement(token, Box::new(name), Box::new(args), Box::new(expression));
     }
+    // Consume {
+    p.next_token();
 
     let body = parse_block_statement(p);
 
@@ -1646,6 +1660,20 @@ fn parse_spread_expression(p: &mut Parser) -> ast::Expression {
     let ident = parse_expression(p, LOWEST);
 
     ast::Expression::SpreadExpression(token, Box::new(ident))
+}
+
+// Key has to be either Ident or string
+fn parse_key_expression(p: &mut Parser) -> ast::Expression {
+    p.debug_print("parse_key_expression");
+    let token = p.c_token.to_owned();
+
+    if p.cur_token_is(token::STRING) {
+        parse_string_literal(p)
+    } else if p.cur_token_is(token::IDENT) {
+        parse_identifier(p, false)
+    } else {
+        ast::Expression::EmptyExpression
+    }
 }
 
 fn parse_null(p: &mut Parser) -> ast::Expression {
