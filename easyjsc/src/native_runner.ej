@@ -1,11 +1,12 @@
 import "std" as _
 
-WebAssemblyModule = fn(mod) new WebAssembly.Module(mod)
-WebAssemblyInstance = fn(instance) new WebAssembly.Instance(instance)
-TextEncoderUTf8 = fn(str) new TextEncoder('utf8').encode(str)
+macro WebAssemblyModule(mod) new WebAssembly.Module(mod)
+macro WebAssemblyInstance(instance) new WebAssembly.Instance(instance)
+macro TextEncoderUTf8(str) new TextEncoder('utf8').encode(str)
+macro TextDecoderUTF8(bytes) new TextDecoder('utf8').decode(bytes)
 
-@const(__easyjs_native, WebAssemblyModule(__easyjs_native_module))
-@const(__easyjs_native_instance, WebAssemblyInstance(__easyjs_native))
+@const(__easyjs_native, @WebAssemblyModule(__easyjs_native_module))
+@const(__easyjs_native_instance, @WebAssemblyInstance(__easyjs_native))
 @const(__easyjs_native_i32_type, 0)
 @const(__easyjs_native_f32_type,1)
 @const(__easyjs_native_string_type, 2)
@@ -14,7 +15,7 @@ TextEncoderUTf8 = fn(str) new TextEncoder('utf8').encode(str)
 class ____EasyJSNativeInterop {
     fn convert_string_to_native(instance:WebAssembly.Instance, str:string) {
         str_len = @len(str)
-        str_bytes = TextEncoder('utf-8').encode(str)
+        str_bytes = @TextEncoderUTf8(str)
 
         ptr = instance.exports.__str_alloc(str_len)
     }

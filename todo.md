@@ -26,8 +26,9 @@
 
 ## Runtime
 - ~~Use ejr instead.~~
-- v0.5.0 Update to use jsarg_make_list and jsarg_free_all instaed of creating *mut *mut
-- update text_encoder.js to text_encoder.ej
+- ~~v0.5.0 Update to use jsarg_make_list and jsarg_free_all instaed of creating *mut *mut~~
+- ~~update text_encoder.js to text_encoder.ej~~
+- Write Wasm Imp
 
 ## Commands
 - v0.5.0 Remove the install command. Keep that with ezpkg.
