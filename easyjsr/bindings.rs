@@ -298,6 +298,16 @@ pub const JSArgType_JSARG_TYPE_UINT32_T: JSArgType = 6;
 pub const JSArgType_JSARG_TYPE_C_ARRAY: JSArgType = 7;
 pub const JSArgType_JSARG_TYPE_NULL: JSArgType = 8;
 pub const JSArgType_JSARG_TYPE_UNDEFINED: JSArgType = 9;
+pub const JSArgType_JSARG_TYPE_UINT8_ARRAY: JSArgType = 10;
+pub const JSArgType_JSARG_TYPE_INT32_ARRAY: JSArgType = 11;
+pub const JSArgType_JSARG_TYPE_UINT32_ARRAY: JSArgType = 12;
+pub const JSArgType_JSARG_TYPE_INT64_ARRAY: JSArgType = 13;
+pub const JSArgType_JSARG_TYPE_INT8_ARRAY: JSArgType = 14;
+pub const JSArgType_JSARG_TYPE_UINT16_ARRAY: JSArgType = 15;
+pub const JSArgType_JSARG_TYPE_INT16_ARRAY: JSArgType = 16;
+pub const JSArgType_JSARG_TYPE_UINT64_ARRAY: JSArgType = 17;
+pub const JSArgType_JSARG_TYPE_FLOAT_ARRAY: JSArgType = 18;
+pub const JSArgType_JSARG_TYPE_EXCEPTION: JSArgType = 19;
 #[doc = " @brief C version of our JSArg union"]
 pub type JSArgType = ::std::os::raw::c_int;
 #[doc = " @brief C version of our JSArg union"]
@@ -319,27 +329,210 @@ pub union JSArg__bindgen_ty_1 {
     pub uint32_t_val: u32,
     pub int64_t_val: i64,
     pub c_array_val: JSArg__bindgen_ty_1__bindgen_ty_1,
+    pub u8_array_val: JSArg__bindgen_ty_1__bindgen_ty_2,
+    pub i32_array_val: JSArg__bindgen_ty_1__bindgen_ty_3,
+    pub u32_array_val: JSArg__bindgen_ty_1__bindgen_ty_4,
+    pub i64_array_val: JSArg__bindgen_ty_1__bindgen_ty_5,
+    pub i8_array_val: JSArg__bindgen_ty_1__bindgen_ty_6,
+    pub i16_array_val: JSArg__bindgen_ty_1__bindgen_ty_7,
+    pub u16_array_val: JSArg__bindgen_ty_1__bindgen_ty_8,
+    pub u64_array_val: JSArg__bindgen_ty_1__bindgen_ty_9,
+    pub float_array_val: JSArg__bindgen_ty_1__bindgen_ty_10,
+    pub exception_val: JSArg__bindgen_ty_1__bindgen_ty_11,
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct JSArg__bindgen_ty_1__bindgen_ty_1 {
     pub items: *mut *mut JSArg,
     pub count: usize,
+    pub capacity: usize,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
     ["Size of JSArg__bindgen_ty_1__bindgen_ty_1"]
-        [::std::mem::size_of::<JSArg__bindgen_ty_1__bindgen_ty_1>() - 16usize];
+        [::std::mem::size_of::<JSArg__bindgen_ty_1__bindgen_ty_1>() - 24usize];
     ["Alignment of JSArg__bindgen_ty_1__bindgen_ty_1"]
         [::std::mem::align_of::<JSArg__bindgen_ty_1__bindgen_ty_1>() - 8usize];
     ["Offset of field: JSArg__bindgen_ty_1__bindgen_ty_1::items"]
         [::std::mem::offset_of!(JSArg__bindgen_ty_1__bindgen_ty_1, items) - 0usize];
     ["Offset of field: JSArg__bindgen_ty_1__bindgen_ty_1::count"]
         [::std::mem::offset_of!(JSArg__bindgen_ty_1__bindgen_ty_1, count) - 8usize];
+    ["Offset of field: JSArg__bindgen_ty_1__bindgen_ty_1::capacity"]
+        [::std::mem::offset_of!(JSArg__bindgen_ty_1__bindgen_ty_1, capacity) - 16usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct JSArg__bindgen_ty_1__bindgen_ty_2 {
+    pub items: *const u8,
+    pub count: usize,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of JSArg__bindgen_ty_1__bindgen_ty_2"]
+        [::std::mem::size_of::<JSArg__bindgen_ty_1__bindgen_ty_2>() - 16usize];
+    ["Alignment of JSArg__bindgen_ty_1__bindgen_ty_2"]
+        [::std::mem::align_of::<JSArg__bindgen_ty_1__bindgen_ty_2>() - 8usize];
+    ["Offset of field: JSArg__bindgen_ty_1__bindgen_ty_2::items"]
+        [::std::mem::offset_of!(JSArg__bindgen_ty_1__bindgen_ty_2, items) - 0usize];
+    ["Offset of field: JSArg__bindgen_ty_1__bindgen_ty_2::count"]
+        [::std::mem::offset_of!(JSArg__bindgen_ty_1__bindgen_ty_2, count) - 8usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct JSArg__bindgen_ty_1__bindgen_ty_3 {
+    pub items: *const i32,
+    pub count: usize,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of JSArg__bindgen_ty_1__bindgen_ty_3"]
+        [::std::mem::size_of::<JSArg__bindgen_ty_1__bindgen_ty_3>() - 16usize];
+    ["Alignment of JSArg__bindgen_ty_1__bindgen_ty_3"]
+        [::std::mem::align_of::<JSArg__bindgen_ty_1__bindgen_ty_3>() - 8usize];
+    ["Offset of field: JSArg__bindgen_ty_1__bindgen_ty_3::items"]
+        [::std::mem::offset_of!(JSArg__bindgen_ty_1__bindgen_ty_3, items) - 0usize];
+    ["Offset of field: JSArg__bindgen_ty_1__bindgen_ty_3::count"]
+        [::std::mem::offset_of!(JSArg__bindgen_ty_1__bindgen_ty_3, count) - 8usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct JSArg__bindgen_ty_1__bindgen_ty_4 {
+    pub items: *const u32,
+    pub count: usize,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of JSArg__bindgen_ty_1__bindgen_ty_4"]
+        [::std::mem::size_of::<JSArg__bindgen_ty_1__bindgen_ty_4>() - 16usize];
+    ["Alignment of JSArg__bindgen_ty_1__bindgen_ty_4"]
+        [::std::mem::align_of::<JSArg__bindgen_ty_1__bindgen_ty_4>() - 8usize];
+    ["Offset of field: JSArg__bindgen_ty_1__bindgen_ty_4::items"]
+        [::std::mem::offset_of!(JSArg__bindgen_ty_1__bindgen_ty_4, items) - 0usize];
+    ["Offset of field: JSArg__bindgen_ty_1__bindgen_ty_4::count"]
+        [::std::mem::offset_of!(JSArg__bindgen_ty_1__bindgen_ty_4, count) - 8usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct JSArg__bindgen_ty_1__bindgen_ty_5 {
+    pub items: *const i64,
+    pub count: usize,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of JSArg__bindgen_ty_1__bindgen_ty_5"]
+        [::std::mem::size_of::<JSArg__bindgen_ty_1__bindgen_ty_5>() - 16usize];
+    ["Alignment of JSArg__bindgen_ty_1__bindgen_ty_5"]
+        [::std::mem::align_of::<JSArg__bindgen_ty_1__bindgen_ty_5>() - 8usize];
+    ["Offset of field: JSArg__bindgen_ty_1__bindgen_ty_5::items"]
+        [::std::mem::offset_of!(JSArg__bindgen_ty_1__bindgen_ty_5, items) - 0usize];
+    ["Offset of field: JSArg__bindgen_ty_1__bindgen_ty_5::count"]
+        [::std::mem::offset_of!(JSArg__bindgen_ty_1__bindgen_ty_5, count) - 8usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct JSArg__bindgen_ty_1__bindgen_ty_6 {
+    pub items: *const i8,
+    pub count: usize,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of JSArg__bindgen_ty_1__bindgen_ty_6"]
+        [::std::mem::size_of::<JSArg__bindgen_ty_1__bindgen_ty_6>() - 16usize];
+    ["Alignment of JSArg__bindgen_ty_1__bindgen_ty_6"]
+        [::std::mem::align_of::<JSArg__bindgen_ty_1__bindgen_ty_6>() - 8usize];
+    ["Offset of field: JSArg__bindgen_ty_1__bindgen_ty_6::items"]
+        [::std::mem::offset_of!(JSArg__bindgen_ty_1__bindgen_ty_6, items) - 0usize];
+    ["Offset of field: JSArg__bindgen_ty_1__bindgen_ty_6::count"]
+        [::std::mem::offset_of!(JSArg__bindgen_ty_1__bindgen_ty_6, count) - 8usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct JSArg__bindgen_ty_1__bindgen_ty_7 {
+    pub items: *const i16,
+    pub count: usize,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of JSArg__bindgen_ty_1__bindgen_ty_7"]
+        [::std::mem::size_of::<JSArg__bindgen_ty_1__bindgen_ty_7>() - 16usize];
+    ["Alignment of JSArg__bindgen_ty_1__bindgen_ty_7"]
+        [::std::mem::align_of::<JSArg__bindgen_ty_1__bindgen_ty_7>() - 8usize];
+    ["Offset of field: JSArg__bindgen_ty_1__bindgen_ty_7::items"]
+        [::std::mem::offset_of!(JSArg__bindgen_ty_1__bindgen_ty_7, items) - 0usize];
+    ["Offset of field: JSArg__bindgen_ty_1__bindgen_ty_7::count"]
+        [::std::mem::offset_of!(JSArg__bindgen_ty_1__bindgen_ty_7, count) - 8usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct JSArg__bindgen_ty_1__bindgen_ty_8 {
+    pub items: *const u16,
+    pub count: usize,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of JSArg__bindgen_ty_1__bindgen_ty_8"]
+        [::std::mem::size_of::<JSArg__bindgen_ty_1__bindgen_ty_8>() - 16usize];
+    ["Alignment of JSArg__bindgen_ty_1__bindgen_ty_8"]
+        [::std::mem::align_of::<JSArg__bindgen_ty_1__bindgen_ty_8>() - 8usize];
+    ["Offset of field: JSArg__bindgen_ty_1__bindgen_ty_8::items"]
+        [::std::mem::offset_of!(JSArg__bindgen_ty_1__bindgen_ty_8, items) - 0usize];
+    ["Offset of field: JSArg__bindgen_ty_1__bindgen_ty_8::count"]
+        [::std::mem::offset_of!(JSArg__bindgen_ty_1__bindgen_ty_8, count) - 8usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct JSArg__bindgen_ty_1__bindgen_ty_9 {
+    pub items: *const u64,
+    pub count: usize,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of JSArg__bindgen_ty_1__bindgen_ty_9"]
+        [::std::mem::size_of::<JSArg__bindgen_ty_1__bindgen_ty_9>() - 16usize];
+    ["Alignment of JSArg__bindgen_ty_1__bindgen_ty_9"]
+        [::std::mem::align_of::<JSArg__bindgen_ty_1__bindgen_ty_9>() - 8usize];
+    ["Offset of field: JSArg__bindgen_ty_1__bindgen_ty_9::items"]
+        [::std::mem::offset_of!(JSArg__bindgen_ty_1__bindgen_ty_9, items) - 0usize];
+    ["Offset of field: JSArg__bindgen_ty_1__bindgen_ty_9::count"]
+        [::std::mem::offset_of!(JSArg__bindgen_ty_1__bindgen_ty_9, count) - 8usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct JSArg__bindgen_ty_1__bindgen_ty_10 {
+    pub items: *const f32,
+    pub count: usize,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of JSArg__bindgen_ty_1__bindgen_ty_10"]
+        [::std::mem::size_of::<JSArg__bindgen_ty_1__bindgen_ty_10>() - 16usize];
+    ["Alignment of JSArg__bindgen_ty_1__bindgen_ty_10"]
+        [::std::mem::align_of::<JSArg__bindgen_ty_1__bindgen_ty_10>() - 8usize];
+    ["Offset of field: JSArg__bindgen_ty_1__bindgen_ty_10::items"]
+        [::std::mem::offset_of!(JSArg__bindgen_ty_1__bindgen_ty_10, items) - 0usize];
+    ["Offset of field: JSArg__bindgen_ty_1__bindgen_ty_10::count"]
+        [::std::mem::offset_of!(JSArg__bindgen_ty_1__bindgen_ty_10, count) - 8usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct JSArg__bindgen_ty_1__bindgen_ty_11 {
+    pub msg: *const ::std::os::raw::c_char,
+    pub name: *const ::std::os::raw::c_char,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of JSArg__bindgen_ty_1__bindgen_ty_11"]
+        [::std::mem::size_of::<JSArg__bindgen_ty_1__bindgen_ty_11>() - 16usize];
+    ["Alignment of JSArg__bindgen_ty_1__bindgen_ty_11"]
+        [::std::mem::align_of::<JSArg__bindgen_ty_1__bindgen_ty_11>() - 8usize];
+    ["Offset of field: JSArg__bindgen_ty_1__bindgen_ty_11::msg"]
+        [::std::mem::offset_of!(JSArg__bindgen_ty_1__bindgen_ty_11, msg) - 0usize];
+    ["Offset of field: JSArg__bindgen_ty_1__bindgen_ty_11::name"]
+        [::std::mem::offset_of!(JSArg__bindgen_ty_1__bindgen_ty_11, name) - 8usize];
 };
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of JSArg__bindgen_ty_1"][::std::mem::size_of::<JSArg__bindgen_ty_1>() - 16usize];
+    ["Size of JSArg__bindgen_ty_1"][::std::mem::size_of::<JSArg__bindgen_ty_1>() - 24usize];
     ["Alignment of JSArg__bindgen_ty_1"][::std::mem::align_of::<JSArg__bindgen_ty_1>() - 8usize];
     ["Offset of field: JSArg__bindgen_ty_1::int_val"]
         [::std::mem::offset_of!(JSArg__bindgen_ty_1, int_val) - 0usize];
@@ -359,10 +552,30 @@ const _: () = {
         [::std::mem::offset_of!(JSArg__bindgen_ty_1, int64_t_val) - 0usize];
     ["Offset of field: JSArg__bindgen_ty_1::c_array_val"]
         [::std::mem::offset_of!(JSArg__bindgen_ty_1, c_array_val) - 0usize];
+    ["Offset of field: JSArg__bindgen_ty_1::u8_array_val"]
+        [::std::mem::offset_of!(JSArg__bindgen_ty_1, u8_array_val) - 0usize];
+    ["Offset of field: JSArg__bindgen_ty_1::i32_array_val"]
+        [::std::mem::offset_of!(JSArg__bindgen_ty_1, i32_array_val) - 0usize];
+    ["Offset of field: JSArg__bindgen_ty_1::u32_array_val"]
+        [::std::mem::offset_of!(JSArg__bindgen_ty_1, u32_array_val) - 0usize];
+    ["Offset of field: JSArg__bindgen_ty_1::i64_array_val"]
+        [::std::mem::offset_of!(JSArg__bindgen_ty_1, i64_array_val) - 0usize];
+    ["Offset of field: JSArg__bindgen_ty_1::i8_array_val"]
+        [::std::mem::offset_of!(JSArg__bindgen_ty_1, i8_array_val) - 0usize];
+    ["Offset of field: JSArg__bindgen_ty_1::i16_array_val"]
+        [::std::mem::offset_of!(JSArg__bindgen_ty_1, i16_array_val) - 0usize];
+    ["Offset of field: JSArg__bindgen_ty_1::u16_array_val"]
+        [::std::mem::offset_of!(JSArg__bindgen_ty_1, u16_array_val) - 0usize];
+    ["Offset of field: JSArg__bindgen_ty_1::u64_array_val"]
+        [::std::mem::offset_of!(JSArg__bindgen_ty_1, u64_array_val) - 0usize];
+    ["Offset of field: JSArg__bindgen_ty_1::float_array_val"]
+        [::std::mem::offset_of!(JSArg__bindgen_ty_1, float_array_val) - 0usize];
+    ["Offset of field: JSArg__bindgen_ty_1::exception_val"]
+        [::std::mem::offset_of!(JSArg__bindgen_ty_1, exception_val) - 0usize];
 };
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of JSArg"][::std::mem::size_of::<JSArg>() - 24usize];
+    ["Size of JSArg"][::std::mem::size_of::<JSArg>() - 32usize];
     ["Alignment of JSArg"][::std::mem::align_of::<JSArg>() - 8usize];
     ["Offset of field: JSArg::type_"][::std::mem::offset_of!(JSArg, type_) - 0usize];
     ["Offset of field: JSArg::value"][::std::mem::offset_of!(JSArg, value) - 8usize];
@@ -407,7 +620,7 @@ unsafe extern "C" {
     pub fn jsarg_int(value: ::std::os::raw::c_int) -> *mut JSArg;
 }
 unsafe extern "C" {
-    #[doc = " @brief Create a const char* JSArg.\n\n @param value The const char*\n\n @return JSArg"]
+    #[doc = " @brief Create a const char* JSArg.\n\n This copies the value so feel free to delete afterwards.\n\n @param value The const char*\n\n @return JSArg"]
     pub fn jsarg_str(value: *const ::std::os::raw::c_char) -> *mut JSArg;
 }
 unsafe extern "C" {
@@ -439,6 +652,49 @@ unsafe extern "C" {
     pub fn jsarg_bool(value: bool) -> *mut JSArg;
 }
 unsafe extern "C" {
+    #[doc = " @brief Create a JSArgTypedArray<uint8_t>.\n\n This will copy the memory so feel very free to free it.\n\n @param args The uint8_t*\n @param argc The number of uint8_ts.\n\n @return JSArg"]
+    pub fn jsarg_u8_array(args: *const u8, argc: usize) -> *mut JSArg;
+}
+unsafe extern "C" {
+    #[doc = " @brief Create a JSArgTypedArray<int32_t>.\n\n This will copy the memory so feel very free to free it.\n\n @param args The int32_t*\n @param argc The number of int32_t.\n\n @return JSArg"]
+    pub fn jsarg_i32_array(args: *const i32, argc: usize) -> *mut JSArg;
+}
+unsafe extern "C" {
+    #[doc = " @brief Create a JSArgTypedArray<uint32_t>.\n\n This will copy the memory so feel very free to free it.\n\n @param args The uint32_t*\n @param argc The number of uint32_t.\n\n @return JSArg"]
+    pub fn jsarg_u32_array(args: *const u32, argc: usize) -> *mut JSArg;
+}
+unsafe extern "C" {
+    #[doc = " @brief Create a JSArgTypedArray<int64_t>.\n\n This will copy the memory so feel very free to free it.\n\n @param args The int64_t*\n @param argc The number of int64_t.\n\n @return JSArg"]
+    pub fn jsarg_i64_array(args: *const i64, argc: usize) -> *mut JSArg;
+}
+unsafe extern "C" {
+    #[doc = " @brief Create a JSArgTypedArray<int8_t>.\n\n This will copy the memory so feel very free to free it.\n\n @param args The int8_t*\n @param argc The number of int8_t.\n\n @return JSArg"]
+    pub fn jsarg_i8_array(args: *const i8, argc: usize) -> *mut JSArg;
+}
+unsafe extern "C" {
+    #[doc = " @brief Create a JSArgTypedArray<int16_t>.\n\n This will copy the memory so feel very free to free it.\n\n @param args The int16_t*\n @param argc The number of int16_t.\n\n @return JSArg"]
+    pub fn jsarg_i16_array(args: *const i16, argc: usize) -> *mut JSArg;
+}
+unsafe extern "C" {
+    #[doc = " @brief Create a JSArgTypedArray<uint16_t>.\n\n This will copy the memory so feel very free to free it.\n\n @param args The uint16_t*\n @param argc The number of uint16_t.\n\n @return JSArg"]
+    pub fn jsarg_u16_array(args: *const u16, argc: usize) -> *mut JSArg;
+}
+unsafe extern "C" {
+    #[doc = " @brief Create a JSArgTypedArray<uint64_t>.\n\n This will copy the memory so feel very free to free it.\n\n @param args The uint64_t*\n @param argc The number of uint64_t.\n\n @return JSArg"]
+    pub fn jsarg_u64_array(args: *const u64, argc: usize) -> *mut JSArg;
+}
+unsafe extern "C" {
+    #[doc = " @brief Create a JSArgTypedArray<float>.\n\n This will copy the memory so feel very free to free it.\n\n @param args The float*\n @param argc The number of float.\n\n @return JSArg"]
+    pub fn jsarg_float_array(args: *const f32, argc: usize) -> *mut JSArg;
+}
+unsafe extern "C" {
+    #[doc = " @brief Create a JSArgException.\n\n This will copy the memory so feel free to delete after this.\n\n @param message The exceptions message\n @param name The exceptions name\n\n @return JSArg"]
+    pub fn jsarg_exception(
+        message: *const ::std::os::raw::c_char,
+        name: *const ::std::os::raw::c_char,
+    ) -> *mut JSArg;
+}
+unsafe extern "C" {
     #[doc = " @brief Add a JSArg value to a array.\n\n @param arg Pointer to the array.\n @param value the JSArg value."]
     pub fn jsarg_add_value_to_c_array(arg: *mut JSArg, value: *mut JSArg);
 }
@@ -460,6 +716,18 @@ unsafe extern "C" {
 unsafe extern "C" {
     #[doc = " @brief Free a JSArg.\n\n @param arg A pointer to the JSArg to free."]
     pub fn jsarg_free(arg: *mut JSArg);
+}
+unsafe extern "C" {
+    #[doc = " @brief Free A JSArg**\n\n @param args A pointer of pointers of JSArgs\n @param argc Number of pointers."]
+    pub fn jsarg_free_all(args: *mut *mut JSArg, argc: usize);
+}
+unsafe extern "C" {
+    #[doc = " @brief Create a JSArg**\n\n @param argc Count of args this can hold\n\n @return a Pointer of Pointers"]
+    pub fn jsarg_make_list(argc: usize) -> *mut *mut JSArg;
+}
+unsafe extern "C" {
+    #[doc = " @brief Add a JSArg to a JSArg**\n\n This is NOT for a C_Array! But rather a list of JSArgs\n\n @param jsarg the list ptr\n @param njsarg the jsarg to add\n @param i the index where this goes"]
+    pub fn jsarg_add_to_list(jsarg: *mut *mut JSArg, njsarg: *mut JSArg, i: usize);
 }
 unsafe extern "C" {
     #[doc = " @brief Set the file_loader function.\n\n @param handle the easyjsr runtime.\n @param fn The file loader function.\n @param opaque some opaque data.\n"]
@@ -486,7 +754,7 @@ unsafe extern "C" {
     ) -> ::std::os::raw::c_int;
 }
 unsafe extern "C" {
-    #[doc = " @brief Evaluate a JS function in the current scope/runtime.\n\n @param handle the easyjsr runtime.\n @param fn_name The JS function name.\n @param args The args to pass into the function.\n @param arg_count Number of args being passed.\n\n @return The id of the resulted JSValue."]
+    #[doc = " @brief Evaluate a JS function in the current scope/runtime.\n\n IMPORTANT: args are freed during this call. If you plan to use them again, copy them.\n\n @param handle the easyjsr runtime.\n @param fn_name The JS function name.\n @param args The args to pass into the function.\n @param arg_count Number of args being passed.\n\n @return The id of the resulted JSValue."]
     pub fn ejr_eval_function(
         handle: *mut EasyJSRHandle,
         fn_name: *const ::std::os::raw::c_char,
@@ -502,7 +770,7 @@ unsafe extern "C" {
     ) -> *mut ::std::os::raw::c_char;
 }
 unsafe extern "C" {
-    #[doc = " @brief Evaluate a JS function in the current scope/runtime on a class or object.\n\n @param handle the easyjsr runtime.\n @param value_id The objects/classes id in jsvad\n @param fn_name The JS function name.\n @param args The args to pass into the function.\n @param arg_count Number of args being passed.\n\n @return The id of the resulted JSValue."]
+    #[doc = " @brief Evaluate a JS function in the current scope/runtime on a class or object.\n\n IMPORTANT: args are freed during this call. If you plan to use them again, copy them.\n\n @param handle the easyjsr runtime.\n @param value_id The objects/classes id in jsvad\n @param fn_name The JS function name.\n @param args The args to pass into the function.\n @param arg_count Number of args being passed.\n\n @return The id of the resulted JSValue."]
     pub fn ejr_eval_class_function(
         handle: *mut EasyJSRHandle,
         value_id: ::std::os::raw::c_int,

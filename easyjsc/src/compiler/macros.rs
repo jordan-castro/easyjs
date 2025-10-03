@@ -22,7 +22,6 @@ impl Macro {
     /// Compile a macro.
     pub fn compile(&self, arguments: Vec<String>, transpiled_body: String) -> String {
         let mut body = transpiled_body.clone();
-        println!("body: {body}");
 
         if arguments.len() == 0 {
             return body;

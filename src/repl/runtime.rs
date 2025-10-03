@@ -158,7 +158,7 @@ pub fn run_file(runtime: &str, path: &str, arguments: Vec<String>) {
         }
         "easyjsr" => {
             let mut rt = EasyJSR::new();
-            rt.run(&js_content);
+            rt.run_file(&js_content, path);
         }
         _ => {
             println!(

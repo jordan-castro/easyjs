@@ -29,7 +29,17 @@ typedef enum {
     JSARG_TYPE_UINT32_T,
     JSARG_TYPE_C_ARRAY,
     JSARG_TYPE_NULL,
-    JSARG_TYPE_UNDEFINED
+    JSARG_TYPE_UNDEFINED,
+    JSARG_TYPE_UINT8_ARRAY,
+    JSARG_TYPE_INT32_ARRAY,
+    JSARG_TYPE_UINT32_ARRAY,
+    JSARG_TYPE_INT64_ARRAY,
+    JSARG_TYPE_INT8_ARRAY,
+    JSARG_TYPE_UINT16_ARRAY,
+    JSARG_TYPE_INT16_ARRAY,
+    JSARG_TYPE_UINT64_ARRAY,
+    JSARG_TYPE_FLOAT_ARRAY,
+    JSARG_TYPE_EXCEPTION
 } JSArgType;
 typedef struct JSArg JSArg;
 /**
@@ -49,7 +59,48 @@ struct JSArg {
         struct {
             JSArg** items;
             size_t count;
+            size_t capacity;
         } c_array_val;
+        struct {
+            const uint8_t* items;
+            size_t count;
+        } u8_array_val;
+        struct {
+            const int32_t* items;
+            size_t count;
+        } i32_array_val;
+        struct {
+            const uint32_t* items;
+            size_t count;
+        } u32_array_val;
+        struct {
+            const int64_t* items;
+            size_t count;
+        } i64_array_val;
+        struct {
+            const int8_t* items;
+            size_t count;
+        } i8_array_val;
+        struct {
+            const int16_t* items;
+            size_t count;
+        } i16_array_val;
+        struct {
+            const uint16_t* items;
+            size_t count;
+        } u16_array_val;
+        struct {
+            const uint64_t* items;
+            size_t count;
+        } u64_array_val;
+        struct {
+            const float* items;
+            size_t count;
+        } float_array_val; 
+        struct {
+            const char* msg;
+            const char* name;
+        } exception_val;
     } value;
 };
 /**
@@ -96,6 +147,8 @@ JSArg* jsarg_int(int value);
 
 /**
  * @brief Create a const char* JSArg.
+ * 
+ * This copies the value so feel free to delete afterwards.
  * 
  * @param value The const char*
  * 
@@ -165,6 +218,126 @@ JSArg* jsarg_null();
 JSArg* jsarg_bool(bool value);
 
 /**
+ * @brief Create a JSArgTypedArray<uint8_t>. 
+ * 
+ * This will copy the memory so feel very free to free it.
+ * 
+ * @param args The uint8_t*
+ * @param argc The number of uint8_ts.
+ * 
+ * @return JSArg
+ */
+JSArg* jsarg_u8_array(const uint8_t* args, size_t argc);
+
+/**
+ * @brief Create a JSArgTypedArray<int32_t>. 
+ * 
+ * This will copy the memory so feel very free to free it.
+ * 
+ * @param args The int32_t*
+ * @param argc The number of int32_t.
+ * 
+ * @return JSArg
+ */
+JSArg* jsarg_i32_array(const int32_t* args, size_t argc);
+
+/**
+ * @brief Create a JSArgTypedArray<uint32_t>. 
+ * 
+ * This will copy the memory so feel very free to free it.
+ * 
+ * @param args The uint32_t*
+ * @param argc The number of uint32_t.
+ * 
+ * @return JSArg
+ */
+JSArg* jsarg_u32_array(const uint32_t* args, size_t argc);
+
+/**
+ * @brief Create a JSArgTypedArray<int64_t>. 
+ * 
+ * This will copy the memory so feel very free to free it.
+ * 
+ * @param args The int64_t*
+ * @param argc The number of int64_t.
+ * 
+ * @return JSArg
+ */
+JSArg* jsarg_i64_array(const int64_t* args, size_t argc);
+
+/**
+ * @brief Create a JSArgTypedArray<int8_t>. 
+ * 
+ * This will copy the memory so feel very free to free it.
+ * 
+ * @param args The int8_t*
+ * @param argc The number of int8_t.
+ * 
+ * @return JSArg
+ */
+JSArg* jsarg_i8_array(const int8_t* args, size_t argc);
+
+/**
+ * @brief Create a JSArgTypedArray<int16_t>. 
+ * 
+ * This will copy the memory so feel very free to free it.
+ * 
+ * @param args The int16_t*
+ * @param argc The number of int16_t.
+ * 
+ * @return JSArg
+ */
+JSArg* jsarg_i16_array(const int16_t* args, size_t argc);
+
+/**
+ * @brief Create a JSArgTypedArray<uint16_t>. 
+ * 
+ * This will copy the memory so feel very free to free it.
+ * 
+ * @param args The uint16_t*
+ * @param argc The number of uint16_t.
+ * 
+ * @return JSArg
+ */
+JSArg* jsarg_u16_array(const uint16_t* args, size_t argc);
+
+/**
+ * @brief Create a JSArgTypedArray<uint64_t>. 
+ * 
+ * This will copy the memory so feel very free to free it.
+ * 
+ * @param args The uint64_t*
+ * @param argc The number of uint64_t.
+ * 
+ * @return JSArg
+ */
+JSArg* jsarg_u64_array(const uint64_t* args, size_t argc);
+
+/**
+ * @brief Create a JSArgTypedArray<float>. 
+ * 
+ * This will copy the memory so feel very free to free it.
+ * 
+ * @param args The float*
+ * @param argc The number of float.
+ * 
+ * @return JSArg
+ */
+JSArg* jsarg_float_array(const float* args, size_t argc);
+
+/**
+ * @brief Create a JSArgException.
+ * 
+ * This will copy the memory so feel free to delete after this.
+ * 
+ * @param message The exceptions message
+ * @param name The exceptions name
+ * 
+ * @return JSArg
+ */
+JSArg* jsarg_exception(const char* message, const char* name);
+
+/**
  * @brief Add a JSArg value to a array.
  * 
  * @param arg Pointer to the array.
@@ -202,6 +375,34 @@ void ejr_free(EasyJSRHandle* handle);
  */
 void jsarg_free(JSArg* arg);
 
+/**
+ * @brief Free A JSArg**
+ * 
+ * @param args A pointer of pointers of JSArgs
+ * @param argc Number of pointers.
+ */
+void jsarg_free_all(JSArg** args, size_t argc);
+
+/**
+ * @brief Create a JSArg**
+ * 
+ * @param argc Count of args this can hold
+ * 
+ * @return a Pointer of Pointers
+ */
+JSArg** jsarg_make_list(size_t argc);
+
+/**
+ * @brief Add a JSArg to a JSArg** 
+ * 
+ * This is NOT for a C_Array! But rather a list of JSArgs
+ * 
+ * @param jsarg the list ptr
+ * @param njsarg the jsarg to add
+ * @param i the index where this goes
+ */
+void jsarg_add_to_list(JSArg** jsarg, JSArg* njsarg, size_t i);
+
 // EasyJSR specific
 /**
  * @brief Set the file_loader function.
@@ -238,6 +439,8 @@ int ejr_eval_module(EasyJSRHandle* handle, const char* js, const char* file_name
 /**
  * @brief Evaluate a JS function in the current scope/runtime.
  * 
+ * IMPORTANT: args are freed during this call. If you plan to use them again, copy them.
+ * 
  * @param handle the easyjsr runtime.
  * @param fn_name The JS function name.
  * @param args The args to pass into the function.
@@ -259,6 +462,8 @@ char * ejr_val_to_string(EasyJSRHandle* handle, int value_id);
 
 /**
  * @brief Evaluate a JS function in the current scope/runtime on a class or object.
+ * 
+ * IMPORTANT: args are freed during this call. If you plan to use them again, copy them.
  * 
  * @param handle the easyjsr runtime.
  * @param value_id The objects/classes id in jsvad

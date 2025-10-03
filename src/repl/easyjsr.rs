@@ -1,6 +1,6 @@
 use easyjsr::{EJR};
 
-use crate::repl::builtins::console::include_console;
+use crate::repl::builtins::{console::include_console, text_decoder::include_text_decoder, text_encoder::include_text_encoder};
 
 pub struct EasyJSR {
     ejr: EJR,
@@ -16,6 +16,8 @@ impl EasyJSR {
         };
 
         include_console(&mut s.ejr);
+        include_text_encoder(&mut s.ejr);
+        include_text_decoder(&mut s.ejr);
 
         s
     }
@@ -28,6 +30,18 @@ impl EasyJSR {
         if let Some(str) = str {
             println!("{}", str);
             // Free JSValue
+            self.ejr.free_jsvalue(result);
+        }
+    }
+
+    pub fn run_file(&self, js_content: &str, file_name: &str) {
+        let result = self.ejr.eval_module(js_content, file_name);
+
+        // Print result
+        let str = self.ejr.val_to_string(result);
+        if let Some(str) = str {
+            println!("{str}");
+            // Free val
             self.ejr.free_jsvalue(result);
         }
     }

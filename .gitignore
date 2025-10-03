@@ -12,7 +12,9 @@ target/
 /easy_form.json
 /index.html
 
-bin/
+/bin/
+/easyjsc/bin/
+/easyjsr/bin/
 
 /easyjs.wat
 /evelyn

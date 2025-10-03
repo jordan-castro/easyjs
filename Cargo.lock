@@ -265,6 +265,7 @@ dependencies = [
  "easyjs_utils",
  "easyjsc",
  "easyjsr",
+ "encoding_rs",
  "git2",
  "minifier",
  "reqwest",
@@ -298,7 +299,6 @@ version = "0.3.0"
 dependencies = [
  "bindgen",
  "cc",
- "encoding_rs",
  "lazy_static",
  "tokio",
 ]

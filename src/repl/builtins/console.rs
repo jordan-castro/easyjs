@@ -1,7 +1,7 @@
-use easyjsr::{cstr_to_string, derefernce_jsarg, jsarg_undefined, JSArg, JSArgResult, JSArgType, Opaque, EJR};
+use easyjsr::{cstr_to_string, derefernce_jsarg, jsarg_undefined, JSArg, JSArgResult, JSArgType, Opaque, OpaqueObject, EJR};
 
 /// Console.log
-fn ___print(args: Vec<JSArg>, opaque: Opaque) -> JSArgResult {
+fn ___print(args: Vec<JSArg>, opaque: &OpaqueObject) -> JSArgResult {
     if args.len() == 0 {
         return Some(jsarg_undefined());
     }
@@ -22,12 +22,12 @@ fn ___print(args: Vec<JSArg>, opaque: Opaque) -> JSArgResult {
 }
 
 /// Console.error
-fn ___error(args: Vec<JSArg>, opaque: Opaque) -> JSArgResult {
+fn ___error(args: Vec<JSArg>, opaque: &OpaqueObject) -> JSArgResult {
     ___print(args, opaque)
 }
 
 /// Console.warn
-fn ___warn(args: Vec<JSArg>, opaque: Opaque) -> JSArgResult {
+fn ___warn(args: Vec<JSArg>, opaque: &OpaqueObject) -> JSArgResult {
     ___print(args, opaque)
 }
 

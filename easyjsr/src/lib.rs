@@ -3,7 +3,7 @@
 mod ejr {
     include!("../bindings.rs");
 }
-use std::{any::Any, collections::HashMap, ffi::{CStr, CString}, os::raw::{c_char, c_void}, ptr::{slice_from_raw_parts, slice_from_raw_parts_mut, NonNull}, sync::{Arc, Mutex}};
+use std::{any::Any, collections::{btree_map::Values, HashMap}, ffi::{CStr, CString}, os::raw::{c_char, c_void}, ptr::{slice_from_raw_parts, slice_from_raw_parts_mut, NonNull}, sync::{Arc, Mutex}};
 
 lazy_static::lazy_static! {
     static ref RUNTIME_REGISTRY: Mutex<RTGlobalContext> = Mutex::new(RTGlobalContext::new());
@@ -21,6 +21,16 @@ pub enum JSArgType {
     Uint32 = 6,
     CArray = 7,
     Null = 8,
+    Undefined = 9,
+    UInt8Array = 10,
+    Int32Array = 11,
+    UInt32Array = 12,
+    Int64Array = 13,
+    Int8Array = 14,
+    UInt16Array = 15,
+    Int16Array = 16,
+    UInt64Array = 17,
+    FloatArray = 18
 }
 
 impl JSArgType {
@@ -35,6 +45,16 @@ impl JSArgType {
             JSArgType::Uint32 => ejr::JSArgType_JSARG_TYPE_UINT32_T,
             JSArgType::CArray => ejr::JSArgType_JSARG_TYPE_C_ARRAY,
             JSArgType::Null => ejr::JSArgType_JSARG_TYPE_NULL,
+            JSArgType::Undefined => ejr::JSArgType_JSARG_TYPE_UNDEFINED,
+            JSArgType::UInt8Array => ejr::JSArgType_JSARG_TYPE_UINT8_ARRAY,
+            JSArgType::Int32Array => ejr::JSArgType_JSARG_TYPE_INT32_ARRAY,
+            JSArgType::UInt32Array => ejr::JSArgType_JSARG_TYPE_UINT32_ARRAY,
+            JSArgType::Int64Array => ejr::JSArgType_JSARG_TYPE_INT64_ARRAY,
+            JSArgType::Int8Array => ejr::JSArgType_JSARG_TYPE_INT8_ARRAY,
+            JSArgType::UInt16Array => ejr::JSArgType_JSARG_TYPE_UINT16_ARRAY,
+            JSArgType::Int16Array => ejr::JSArgType_JSARG_TYPE_INT16_ARRAY,
+            JSArgType::UInt64Array => ejr::JSArgType_JSARG_TYPE_UINT64_ARRAY,
+            JSArgType::FloatArray => ejr::JSArgType_JSARG_TYPE_FLOAT_ARRAY,
         }
     }
 }
@@ -46,7 +66,7 @@ pub type Opaque = *mut c_void;
 pub type OpaqueUserData = Arc<dyn Any + Send + Sync>;
 pub type JSArgResult = Option<JSArg>;
 /// Type for Rust callbacks
-type RustCallbackFn = Box<dyn Fn(Vec<JSArg>, Opaque) -> Option<*mut ejr::JSArg> + Send + Sync>;
+type RustCallbackFn = Box<dyn Fn(Vec<JSArg>, &OpaqueObject) -> Option<*mut ejr::JSArg> + Send + Sync>;
 
 /// EJR wrapper
 pub struct EJR {
@@ -71,7 +91,7 @@ pub struct OpaqueObject {
     /// Callback
     cb: RustCallbackFn,
     /// Custom user defined data
-    user_data: Option<OpaqueUserData>
+    pub user_data: Option<OpaqueUserData>
 }
 
 /// JSMethod wrapper
@@ -174,25 +194,6 @@ pub fn cstr_to_string(val: *mut i8) -> String {
     }
 }
 
-/// Get Opaque Object
-pub fn get_opaque_object<'a>(opaque: *mut c_void) -> &'a mut OpaqueObject {
-    assert!(!opaque.is_null(), "opaque is null");
-    unsafe { &mut *(opaque as *mut OpaqueObject) }
-}
-
-/// Convert a Vec<mut* ejr::JSArg> ito *mut *mut ejr::JSArg.
-/// 
-/// Remember to free this later...
-fn make_jsarg_array(value: Vec<*mut ejr::JSArg>) -> *mut *mut ejr::JSArg {
-    let mut boxed = value.into_boxed_slice();
-
-    let ptr = boxed.as_mut_ptr();
-
-    std::mem::forget(boxed);
-
-    ptr
-}
-
 /// Create a JSArg value of Int
 pub fn jsarg_int(value: i32) -> *mut ejr::JSArg {
     unsafe {
@@ -252,6 +253,100 @@ pub fn jsarg_carray(values: Vec<*mut ejr::JSArg>) -> *mut ejr::JSArg {
     c_array
 }
 
+macro_rules! jsarg_array_ptr {
+    ($values:expr) => {{
+        let boxed_slice = $values.into_boxed_slice();
+        let ptr = boxed_slice.as_ptr();
+        let len = boxed_slice.len();
+
+        // Forget about it!
+        std::mem::forget(boxed_slice);
+        
+        (ptr, len)
+    }};
+}
+
+/// Create a JSArg value of u8 Array
+pub fn jsarg_u8_array(values: Vec<u8>) -> JSArg {
+    let (ptr, len) = jsarg_array_ptr!(values);
+
+    unsafe {
+        ejr::jsarg_u8_array(ptr, len)
+    }
+}
+
+/// Create a JSArg value of u8 Array
+pub fn jsarg_u16_array(values: Vec<u16>) -> JSArg {
+    let (ptr, len) = jsarg_array_ptr!(values);
+
+    unsafe {
+        ejr::jsarg_u16_array(ptr, len)
+    }
+}
+
+/// Create a JSArg value of u8 Array
+pub fn jsarg_u32_array(values: Vec<u32>) -> JSArg {
+    let (ptr, len) = jsarg_array_ptr!(values);
+
+    unsafe {
+        ejr::jsarg_u32_array(ptr, len)
+    }
+}
+
+/// Create a JSArg value of u8 Array
+pub fn jsarg_u64_array(values: Vec<u64>) -> JSArg {
+    let (ptr, len) = jsarg_array_ptr!(values);
+
+    unsafe {
+        ejr::jsarg_u64_array(ptr, len)
+    }
+}
+
+/// Create a JSArg value of u8 Array
+pub fn jsarg_i16_array(values: Vec<i16>) -> JSArg {
+    let (ptr, len) = jsarg_array_ptr!(values);
+
+    unsafe {
+        ejr::jsarg_i16_array(ptr, len)
+    }
+}
+
+/// Create a JSArg value of u8 Array
+pub fn jsarg_i32_array(values: Vec<i32>) -> JSArg {
+    let (ptr, len) = jsarg_array_ptr!(values);
+
+    unsafe {
+        ejr::jsarg_i32_array(ptr, len)
+    }
+}
+
+/// Create a JSArg value of u8 Array
+pub fn jsarg_i64_array(values: Vec<i64>) -> JSArg {
+    let (ptr, len) = jsarg_array_ptr!(values);
+
+    unsafe {
+        ejr::jsarg_i64_array(ptr, len)
+    }
+}
+
+/// Create a JSArg value of u8 Array
+pub fn jsarg_i8_array(values: Vec<i8>) -> JSArg {
+    let (ptr, len) = jsarg_array_ptr!(values);
+
+    unsafe {
+        ejr::jsarg_i8_array(ptr, len)
+    }
+}
+
+/// Create a JSArg value of u8 Array
+pub fn jsarg_float_array(values: Vec<f32>) -> JSArg {
+    let (ptr, len) = jsarg_array_ptr!(values);
+
+    unsafe {
+        ejr::jsarg_float_array(ptr, len)
+    }
+}
+
 /// Create a JSArg value of Null
 pub fn jsarg_null() -> *mut ejr::JSArg {
     unsafe {
@@ -263,6 +358,18 @@ pub fn jsarg_null() -> *mut ejr::JSArg {
 pub fn jsarg_undefined() -> *mut ejr::JSArg {
     unsafe {
         ejr::jsarg_undefined()
+    }
+}
+
+/// Create a JSArg**
+pub fn jsarg_list(items: Vec<*mut ejr::JSArg>) -> *mut *mut ejr::JSArg {
+    unsafe {
+       let jsarg_list = ejr::jsarg_make_list(items.len());
+        for i in 0..items.len() {
+            ejr::jsarg_add_to_list(jsarg_list, items[i], i);
+        }
+
+        jsarg_list
     }
 }
 
@@ -320,7 +427,7 @@ unsafe extern "C" fn global_static_callback_wrappper(args: *mut *mut ejr::JSArg,
     // RS Conversion
     let args_rs = unsafe {std::slice::from_raw_parts(args, argc) };
 
-    let result = (cb_fn)(args_rs.to_vec(), opaque);
+    let result = (cb_fn)(args_rs.to_vec(), oo);
 
     if result.is_none() {
         return jsarg_null();
@@ -422,12 +529,10 @@ impl EJR {
         // C Conversions
         let func_name_cstr = str_to_cstr(func_name);
         let args_len = args.len();
-        let args_ptr = make_jsarg_array(args);
+        let args_ptr = jsarg_list(args);
 
         unsafe {
             let result = ejr::ejr_eval_function(self.rt, func_name_cstr.as_ptr(), args_ptr, args_len);
-            // Free
-            let _ = Box::from_raw(std::slice::from_raw_parts_mut(args_ptr, args_len));
             result
         }
     }
@@ -449,12 +554,10 @@ impl EJR {
         // C Conversions
         let func_name_cstr = str_to_cstr(func_name);
         let args_len = args.len();
-        let args_ptr = make_jsarg_array(args);
+        let args_ptr = jsarg_list(args);
 
         unsafe {
             let result = ejr::ejr_eval_class_function(self.rt, value_id, func_name_cstr.as_ptr(), args_ptr, args_len);
-            // Free
-            let _ = Box::from_raw(std::slice::from_raw_parts_mut(args_ptr, args_len));
             result
         }
     }
