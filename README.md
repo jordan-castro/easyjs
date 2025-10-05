@@ -120,10 +120,15 @@ async { // optionally wrap in a async block if you want to use await
 ```
 
 **Objects**
-Structs are data based.
+
+Structs are data first objects.
 ```rust
-// [name,age] are values that are passed into the constructor.
-struct Person[name, age] with GreetMixin {
+// [name, age] are values that are passed into the constructor.
+struct Person[
+    name:string, 
+    age:int
+] with GreetMixin {
+    // Static
     has_job = true
     species = "HomoSapien"
 
@@ -145,12 +150,15 @@ struct Person[name, age] with GreetMixin {
 // A mixin is just another struct
 struct GreetMixin {
     fn say_hi(self) {
-        console.log('Hello, my name is ${self.name}')
+        console.log("Hello, my name is ${self.name}")
     }
 }
-
 // Structs can be with dedicated methods or just simple data containers
-struct PersonData[name,age,diary] {} // <--a struct that accepts name, age, and diary.
+struct PersonData[
+    name,
+    age,
+    diary
+] {} // <--a struct that accepts name, age, and diary.
 
 // To instantiate a Person
 person = Person("Jordan", 22, ["Dear Diary", "I love Julia!", "I also love EasyJS!"])
@@ -206,28 +214,28 @@ class C : [A, B] {
 hello = "Hello"
 
 // If we want to do a const we have to use the @const macro from 'std'
-import 'std'
-@const(world, "World")
+import 'std' as _
+@const(world = "World")
 
 // easyjs optional typing
-helloTyped : string = "hello"
+hello_typed : string = "hello"
 ```
 
 **Macros**
 easyjs includes macro support allowing developers to build their own feature rich DSLs.
 ```rust
 // for example the const macro in 'std'
-macro const(key, value) {
+macro const(expr) {
     // All easyjs has access to the javascript statement.
     // This is a statement that allows you to place literal unparsed code into a context.
     // This should be used very carefuly.
     javascript{
-        const #key = #value; // notice we need to use '#' symbol to access macro paramaters
+        const #expr; // notice we need to use '#' symbol to access macro paramaters
     }
 }
 
 // print macro in 'std'
-macro print(s) {
+macro print(...s) {
     console.log(s)
 }
 ```
