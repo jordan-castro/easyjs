@@ -1,9 +1,9 @@
 // File/Directory reading/writing
 
-import 'std'
+import 'std' as _
 
-@const(fs, require('node:fs'))
-@const(fs_promises, require('node:fs/promises'))
+@const(fs = require('node:fs'))
+@const(fs_promises = require('node:fs/promises'))
 
 // Read a file
 macro read_file(file_path, encoding, is_async) {

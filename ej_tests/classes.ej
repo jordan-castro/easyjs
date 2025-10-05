@@ -1,45 +1,5 @@
-template class(name) {
-    template inheritance(class) {
-        if class != undefined and class != null {
-            javascript{
-                extends class
-            }
-        } else {
-            RAW("")
-        }
-    }
-    
-    template methods {
-        result = ""
-        for expression in methods {
-            result += "
-                ${expression.name}(${expression.paramaters}) {
-                    ${expression.body}
-                }
-            "
-        }
+class A {}
+class B {}
+class C {}
 
-        RAW(result)
-    }
-
-    javascript{
-        class name #inheritance {
-            #methods
-        }
-    }
-}
-
-class Test {
-    // What does the class inherit?
-    inheritance {A}
-    // Class methods ofcourse!
-    methods {
-        fn constructor(name, age) {
-            self.name = name
-            self.age = age
-        }
-        fn greet() {
-            @print(self.name)
-        }
-    }
-}
+class D : [A,B,C] {}

@@ -16,13 +16,18 @@
 - v0.5.0 Update tests
 - v0.5.0 Add FFI options...
 - ~~v0.5.0 Add fn(args) expression TO (args) => expression~~
-- v0.5.0 Add macro(args) expression TO (args) => macro
+- ~~v0.5.0 Add macro(args) expression TO (args) => macro~~
 - v0.5.0 Add extensions
   - macro extensions
   - non macro extensions
 - v0.5.0 Doc comments for macros.
 - Allow block statements in macros?
-- Allow anonomous classes...
+- v0.5.0 Optomize structs
+- v0.6.0 Add proxy helpers
+- Optomize compiler.
+  - `Box<Expression>` not needed in Statement ast
+  - reference rather than own/clone in transpiler.
+- v0.6.0 Possibly allow anonomous functions and classes?
 
 ## Runtime
 - ~~Use ejr instead.~~
@@ -111,6 +116,7 @@
 
 ## lib
 - v0.5.0 Start on a JS -> EJ lib conversion.
+- ~~v0.5.0 Update const to be @const(expr) => const expr;~~
 
 ## Scripts
 - Rewrite the scripts/ folder to pure easyjs

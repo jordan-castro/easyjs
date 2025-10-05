@@ -388,6 +388,7 @@ fn parse_statement(parser: &mut Parser) -> ast::Statement {
         token::BREAK => parse_break_statement(parser),
         token::CONTINUE => parse_continue_statement(parser),
         token::MACRO => parse_macro_decleration(parser),
+        token::CLASS => parse_class_statement(parser),
         _ => parse_expression_statement(parser),
     };
 
@@ -1681,4 +1682,74 @@ fn parse_null(p: &mut Parser) -> ast::Expression {
     let token = p.c_token.to_owned();
 
     ast::Expression::NullExpression(token)
+}
+
+fn parse_class_statement(p: &mut Parser) -> ast::Statement {
+    p.debug_print("parse_class_statement");
+    let token = p.c_token.to_owned();
+
+    // Make sure next is a identifier
+    if !p.expect_peek(token::IDENT) {
+        return ast::Statement::EmptyStatement;
+    }
+
+    // Parse class name
+    let class_name = parse_expression(p, LOWEST);
+
+    // Check if next is a ":"
+    let mut extensions: Vec<ast::Expression> = vec![];
+    if p.peek_token_is(token::COLON) {
+        println!("Is colon");
+        // We have to grab the extensions too..
+        p.next_token(); // Go to :
+        // Check if [] (most likely a)
+        if p.peek_token_is(token::L_BRACKET) {
+            p.next_token(); // Go to [
+            println!("{:#?}", p.c_token);
+
+            loop {
+                if !p.expect_peek(token::IDENT) {
+                    return ast::Statement::EmptyStatement;
+                } else {
+                    extensions.push(parse_expression(p, LOWEST));
+                }
+                if p.peek_token_is(token::COMMA) {
+                    p.next_token(); // Consume comma
+                }
+                if p.peek_token_is(token::R_BRACKET) {
+                    // We are done
+                    break;
+                }
+            }
+
+            p.next_token(); // Consume ]
+        } else {
+            // This must be be just a identifier
+            if !p.expect_peek(token::IDENT) {
+                return ast::Statement::EmptyStatement;
+            }
+            extensions.push(parse_expression(p, LOWEST));
+        }
+    }
+
+    if !p.expect_peek(token::L_BRACE) {
+        return ast::Statement::EmptyStatement;
+    }
+
+    // Get variables and functions
+    let mut stmts: Vec<ast::Statement> = vec![];
+    // We got stuff here...
+    while !p.peek_token_is(token::R_BRACE) {
+        p.next_token(); // Consume current token
+        stmts.push(parse_statement(p)); 
+        if p.cur_token_is(token::COMMA) {
+            p.next_token(); // Go to ,
+        }
+    }
+
+    if !p.expect_peek(token::R_BRACE) {
+        return ast::Statement::EmptyStatement;
+    }
+
+    ast::Statement::ClassStatement(token, Box::new(class_name), Box::new(extensions), Box::new(stmts))
 }

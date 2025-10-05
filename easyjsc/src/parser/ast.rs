@@ -86,6 +86,14 @@ pub enum Statement {
         Box<Vec<Expression>>,
         Box<Statement>,
     ),
+
+    /// A class statement. (Identifier, Extensions, variables and methods [static and non-static])
+    ClassStatement(
+        tk::Token,
+        Box<Expression>, // Name
+        Box<Vec<Expression>>, // Extensions
+        Box<Vec<Statement>>, // Variables, Methods (static and non-static)
+    )
 }
 
 impl Statement {
@@ -112,6 +120,7 @@ impl Statement {
             Statement::BreakStatement(token) => token,
             Statement::ContinueStatement(token) => token,
             Statement::MacroStatement(token, _, _, _) => token,
+            Statement::ClassStatement(token, _, _, _) => token,
         }
     }
 
@@ -134,6 +143,7 @@ impl Statement {
             Statement::BreakStatement(_) => "BreakStatement",
             Statement::ContinueStatement(_) => "ContinueStatement",
             Statement::MacroStatement(_, _, _, _) => "MacroDecleration",
+            Statement::ClassStatement(_, _, _, _) => "ClassStatement"
         }
         .to_string()
     }

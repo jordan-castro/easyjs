@@ -474,8 +474,69 @@ impl Transpiler {
                 self.add_macro_function(macro_name, macro_params, macro_body);
                 Some(String::from(""))
             }
+            Statement::ClassStatement(tk, name, extends, stmts) => {
+                Some(self.transpile_class_stmt(&tk, name.as_ref(), extends.as_ref(), &stmts))
+            }
             _ => None,
         }
+    }
+
+    fn transpile_class_stmt(&mut self, tk: &token::Token, name: &Expression, extends: &Vec<Expression>, stmts: &Vec<Statement>) -> String {
+        let mut result = String::new();
+
+        let mut class_name: String;
+        let mut base_name: String;
+        match name {
+            Expression::Identifier(_, ident) => {
+                base_name = self.namespace.get_obj_name(ident);
+                class_name = format!("__EASYJS_{}_INTERNAL", base_name);
+                result.push_str(format!("const {class_name} = Base => class extends Base ").as_str());
+            }
+            _ => {
+                return String::from("");
+            }
+        };
+        result.push('{');
+
+        // Variables, Expressions...
+
+        result.push('}');
+
+        // Ok now let's actually create our class.
+        result.push_str(
+            format!("\nclass {base_name} extends ").as_str()
+        );
+
+        // Extensions
+        let mut times_extended = 0;
+        if extends.len() > 0 {
+            for expr in extends {
+                times_extended += 1;
+                let mut real_class_name: String;
+                match expr {
+                    Expression::Identifier(_, ident) => {
+                        real_class_name = format!("__EASYJS_{ident}_INTERNAL");
+
+                    }
+                    Expression::DotExpression(_,_,_) => {
+                        real_class_name = format!("__EASYJS_{}_INTERNAL", self.transpile_expression(expr.to_owned()));
+                    }
+                    _ => {
+                        return String::from("");
+                    }
+                }
+
+                // Add extension
+                result.push_str(format!("{real_class_name}(").as_str());
+            }
+        }
+        result.push_str(class_name.as_str());
+        result.push_str("(class{})");
+        for i in 0..times_extended {
+            result.push(')');
+        }
+        result.push_str("{}");
+        result
     }
 
     fn transpile_enum_stmt(&mut self, name: &str, options: &Vec<Expression>) -> String {
@@ -485,7 +546,7 @@ impl Transpiler {
             return "".to_string();
         }
 
-        result.push_str(format!("const {} = ", name).as_str());
+        result.push_str(format!("const {} = ", self.namespace.get_obj_name(&name.to_string())).as_str());
         // result.push_str("enum ");
         result.push_str(" Object.freeze({");
 

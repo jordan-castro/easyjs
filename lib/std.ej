@@ -51,9 +51,9 @@ macro decouple(idents, values) {
 }
 
 // declare a constant variable 
-macro const(ident, value) {
+macro const(expr) {
     javascript {
-        const #ident = #value;
+        const #expr;
     }
 }
 
@@ -62,7 +62,7 @@ macro run_function(fun) {
 }
 
 macro sleep(ms) {
-    @const(func, fn(ms) {
+    @const(func = fn(ms) {
         javascript{
             return new Promise(resolve => setTimeout(resolve, ms))
         }
