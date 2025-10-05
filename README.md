@@ -119,11 +119,9 @@ async { // optionally wrap in a async block if you want to use await
 }
 ```
 
-**Classes and objects**
+**Objects**
+Structs are data based.
 ```rust
-// easyjs does not currently support classes. Only data structs.
-// classes will be added by v1.0.0
-
 // [name,age] are values that are passed into the constructor.
 struct Person[name, age] with GreetMixin {
     has_job = true
@@ -159,6 +157,48 @@ person = Person("Jordan", 22, ["Dear Diary", "I love Julia!", "I also love EasyJ
 
 // To instantiate a PersonData
 person_data = PersonData("Evelyn", 19, ["Dear Diary", "I saw that Jordan loves a girl named Julia!", "Who is she???"])
+```
+Classes compile directly to JS classes. Also include multiple inheritance and private/public fields.
+```js
+class A {
+    // __new__ is for constructor
+    fn __new__(self) {
+        super()
+        @print('A')
+    }
+
+    // Public method
+    pub fn foo(self) {
+        @print('Foo in A')
+    }
+
+    // Private method
+    fn bar(self) {
+        @print('Private foo in A')
+    }
+
+    // Calling a private method
+    pub fn call_priv(self) {
+        self.bar()
+        // Automatically converts to:
+        // this.#bar()
+    }
+}
+
+class B {
+    fn __new__(self) {
+        super()
+        @print('B')
+    }
+}
+
+// easyjs classes support multiple inheritance
+class C : [A, B] {
+    fn __new__(self) {
+        super() // Don't forget to call super!
+        @print('C')
+    }
+}
 ```
 
 **Variables**
