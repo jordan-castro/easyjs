@@ -43,7 +43,7 @@ pub struct Transpiler {
     is_module: bool,
 
     /// Custom libraries
-    custom_libs: HashMap<String, String>
+    custom_libs: HashMap<String, String>,
 }
 /// Non Wasm specific (if running in non wasm enviroment, optionally save the wasm binary)
 #[cfg(not(target_arch = "wasm32"))]
@@ -68,7 +68,7 @@ impl Transpiler {
             native_stmts: vec![],
             debug_mode: false,
             is_module: false,
-            custom_libs: HashMap::new()
+            custom_libs: HashMap::new(),
         };
 
         // Check the EASYJS_DEBUG variable
@@ -481,7 +481,101 @@ impl Transpiler {
         }
     }
 
-    fn transpile_class_stmt(&mut self, tk: &token::Token, name: &Expression, extends: &Vec<Expression>, stmts: &Vec<Statement>) -> String {
+    fn transpile_internal_class_stmt(
+        &mut self,
+        class_name: &String,
+        stmt: &Statement,
+        is_pub: bool,
+    ) -> String {
+        match stmt {
+            Statement::ExportStatement(_, stmt) => {
+                self.transpile_internal_class_stmt(class_name, stmt, true)
+            }
+            Statement::VariableStatement(tk, ident, type_, value, should_infer) => {
+                let tag = { if is_pub { "" } else { "#" } };
+
+                let var_name = self.transpile_expression(ident.as_ref().to_owned());
+                let var_result: String = self.transpile_expression(value.as_ref().to_owned());
+
+                format!("{tag}{var_name}={var_result}\n\n")
+            }
+            Statement::ExpressionStatement(tk, expr) => {
+                let mut result = String::new();
+                match expr.as_ref() {
+                    Expression::FunctionLiteral(tk, fn_name, params, type_, block) => {
+                        // Check name of function
+                        let mut fn_name_parsed =
+                            self.transpile_expression(fn_name.as_ref().to_owned());
+                        let mut fn_is_pub = is_pub;
+                        match fn_name_parsed.as_str() {
+                            "__new__" => {
+                                fn_name_parsed = "constructor".to_string();
+                                fn_is_pub = true;
+                            }
+                            _ => {}
+                        }
+                        // Check if static or non static
+                        let mut is_static = true;
+                        let mut cleaned_params = vec![];
+                        for param in params.as_ref() {
+                            match param {
+                                Expression::Identifier(_, ident) => {
+                                    if ident == "self" {
+                                        is_static = false;
+                                    }
+                                }
+                                Expression::IdentifierWithType(_, ident, _) => {
+                                    if ident == "self" {
+                                        is_static = false;
+                                    }
+                                }
+                                _ => {
+                                    cleaned_params.push(param.to_owned());
+                                }
+                            }
+                        }
+                        let tag = { if fn_is_pub { "" } else { "#" } };
+
+                        let function = Expression::FunctionLiteral(
+                            tk.to_owned(),
+                            Box::new(Expression::Identifier(
+                                fn_name.get_token().to_owned(),
+                                format!("{tag}{fn_name_parsed}"),
+                            )),
+                            Box::new(cleaned_params),
+                            type_.to_owned(),
+                            block.to_owned(),
+                        );
+                        // Transpile the function but just removed the `function` keyword from the beginning
+                        let tf = self.transpile_expression(function);
+                        // Remove 'function'
+                        // FUNCTION = 8 len
+                        result.push_str(&tf.trim()[8..]);
+                        result.push('\n');
+                        result
+                    }
+                    _ => {
+                        return String::from("");
+                    }
+                }
+            }
+            // Statement::MacroStatement(_, _, _, _) => {
+            // }
+            _ => {
+                // Could not parse
+                // TODO: Error of some sort
+                return String::from("");
+            }
+        }
+    }
+
+    fn transpile_class_stmt(
+        &mut self,
+        tk: &token::Token,
+        name: &Expression,
+        extends: &Vec<Expression>,
+        stmts: &Vec<Statement>,
+    ) -> String {
         let mut result = String::new();
 
         let mut class_name: String;
@@ -490,7 +584,8 @@ impl Transpiler {
             Expression::Identifier(_, ident) => {
                 base_name = self.namespace.get_obj_name(ident);
                 class_name = format!("__EASYJS_{}_INTERNAL", base_name);
-                result.push_str(format!("const {class_name} = Base => class extends Base ").as_str());
+                result
+                    .push_str(format!("const {class_name} = Base => class extends Base ").as_str());
             }
             _ => {
                 return String::from("");
@@ -499,13 +594,15 @@ impl Transpiler {
         result.push('{');
 
         // Variables, Expressions...
+        for stmt in stmts {
+            let sss = self.transpile_internal_class_stmt(&class_name, stmt, false);
+            result.push_str(sss.as_str());
+        }
 
         result.push('}');
 
         // Ok now let's actually create our class.
-        result.push_str(
-            format!("\nclass {base_name} extends ").as_str()
-        );
+        result.push_str(format!("\nclass {base_name} extends ").as_str());
 
         // Extensions
         let mut times_extended = 0;
@@ -516,10 +613,12 @@ impl Transpiler {
                 match expr {
                     Expression::Identifier(_, ident) => {
                         real_class_name = format!("__EASYJS_{ident}_INTERNAL");
-
                     }
-                    Expression::DotExpression(_,_,_) => {
-                        real_class_name = format!("__EASYJS_{}_INTERNAL", self.transpile_expression(expr.to_owned()));
+                    Expression::DotExpression(_, _, _) => {
+                        real_class_name = format!(
+                            "__EASYJS_{}_INTERNAL",
+                            self.transpile_expression(expr.to_owned())
+                        );
                     }
                     _ => {
                         return String::from("");
@@ -546,7 +645,13 @@ impl Transpiler {
             return "".to_string();
         }
 
-        result.push_str(format!("const {} = ", self.namespace.get_obj_name(&name.to_string())).as_str());
+        result.push_str(
+            format!(
+                "const {} = ",
+                self.namespace.get_obj_name(&name.to_string())
+            )
+            .as_str(),
+        );
         // result.push_str("enum ");
         result.push_str(" Object.freeze({");
 
@@ -1330,6 +1435,7 @@ impl Transpiler {
 
                 // Check if the left side transpiled is actually a namespace.
                 let left_side = self.transpile_expression(left.as_ref().to_owned());
+
                 let cloned_modules = self.modules.clone();
                 for namespace in cloned_modules.iter() {
                     if namespace.has_name(&left_side) {
@@ -1369,20 +1475,24 @@ impl Transpiler {
                     .join(",");
                 res.push_str(&joined_params);
                 res.push_str(") => {\n");
-                res.push_str(match body.as_ref() {
-                    Statement::EmptyStatement => String::from(" return undefined; "),
-                    Statement::ExpressionStatement(token, expression) => {
-                        let mut finish = String::from("return ");
-                        let compiled = self.transpile_expression(expression.as_ref().to_owned());
-                        finish.push_str(&compiled);
-                        finish
-                    },
-                    Statement::BlockStatement(token, statements) => {
-                        let stmt = self.transpile_stmt(body.as_ref().to_owned()).unwrap();
-                        stmt
-                    },
-                    _ => unimplemented!()
-                }.as_str());
+                res.push_str(
+                    match body.as_ref() {
+                        Statement::EmptyStatement => String::from(" return undefined; "),
+                        Statement::ExpressionStatement(token, expression) => {
+                            let mut finish = String::from("return ");
+                            let compiled =
+                                self.transpile_expression(expression.as_ref().to_owned());
+                            finish.push_str(&compiled);
+                            finish
+                        }
+                        Statement::BlockStatement(token, statements) => {
+                            let stmt = self.transpile_stmt(body.as_ref().to_owned()).unwrap();
+                            stmt
+                        }
+                        _ => unimplemented!(),
+                    }
+                    .as_str(),
+                );
 
                 res.push_str("}");
 

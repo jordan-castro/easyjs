@@ -1,5 +1,45 @@
-class A {}
-class B {}
-class C {}
+import "std" as _
 
-class D : [A,B,C] {}
+class A {
+    n = 0
+    fn __new__(self) {
+        super()
+        @print("A")
+    }
+
+    pub fn foo(self) {
+        @print("Foo in A")
+    }
+}
+class B {
+    pub fn __new__(self) {
+        super()
+        @print("B")
+    }
+
+    pub fn bar(self) {
+        @print("Bar in B")
+    }
+}
+class C {
+    pub fn __new__(self) {
+        super()
+        @print("C")
+    }
+
+    pub fn zee(self) {
+        @print("Zee in C")
+    }
+}
+
+class D : [C,B,A] {
+    pub fn __new__(self) {
+        super()
+        @print("D")
+    }
+}
+
+d = new D()
+d.foo()
+d.bar()
+d.zee()

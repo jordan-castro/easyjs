@@ -1694,18 +1694,15 @@ fn parse_class_statement(p: &mut Parser) -> ast::Statement {
     }
 
     // Parse class name
-    let class_name = parse_expression(p, LOWEST);
-
+    let class_name = parse_identifier(p, false);
     // Check if next is a ":"
     let mut extensions: Vec<ast::Expression> = vec![];
     if p.peek_token_is(token::COLON) {
-        println!("Is colon");
         // We have to grab the extensions too..
         p.next_token(); // Go to :
         // Check if [] (most likely a)
         if p.peek_token_is(token::L_BRACKET) {
             p.next_token(); // Go to [
-            println!("{:#?}", p.c_token);
 
             loop {
                 if !p.expect_peek(token::IDENT) {

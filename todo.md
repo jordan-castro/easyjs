@@ -28,6 +28,7 @@
   - `Box<Expression>` not needed in Statement ast
   - reference rather than own/clone in transpiler.
 - v0.6.0 Possibly allow anonomous functions and classes?
+- v0.5.0 Remove := option. Always infer types
 
 ## Runtime
 - ~~Use ejr instead.~~

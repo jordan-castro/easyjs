@@ -259,7 +259,7 @@ dependencies = [
 
 [[package]]
 name = "easyjs"
-version = "0.4.2"
+version = "0.4.5"
 dependencies = [
  "clap",
  "easyjs_utils",
