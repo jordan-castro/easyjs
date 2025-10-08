@@ -19,3 +19,5 @@ target/
 /easyjs.wat
 /evelyn
 /releases
+*.zig-cache
+*zig-out

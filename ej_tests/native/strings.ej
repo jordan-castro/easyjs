@@ -1,6 +1,18 @@
 import 'std'
 
 native {
+    struct String[
+        _ptr:int,
+        _len:int,
+        _cap:int
+    ] {
+        fn init()
+
+        override fn +(other: string): String {
+            __str_concat(self.ptr, other)
+        }
+    }
+
     pub fn test_string():string {
         msg : string = "Hello"
         return msg
