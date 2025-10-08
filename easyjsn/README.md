@@ -22,12 +22,23 @@ It's easier to write the runtime in a higher level language like zig. Zig was ch
 An example for strings:
 ```easyjs
 native {
+    /// Base structore for all memory types
+    struct BaseMemrory[
+        type: int
+    ] {
+        fn __set_type(self, type:int) {
+            self.type = type
+        }
+    }
 
     /// A String is a wrapper around a native string.
     struct String[
-        ptr: int,
-        type: string
-    ] {
+        ptr: int
+    ] with BaseMemory {
+        fn __new__(ptr: int):String {
+            String(ptr)
+        }
+
         fn len(self):int {
             __str_len(self.ptr)
         }

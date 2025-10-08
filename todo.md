@@ -28,13 +28,17 @@
   - `Box<Expression>` not needed in Statement ast
   - reference rather than own/clone in transpiler.
 - v0.6.0 Possibly allow anonomous functions and classes?
-- v0.5.0 Remove := option. Always infer types
+- v0.5.0 Remove := option. Always infer types (native only)
+- v0.5.0 Remove '@' symbol on macros
+- v0.5.0 Add hygenic macros
+- v0.5.0 Allow macros to except expressions, stmts, infix, prefix, etc
 
 ## Runtime
 - ~~Use ejr instead.~~
 - ~~v0.5.0 Update to use jsarg_make_list and jsarg_free_all instaed of creating *mut *mut~~
 - ~~update text_encoder.js to text_encoder.ej~~
 - Write Wasm Imp
+- Fix console issue.
 
 ## Commands
 - v0.5.0 Remove the install command. Keep that with ezpkg.
@@ -43,6 +47,7 @@
 - v0.4.5 allow compilation via strings
 
 ## Native (WASM)
+- v0.5.0 WASM runtime in zig.
 - v0.4.x Additions
   - instruction generator
   - smart memory

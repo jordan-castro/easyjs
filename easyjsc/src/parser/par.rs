@@ -718,6 +718,33 @@ fn parse_prefix_expression(p: &mut Parser) -> ast::Expression {
 fn parse_identifier(parser: &mut Parser, try_parse_type: bool) -> ast::Expression {
     parser.debug_print("parse_identifier");
     let token = parser.c_token.clone();
+
+    // Check if this is a macro... i.e. ends with '!'
+    if parser.peek_token_is(token::BANG) {
+        // This is a macro
+        return parse_macro_expression(parser);
+    }
+
+    let mut lit = token.literal.to_owned();
+    // check if we are parsing a self
+    if token.typ == token::SELF {
+        lit = "this".to_owned();
+    }
+
+    // should we try to parse a type?
+    if try_parse_type {
+        if parser.peek_token_is(token::COLON) {
+            return ast::Expression::IdentifierWithType(token, lit, Box::new(parse_type(parser)));
+        }
+    }
+    ast::Expression::Identifier(token, lit)
+}
+
+/// Parse a identifier while ignoring the macro check
+fn parse_identifier_without_macro_check(parser: &mut Parser, try_parse_type: bool) -> ast::Expression {
+    parser.debug_print("parse_identifier");
+    let token = parser.c_token.clone();
+
     let mut lit = token.literal.to_owned();
     // check if we are parsing a self
     if token.typ == token::SELF {
@@ -1318,19 +1345,19 @@ fn parse_is_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression
 
 fn parse_macro_expression(p: &mut Parser) -> ast::Expression {
     p.debug_print("parse_macro_expression");
-    let token = p.c_token.to_owned(); // $ || @
-
-    if !p.expect_peek(token::IDENT) {
-        return ast::empty_expression();
-    }
+    let token = p.c_token.to_owned(); // ident
 
     let mut idents = vec![];
-    idents.push(parse_identifier(p, false));
+    idents.push(parse_identifier_without_macro_check(p, false));
     // loop for '.'
     while p.peek_token_is(token::DOT) {
         p.next_token(); // Dot
         p.next_token(); // skip it
-        idents.push(parse_identifier(p, false));
+        idents.push(parse_identifier_without_macro_check(p, false));
+    }
+
+    if !p.expect_peek(token::BANG) {
+        return ast::empty_expression();
     }
 
     if !p.expect_peek(token::L_PAREN) {
