@@ -32,12 +32,27 @@
 - v0.5.0 Remove '@' symbol on macros
 - v0.5.0 Add hygenic macros
 - v0.5.0 Allow macros to except expressions, stmts, infix, prefix, etc
+- v0.5.0 Allow macros to take arguments without parenthesis?
+  - const! x = 0
+  - html! {
+      body! {
+        h1! {
+          // .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. 
+        }
+      }
+    }
+  - const!(x=0)
+  - html!(
+      body!(h1!(), h1!()))
 
 ## Runtime
 - ~~Use ejr instead.~~
 - ~~v0.5.0 Update to use jsarg_make_list and jsarg_free_all instaed of creating *mut *mut~~
 - ~~update text_encoder.js to text_encoder.ej~~
 - Write Wasm Imp
+  - strings
+    - https://www.w3schools.com/js/js_string_methods.asp
+    - tests
 - Fix console issue.
 
 ## Commands
@@ -95,7 +110,6 @@
     - key, value
     - set, get by key
     - dot expression
-  - classes
   - structs
 - v0.4.0 Allow for calling functions from client easyjs in native. i.e. easyjs function/variable/struct used within native block.
 - v0.6.0 explore multi threaded wasm.

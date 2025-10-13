@@ -1,23 +1,65 @@
-//! By convention, root.zig is the root source file when making a library.
-const std = @import("std");
+//! The easyjs native runtime library.
 
-pub fn bufferedPrint() !void {
-    // Stdout is for the actual output of your application, for example if you
-    // are implementing gzip, then only the compressed bytes should be sent to
-    // stdout, not any debugging messages.
-    var stdout_buffer: [1024]u8 = undefined;
-    var stdout_writer = std.fs.File.stdout().writer(&stdout_buffer);
-    const stdout = &stdout_writer.interface;
+const mem = @import("mem.zig");
+const strings = @import("strings.zig");
 
-    try stdout.print("Run `zig build test` to run the tests.\n", .{});
-
-    try stdout.flush(); // Don't forget to flush!
+export fn __malloc(size: usize) usize {
+    return mem.malloc(size);
 }
 
-pub fn add(a: i32, b: i32) i32 {
-    return a + b;
+// ==================================== STRINGS
+
+export fn __str_new(len: usize) strings.StringPtr {
+    return strings.str_new(len);
 }
 
-test "basic add functionality" {
-    try std.testing.expect(add(3, 7) == 10);
+export fn __str_len(ptr: strings.StringPtr) usize {
+    return strings.str_len(ptr);
 }
+
+export fn __str_store_byte(ptr: strings.StringPtr, index: usize, value: u8) void {
+    strings.str_store_byte(ptr, index, value);
+}
+
+export fn __str_store_bytes(ptr: strings.StringPtr, value: [*]const u8, len: usize) void {
+    strings.str_store_bytes(ptr, value, len);
+}
+
+export fn __str_char_code_at(ptr: strings.StringPtr, index: usize) u8 {
+    return strings.str_char_code_at(ptr, index);
+}
+
+export fn __str_char_at(ptr: strings.StringPtr, index:i32) strings.StringPtr {
+    return strings.str_char_at(ptr, index);
+}
+
+export fn __str_to_upper(ptr: strings.StringPtr) strings.StringPtr {
+    return strings.str_to_upper(ptr);
+}
+
+export fn __str_to_lower(ptr: strings.StringPtr) strings.StringPtr {
+    return strings.str_to_lower(ptr);
+}
+
+export fn __str_concat(ptr1: strings.StringPtr, ptr2: strings.StringPtr) strings.StringPtr {
+    return strings.str_concat(ptr1, ptr2);
+}
+
+export fn __str_slice(ptr: strings.StringPtr, start: usize, end: i32) strings.StringPtr {
+    return strings.str_slice(ptr, start, end);
+}
+
+export fn __str_substr(ptr: strings.StringPtr, start: usize, end: i32) strings.StringPtr {
+    return strings.str_substr(ptr, start, end);
+}
+
+// Strings end
+
+// ========================================= ARRAYS
+// Arrays end
+
+// ========================================= Dictionaries
+// Dictionaries end
+
+// ========================================= STRUCTS
+// Structs end

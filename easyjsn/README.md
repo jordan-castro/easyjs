@@ -21,35 +21,21 @@ It's easier to write the runtime in a higher level language like zig. Zig was ch
 
 An example for strings:
 ```easyjs
+import "nat/std.ej"
 native {
-    /// Base structore for all memory types
-    struct BaseMemrory[
-        type: int
-    ] {
-        fn __set_type(self, type:int) {
-            self.type = type
-        }
-    }
-
-    /// A String is a wrapper around a native string.
-    struct String[
-        ptr: int
-    ] with BaseMemory {
-        fn __new__(ptr: int):String {
-            String(ptr)
-        }
-
-        fn len(self):int {
-            __str_len(self.ptr)
-        }
-
-        fn __add__(self, other: string|String):String {
-            if other.type == self.type {
-                String(__str_concat(self.ptr, other.ptr))
-            } else {
-                String(__str_concat(self.ptr, other))
-            }
-        }
+    pub fn hello_world() {
+        nat.std.print!("Hello World!")
+        // What this really does is...
+        ptr = __str_new(12)
+        __str_store_byte(ptr, 0x...)
+        __str_store_byte(ptr, 0x...)
+        __str_store_byte(ptr, 0x...)
+        // 12 times
+        __easyjsnative_print_wrapper(ptr)
     }
 }
 ```
+
+## Build system
+I don't use the zig build system. I think Python is better for this specific project since it's not using any 3rd party libraries or STD.
+We just use a simple Python script, `build.py`.
