@@ -1,9 +1,7 @@
 // globalThis.console implementation
 
-import "std" as _
-
-@const(console = {
+globalThis.console = {
     log: fn(...vars) ___ejr_print(vars.join(" ")),
     error: fn(...vars) ___ejr_error(vars.join(" ")),
     warn: fn(...vars) ___ejr_warn(vars.join(" "))
-})
+}

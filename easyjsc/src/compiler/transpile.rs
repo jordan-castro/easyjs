@@ -7,7 +7,7 @@ use regex::Regex;
 use super::macros::Macro;
 use super::native::compile_native;
 use crate::builtins;
-use crate::compiler::namespaces::{Function, Namespace, Struct, Variable};
+use crate::compiler::namespaces::{Function, Namespace, Struct, Variable, NAMESPACE_PREFIX};
 use crate::compiler::runes::RuneParser;
 // use crate::interpreter::{interpret_js, is_javascript_var_defined};
 use crate::lexer::lex::{self, ALLOWED_IN_IDENT};
@@ -1667,32 +1667,24 @@ impl Transpiler {
 
                 // Check macro namespace is correct, or udapet it
                 let full_macro_name = self.transpile_expression(name.as_ref().to_owned());
+                println!("Full macro name: {full_macro_name}");
 
-                if full_macro_name.contains('.') {
-                    let parts: Vec<&str> = full_macro_name.split('.').collect();
+                // The macro might already be namespaced, so we need to go through all namespaces
+                // and see if we can catch it.
+                // Starting with the current one
 
-                    if let (Some(ns), Some(name_part)) = (parts.first(), parts.get(1)) {
-                        if let Some(found_namespace) = self
-                            .modules
-                            .iter()
-                            .find(|namespace| namespace.has_name(&ns.to_string()))
-                        {
-                            // Set the macro object.
-                            if let Some(found_macro) = found_namespace
-                                .macros
-                                .get(&found_namespace.get_obj_name(&name_part.to_string()))
-                            {
-                                macro_object = Some(found_macro.clone());
-                            }
-                        }
-                    } else {
-                        unreachable!("How can this be reached in Macros?")
-                        // Fallback if split failed
-                        // if let Some(found_macro) = self.namespace.macros.get
-                    }
+                if let Some(found_macro) = self.namespace.macros.get(&full_macro_name) {
+                    macro_object = Some(found_macro.clone());
                 } else {
-                    if let Some(found_macro) = self.namespace.macros.get(&full_macro_name) {
-                        macro_object = Some(found_macro.clone());
+                    if !full_macro_name.starts_with(NAMESPACE_PREFIX) {
+                        return "".to_string();
+                    }
+
+                    for namespace in self.modules.iter() {
+                        if let Some(found_macro) = namespace.macros.get(&full_macro_name) {
+                            macro_object = Some(found_macro.clone());
+                            break;
+                        }
                     }
                 }
                 if macro_object.is_none() {
@@ -2094,9 +2086,9 @@ impl Transpiler {
     ///
     /// native {
     ///    fn test() {
-    ///       @std.print(c.variable)
+    ///       std.print!(c.variable)
     ///       // or
-    ///       @std.print(c.method().x)
+    ///       std.print!(c.method().x)
     ///    }
     /// }
     fn convert_namespaced_dot_expression(
@@ -2126,6 +2118,18 @@ impl Transpiler {
             Expression::AssignExpression(tk, left, right) => {
                 let new_left = self.convert_namespaced_dot_expression(namespace, &left);
                 Expression::AssignExpression(tk.to_owned(), Box::new(new_left), right.to_owned())
+            }
+            Expression::MacroExpression(tk, name, args) => {
+                let name_as_string = self.transpile_expression(name.as_ref().to_owned());
+                Expression::MacroExpression(
+                    tk.to_owned(), 
+                    Box::new(
+                        Expression::Identifier(
+                            name.get_token().to_owned(),
+                            namespace.get_obj_name(&name_as_string)
+                        )
+                    ), 
+                    args.to_owned())
             }
             _ => expression.to_owned(),
         }

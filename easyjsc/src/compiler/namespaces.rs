@@ -16,6 +16,8 @@ use std::collections::HashMap;
 
 use crate::typechecker::StrongValType;
 
+pub const NAMESPACE_PREFIX: &str = "_";
+
 #[derive(Debug, Clone)]
 /// easyjs variables. Not native variables.
 pub struct Variable {
@@ -133,7 +135,7 @@ impl Namespace {
                 obj_name.to_string()
             } else {
                 format!(
-                    "_{}_{}",
+                    "{NAMESPACE_PREFIX}{}_{}",
                     self.id.split('.').collect::<Vec<&str>>().first().unwrap(),
                     obj_name
                 )
@@ -141,7 +143,7 @@ impl Namespace {
         } else if self.alias == "_" {
             obj_name.to_string()
         } else {
-            format!("_{}_{}", self.alias, obj_name)
+            format!("{NAMESPACE_PREFIX}{}_{}", self.alias, obj_name)
         }
     }
 

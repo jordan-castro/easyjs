@@ -10,18 +10,6 @@ class Agent {
         self.tools = details.tools ?? [] 
     } 
 }"##;
-const CLASSES: &str = r##"// Property of easyjs 
- 
-template new_class(name, ext, vars, methods) { 
-    extension_string = "" 
-    if ext.length > 0 { 
-         
-    } 
- 
-    javascript { 
-        class #name {} 
-    } 
-}"##;
 const DATE: &str = r##"// Get the days between 2 dates 
 macro days_between_dates(d1, d2) {  
     Math.ceil(Math.abs(#d1 - #d2) / (1000 * 60 * 60 * 24))  
@@ -72,10 +60,10 @@ macro elements(els) {
 "##;
 const IO: &str = r##"// File/Directory reading/writing 
  
-import 'std' 
+import 'std' as _ 
  
-@const(fs, require('node:fs')) 
-@const(fs_promises, require('node:fs/promises')) 
+@const(fs = require('node:fs')) 
+@const(fs_promises = require('node:fs/promises')) 
  
 // Read a file 
 macro read_file(file_path, encoding, is_async) { 
@@ -284,9 +272,9 @@ macro decouple(idents, values) {
 } 
  
 // declare a constant variable  
-macro const(ident, value) { 
+macro const(expr) { 
     javascript { 
-        const #ident = #value; 
+        const #expr; 
     } 
 } 
  
@@ -295,7 +283,7 @@ macro run_function(fun) {
 } 
  
 macro sleep(ms) { 
-    @const(func, fn(ms) { 
+    const!(func = fn(ms) { 
         javascript{ 
             return new Promise(resolve => setTimeout(resolve, ms)) 
         } 
@@ -306,7 +294,7 @@ macro sleep(ms) {
  
 // Creates a range 
 macro range(kwargs) { 
-    @run_function(fn() { 
+    run_function!(fn() { 
         start = #kwargs.start 
         end = #kwargs.end 
         step = #kwargs.step ?? 1 
@@ -433,12 +421,12 @@ macro make_capital(str) {
 }"##;
 const SYS: &str = r##"// copywright of easyjs 
  
-import 'std' 
+import 'std' as _ 
  
 /// Command line args that do not include the file_name or runtime 
-@const(args, process.argv.slice(2, process.argv.length)) 
+@const(args = process.argv.slice(2, process.argv.length)) 
 /// File name 
-@const(file_name, process.argv[1]) 
+@const(file_name = process.argv[1]) 
  
 /// Execute a shell command. 
 macro exec(command) { 
@@ -449,18 +437,18 @@ macro exec(command) {
         // use exec 
         if ___runtime == 'deno' { 
             split_command = #command.split(' ') 
-            @const(command, new Deno.command(split_command[0], { 
+            @const(command = new Deno.command(split_command[0], { 
                 args: [ 
                     ...split_command[1..] 
                 ] 
             })) 
-            @const(result, await command.output()) 
+            @const(result = await command.output()) 
             err = result.code 
             stdout = result.stdout 
             stderr = result.stderr 
         } else { 
             // We use node otherwise 
-            @const({exec}, require('child_process')) 
+            @const({exec} = require('child_process')) 
  
             exec(#command, fn(e, so, se) { 
                 err = e 
@@ -477,7 +465,6 @@ macro exec(command) {
 pub fn load_std(name: &str) -> String {
 	match name {
 		"agents" => AGENTS,
-		"classes" => CLASSES,
 		"date" => DATE,
 		"html" => HTML,
 		"io" => IO,

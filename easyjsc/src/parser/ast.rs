@@ -79,7 +79,7 @@ pub enum Statement {
     /// A continue statement
     ContinueStatement(tk::Token),
 
-    /// Declaring the macro (@, ident, arguments, body as BlockStatment)
+    /// Declaring the macro (macro, ident, arguments, body as BlockStatment)
     MacroStatement(
         tk::Token,
         Box<Expression>,
@@ -229,7 +229,7 @@ pub enum Expression {
     NotExpression(tk::Token, Box<Expression>),
     /// left as right
     AsExpression(tk::Token, Box<Expression>),
-    /// Macro (@, ident, arguments, body)
+    /// Macro (tk, ident, arguments, body)
     MacroExpression(tk::Token, Box<Expression>, Box<Vec<Expression>>),
     /// And expression
     AndExpression(tk::Token, Box<Expression>, Box<Expression>),

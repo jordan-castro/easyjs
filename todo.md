@@ -29,7 +29,7 @@
   - reference rather than own/clone in transpiler.
 - v0.6.0 Possibly allow anonomous functions and classes?
 - v0.5.0 Remove := option. Always infer types (native only)
-- v0.5.0 Remove '@' symbol on macros
+- ~~v0.5.0 Remove '@' symbol on macros~~
 - v0.5.0 Add hygenic macros
 - v0.5.0 Allow macros to except expressions, stmts, infix, prefix, etc
 - v0.5.0 Allow macros to take arguments without parenthesis?
@@ -57,12 +57,14 @@
 
 ## Commands
 - v0.5.0 Remove the install command. Keep that with ezpkg.
-  - ezpkg should be written mostly in native easyjs with Rust backed runtime features.
-- v0.4.5 Add a update command to the CLI
-- v0.4.5 allow compilation via strings
+  - ezpkg should be written mostly in `native` easyjs with Rust backed runtime features.
+- v0.4.6 Add a update command to the CLI, this will install the most recent version from Github.
+- v0.4.6 allow compilation via strings
+- v0.4.6 Make the default `easyjs` command default to repl.
+- v0.4.6 A
 
 ## Native (WASM)
-- v0.5.0 WASM runtime in zig.
+- v0.4.6 WASM runtime in zig.
 - v0.4.x Additions
   - instruction generator
   - smart memory
