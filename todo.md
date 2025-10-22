@@ -17,9 +17,15 @@
 - v0.5.0 Add FFI options...
 - ~~v0.5.0 Add fn(args) expression TO (args) => expression~~
 - ~~v0.5.0 Add macro(args) expression TO (args) => macro~~
-- v0.5.0 Add extensions
+- v0.7.0 Add extensions
   - macro extensions
   - non macro extensions
+  - extension on String {
+    fn capFirst(self):String {
+      captialize!(self,)[0] + self.substr(1)
+    }
+  }
+  - x = "test".capFirst()
 - v0.5.0 Doc comments for macros.
 - Allow block statements in macros?
 - v0.5.0 Optomize structs
@@ -44,6 +50,7 @@
   - const!(x=0)
   - html!(
       body!(h1!(), h1!()))
+- v0.5.0 Fix to call super() always in classes
 
 ## Runtime
 - ~~Use ejr instead.~~
@@ -53,7 +60,7 @@
   - strings
     - https://www.w3schools.com/js/js_string_methods.asp
     - tests
-- Fix console issue.
+- ~~Fix console issue.~~
 
 ## Commands
 - v0.5.0 Remove the install command. Keep that with ezpkg.

@@ -7,7 +7,7 @@ use regex::Regex;
 use super::macros::Macro;
 use super::native::compile_native;
 use crate::builtins;
-use crate::compiler::namespaces::{Function, Namespace, Struct, Variable, NAMESPACE_PREFIX};
+use crate::compiler::namespaces::{Function, NAMESPACE_PREFIX, Namespace, Struct, Variable};
 use crate::compiler::runes::RuneParser;
 // use crate::interpreter::{interpret_js, is_javascript_var_defined};
 use crate::lexer::lex::{self, ALLOWED_IN_IDENT};
@@ -522,11 +522,15 @@ impl Transpiler {
                                 Expression::Identifier(_, ident) => {
                                     if ident == "self" {
                                         is_static = false;
+                                    } else {
+                                        cleaned_params.push(param.to_owned());
                                     }
                                 }
                                 Expression::IdentifierWithType(_, ident, _) => {
                                     if ident == "self" {
                                         is_static = false;
+                                    } else {
+                                        cleaned_params.push(param.to_owned());
                                     }
                                 }
                                 _ => {
@@ -536,6 +540,40 @@ impl Transpiler {
                         }
                         let tag = { if fn_is_pub { "" } else { "#" } };
 
+                        // If this is the constructor, always assume super()
+                        // Otherwise if not the constructor, it's up to the developer to call super()
+                        let mut final_block = block.to_owned();
+                        if fn_name_parsed.as_str() == "constructor" {
+                            match final_block.as_ref() {
+                                Statement::BlockStatement(tk, stmts) => {
+                                    // Create super()
+                                    let new_stmt = Statement::ExpressionStatement(
+                                        tk.clone(),
+                                        Box::new(Expression::CallExpression(
+                                            tk.clone(),
+                                            Box::new(Expression::Identifier(
+                                                tk.clone(),
+                                                "super".to_string(),
+                                            )),
+                                            Box::new(Vec::new()),
+                                        )),
+                                    );
+                                    // Add super()
+                                    let mut stmts = stmts.as_ref().to_owned();
+                                    stmts.insert(0, new_stmt);
+
+                                    // Reset block
+                                    final_block = Box::new(Statement::BlockStatement(
+                                        tk.clone(),
+                                        Box::new(stmts.to_owned()),
+                                    ));
+                                }
+                                _ => {
+                                    unimplemented!()
+                                }
+                            }
+                        }
+
                         let function = Expression::FunctionLiteral(
                             tk.to_owned(),
                             Box::new(Expression::Identifier(
@@ -544,7 +582,7 @@ impl Transpiler {
                             )),
                             Box::new(cleaned_params),
                             type_.to_owned(),
-                            block.to_owned(),
+                            final_block.to_owned(),
                         );
                         // Transpile the function but just removed the `function` keyword from the beginning
                         let tf = self.transpile_expression(function);
@@ -2122,14 +2160,13 @@ impl Transpiler {
             Expression::MacroExpression(tk, name, args) => {
                 let name_as_string = self.transpile_expression(name.as_ref().to_owned());
                 Expression::MacroExpression(
-                    tk.to_owned(), 
-                    Box::new(
-                        Expression::Identifier(
-                            name.get_token().to_owned(),
-                            namespace.get_obj_name(&name_as_string)
-                        )
-                    ), 
-                    args.to_owned())
+                    tk.to_owned(),
+                    Box::new(Expression::Identifier(
+                        name.get_token().to_owned(),
+                        namespace.get_obj_name(&name_as_string),
+                    )),
+                    args.to_owned(),
+                )
             }
             _ => expression.to_owned(),
         }

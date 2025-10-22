@@ -1,7 +1,5 @@
 # easyjs
-easyjs is a new programming language built for fun.
-I have learned a multitude of programming languages and I really enjoy programming. I enjoy learning new languages and applying the ideas and constructs
-in others. easyjs is my own personal language that I can expand as I please. It lives ontop of JS (hence the js in the name) and compiles using Rust.
+easyjs is a general purpose programming language that compiles to JS and WASM.
 I've never been a fan of JS but it has a huge ecosystem and runs natively in the browser.
 
 ## 2 things
