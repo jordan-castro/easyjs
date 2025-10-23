@@ -6,6 +6,12 @@
   - wasm compilation (vs AssemblyScript, Dart, Rust, Go, C/C++)
   - ease of use (vs TypeScript, Dart, CoffeScript)
 - v0.5 type checker
+  - basic types
+    - int
+    - float
+    - string
+    - dyn
+    - array
 - v0.5 Add classes
 - v0.4 Finish adding all operators
   - <<
