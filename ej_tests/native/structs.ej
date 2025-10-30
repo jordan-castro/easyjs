@@ -1,0 +1,13 @@
+import "native/utils.ej" as utils
+
+native {
+    struct Vec3[
+        x: int,
+        y: int,
+        z: int
+    ] {
+        pub fn init(x:int,y:int,z:int):Vec3 {
+            Vec3(x,y,z)
+        }
+    }
+}

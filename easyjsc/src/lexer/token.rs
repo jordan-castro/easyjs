@@ -49,7 +49,7 @@ pub const INT: &str = "INT"; // 123456 (INT64)
 pub const STRING: &str = "STRING";
 pub const ARRAY: &str = "ARRAY";
 pub const BOOLEAN: &str = "BOOLEAN";
-pub const FLOAT: &str = "FLOAT";
+pub const FLOAT: &str = "FLOAT"; // (FLOAT32)
 
 // Operators
 pub const ASSIGN: &str = "=";
@@ -144,6 +144,7 @@ pub const ENUM: &str = "ENUM";
 pub const BREAK: &str = "BREAK";
 pub const CONTINUE: &str = "CONTINUE";
 pub const NULL: &str = "NULL";
+pub const CLASS: &str = "CLASS";
 
 // Builtin methods
 pub const BUILTIN: &str = "BUILTIN";
@@ -183,6 +184,7 @@ pub fn lookup_ident(ident: &str) -> &'static str {
         "break" => BREAK,
         "continue" => CONTINUE,
         "null" => NULL,
+        "class" => CLASS,
         _ => IDENT, // Default case for unknown identifiers
     }
 }

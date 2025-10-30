@@ -1,3 +1,14 @@
-import 'std'
+import 'std' as _
+import 'io'
+import 'sys'
 
-@print('hello world')
+std.@print('hello world')
+// ^ that will fail because we use as _
+@print('Hello world')
+
+sys.___filename
+// sys___filename
+io.___filename
+// io___filename
+
+test = 1

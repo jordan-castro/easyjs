@@ -5,3 +5,5 @@ struct Person[name, age] {
         @print('${self.name} = ${self.age}')
     }
 }
+
+test = 2

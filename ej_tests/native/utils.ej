@@ -1,0 +1,8 @@
+// No native in this file. Just expses the assert for easier access later all
+javascript{
+    const assert = require('assert').strict;
+}
+
+macro assert(test, expected) {
+    assert.strictEqual(#test, #expected)
+}

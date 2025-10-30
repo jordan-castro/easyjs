@@ -1,0 +1,11 @@
+javascript{
+    globalThis.TextDecoder = class {
+        constructor(encoding="utf-8") {
+            this.encoding = encoding;
+        }
+
+        decode(data) {
+            return ___ejr_text_decoder_decode(this.encoding, data);
+        }
+    };
+}

@@ -3,24 +3,18 @@
 use std::{collections::HashMap, string, vec};
 
 use crate::{
+    compiler::namespaces::{Function as EJFunction, Namespace, Variable as EJVariable},
     emitter::{
-        builtins::{
-            ALLOCATE_STRING_IDX, STORE_STRING_LENGTH_IDX, STR_CONCAT_IDX, STR_GET_LEN_IDX,
-            STR_INDEX_IDX, STR_STORE_BYTE_IDX,
-        },
-        instruction_generator::{
-            EasyInstructions, call_wasm_core_function, is_wasm_core, set_local_string,
-        },
-        signatures::{
-            EasyNativeBlock, EasyNativeFN, EasyNativeVar, FunctionSignature, create_type_section,
-        },
-        strings::{
+        arrays::{native_allocate_array, native_arr_get_cap, native_arr_get_item, native_arr_get_len, native_arr_push_array, native_arr_push_float, native_arr_push_int, native_arr_push_string, native_arr_reallocate, native_arr_store_capacity, native_arr_store_length}, builtins::{
+            ALLOCATE_STRING_IDX, ARR_ALLOCATE_IDX, ARR_GET_ITEM_IDX, ARR_PUSH_ARRAY_IDX, ARR_PUSH_FLOAT_IDX, ARR_PUSH_INT_IDX, ARR_PUSH_STRING_IDX, ARR_STORE_CAPACITY_IDX, ARR_STORE_LENGTH_IDX, STORE_STRING_LENGTH_IDX, STR_CONCAT_IDX, STR_GET_LEN_IDX, STR_INDEX_IDX, STR_STORE_BYTE_IDX
+        }, instruction_generator::{
+            call_wasm_core_function, is_wasm_core, set_local_string, EasyInstructions
+        }, signatures::{
+            create_type_section, EasyNativeBlock, EasyNativeFN, EasyNativeVar, FunctionSignature
+        }, strings::{
             allocate_string, native_str_char_code_at, native_str_concat, native_str_get_len,
             native_str_index, native_str_store_byte, store_string_length,
-        },
-        utils::{
-            StrongValType, expression_is_ident, get_param_type_by_string, get_val_type_from_strong,
-        },
+        }, utils::expression_is_ident
     },
     errors::{
         native_can_not_compile_raw_expression, native_can_not_get_value_from_expression,
@@ -29,12 +23,15 @@ use crate::{
         native_no_function_provided_for_variable_scope,
         native_return_value_does_not_match_function, native_unsupported_builtin_call,
         native_unsupported_expression, native_unsupported_expression_as_value_for_global_variable,
-        native_unsupported_index_expression, native_unsupported_operation,
-        native_unsupported_operator, native_unsupported_prefix_expression,
-        native_unsupported_statement,
+        native_unsupported_expression_in_array, native_unsupported_index_expression,
+        native_unsupported_operation, native_unsupported_operator,
+        native_unsupported_prefix_expression, native_unsupported_statement,
     },
     lexer::token::{self, Token},
     parser::ast::{Expression, Statement},
+    typechecker::{
+        get_param_type_by_named_expression, get_param_type_by_string, get_val_type_from_strong, StrongValType, I32_TYPE_IDX
+    },
 };
 use wasm_encoder::{
     BlockType, ConstExpr, ExportKind, Function, FunctionSection, GlobalType, Instruction,
@@ -68,12 +65,12 @@ macro_rules! get_left_side_idx {
 }
 
 /// For generating instructions for operators:
-/// 
-/// - += 
+///
+/// - +=
 /// - -=
 /// - *=
 /// - /*
-/// 
+///
 /// Params:
 /// - `left:Expression` The left side expression
 /// - `instruction:Instruction` The instruction to generate. i.e. I32Add, F32Add, etc
@@ -81,32 +78,27 @@ macro_rules! generate_n_assign_instructions {
     ($left:expr, $instruction:expr) => {{
         let (is_global, idx) = get_left_side_idx!(&$left);
         if is_global {
-            vec![
-                $instruction,
-                Instruction::GlobalSet(idx as u32)
-            ]
+            vec![$instruction, Instruction::GlobalSet(idx as u32)]
         } else {
-            vec![
-                $instruction,
-                Instruction::LocalSet(idx as u32)
-            ]
+            vec![$instruction, Instruction::LocalSet(idx as u32)]
         }
     }};
 }
-                        // "int" => {
-                        //     let (is_global, left_idx) = get_left_side_idx!(left);
-                        //     if is_global {
-                        //         instructions.append(&mut vec![
-                        //             Instruction::I32Add,
-                        //             Instruction::GlobalSet(left_idx as u32)
-                        //         ]);
-                        //     } else {
-                        //         instructions.append(&mut vec![
-                        //             Instruction::I32Add,
-                        //             Instruction::LocalSet(left_idx as u32)
-                        //         ]);
-                        //     }
-                        // }
+
+// "int" => {
+//     let (is_global, left_idx) = get_left_side_idx!(left);
+//     if is_global {
+//         instructions.append(&mut vec![
+//             Instruction::I32Add,
+//             Instruction::GlobalSet(left_idx as u32)
+//         ]);
+//     } else {
+//         instructions.append(&mut vec![
+//             Instruction::I32Add,
+//             Instruction::LocalSet(left_idx as u32)
+//         ]);
+//     }
+// }
 
 /// easyjs native is a bare bones language feature. Think of it as C for the web.
 /// To use easyjs native features, wrap your easyjs code in a native block like so:
@@ -155,9 +147,15 @@ macro_rules! generate_n_assign_instructions {
 ///
 /// `native` only supports functions, variables [global and local], math, and strings [only raw and concat]. To add to any of those you would have to
 /// use the builtin raw instructions.
-pub fn compile_native(stmts: &Vec<Statement>) -> Result<Vec<u8>, String> {
+pub fn compile_native(
+    stmts: &Vec<Statement>,
+    module_namespace: &Namespace,
+    imported_modules: &Vec<Namespace>,
+) -> Result<Vec<u8>, String> {
     // Setup context
     let mut ctx = NativeContext::new();
+    ctx.namespace = module_namespace.clone();
+    ctx.imported_modules = imported_modules.clone();
 
     // Builtin functions
     let mut builtin_fns = vec![
@@ -169,6 +167,18 @@ pub fn compile_native(stmts: &Vec<Statement>) -> Result<Vec<u8>, String> {
         native_str_concat(),
         native_str_index(),
         native_str_char_code_at(),
+        // ARRAY METHODS
+        native_allocate_array(),
+        native_arr_store_length(),
+        native_arr_store_capacity(),
+        native_arr_get_len(),
+        native_arr_get_cap(),
+        native_arr_reallocate(),
+        native_arr_push_int(),
+        native_arr_push_float(),
+        native_arr_push_string(),
+        native_arr_push_array(),
+        native_arr_get_item()
     ];
     // add to native context.
     ctx.functions.append(&mut builtin_fns);
@@ -227,6 +237,7 @@ pub fn compile_native(stmts: &Vec<Statement>) -> Result<Vec<u8>, String> {
     let mut global_section = wasm_encoder::GlobalSection::new();
     // TODO: dynamic global setting
     global_section.global(
+        // This is the heap
         GlobalType {
             mutable: true,
             shared: false,
@@ -312,6 +323,12 @@ struct NativeContext {
 
     /// Block scope
     block_scope: Vec<Vec<EasyNativeBlock>>,
+
+    /// The current namespace.
+    namespace: Namespace,
+
+    /// The current imported modules
+    imported_modules: Vec<Namespace>,
 }
 
 impl NativeContext {
@@ -326,6 +343,8 @@ impl NativeContext {
             instructions: HashMap::new(),
             is_pub: false,
             block_scope: Vec::new(),
+            namespace: Namespace::new("".to_string(), "_".to_string()),
+            imported_modules: vec![],
         }
     }
 
@@ -442,12 +461,18 @@ impl NativeContext {
             let parsed = self.compile_global_variable_stmt(value);
             // add to variable
             self.variable_scope[0].push(EasyNativeVar {
-                name: var_name,
+                name: self.namespace.get_obj_name(&var_name.clone()),
                 idx: self.next_var_idx,
                 is_global: true,
                 value: parsed,
-                val_type: strong_val_type,
+                val_type: strong_val_type.clone(),
                 is_mut,
+            });
+            // Save to namespace, you may have noticed we only save the global variables.
+            self.namespace.native_ctx.variables.push(EJVariable {
+                name: self.namespace.get_obj_name(&var_name.clone()),
+                is_mut: is_mut,
+                val_type: strong_val_type.clone(),
             });
         } else {
             // add to variable scope
@@ -568,6 +593,11 @@ impl NativeContext {
                     (StrongValType::Bool, StrongValType::Bool) => "int",
                     (StrongValType::Int, StrongValType::Bool) => "int",
                     (StrongValType::Bool, StrongValType::Int) => "int",
+                    (StrongValType::Array, StrongValType::Int) => "array-int",
+                    (StrongValType::Array, StrongValType::Float) => "array-float",
+                    (StrongValType::Array, StrongValType::String) => "array-string",
+                    (StrongValType::Array, StrongValType::Array) => "array",
+                    (StrongValType::Array, StrongValType::Bool) => "array-bool",
                     (_, _) => {
                         self.errors.push(native_unsupported_operation(
                             expr.get_token(),
@@ -637,15 +667,55 @@ impl NativeContext {
                     },
                     token::PLUS_EQUALS => match instruction_type {
                         "int" => {
-                            let mut n_assign = generate_n_assign_instructions!(left, Instruction::I32Add);
+                            let mut n_assign =
+                                generate_n_assign_instructions!(left, Instruction::I32Add);
                             instructions.append(&mut n_assign);
                         }
                         "float" => {
-                            let mut n_assign = generate_n_assign_instructions!(left, Instruction::F32Add);
+                            let mut n_assign =
+                                generate_n_assign_instructions!(left, Instruction::F32Add);
                             instructions.append(&mut n_assign);
                         }
                         "string" => {
-                            let mut n_assign = generate_n_assign_instructions!(left, Instruction::Call(STR_CONCAT_IDX));
+                            let mut n_assign = generate_n_assign_instructions!(
+                                left,
+                                Instruction::Call(STR_CONCAT_IDX)
+                            );
+                            instructions.append(&mut n_assign);
+                        }
+                        "array-int" => {
+                            let mut n_assign = generate_n_assign_instructions!(
+                                left,
+                                Instruction::Call(ARR_PUSH_INT_IDX)
+                            );
+                            instructions.append(&mut n_assign);
+                        }
+                        "array-float" => {
+                            let mut n_assign = generate_n_assign_instructions!(
+                                left,
+                                Instruction::Call(ARR_PUSH_FLOAT_IDX)
+                            );
+                            instructions.append(&mut n_assign);
+                        }
+                        "array-string" => {
+                            let mut n_assign = generate_n_assign_instructions!(
+                                left,
+                                Instruction::Call(ARR_PUSH_STRING_IDX)
+                            );
+                            instructions.append(&mut n_assign);
+                        }
+                        "array-bool" => {
+                            let mut n_assign = generate_n_assign_instructions!(
+                                left,
+                                Instruction::Call(ARR_PUSH_INT_IDX)
+                            );
+                            instructions.append(&mut n_assign);
+                        }
+                        "array" => {
+                            let mut n_assign = generate_n_assign_instructions!(
+                                left,
+                                Instruction::Call(ARR_PUSH_ARRAY_IDX)
+                            );
                             instructions.append(&mut n_assign);
                         }
                         _ => {}
@@ -665,8 +735,10 @@ impl NativeContext {
             }
             Expression::CallExpression(_, name, arguments) => {
                 let name = self.compile_raw_expression(name);
+                // get namespace defined name.
+                let mangled_name = self.namespace.get_obj_name(&name);
 
-                let fun_idx = self.get_fun_idx_from_name(&name);
+                let fun_idx = self.get_fun_idx_from_name(&mangled_name);
                 if fun_idx.is_none() {
                     // Check if this is a wasm core function
                     if !is_wasm_core(name.as_str()) {
@@ -675,7 +747,11 @@ impl NativeContext {
                         return vec![];
                     } else {
                         // We have a core function. Call it and pass back the instructions
-                        return call_wasm_core_function(&mut self.errors, name.as_str(), arguments);
+                        return call_wasm_core_function(
+                            &mut self.errors,
+                            mangled_name.as_str(),
+                            arguments,
+                        );
                     }
                 }
                 let fun_idx = fun_idx.unwrap();
@@ -696,11 +772,29 @@ impl NativeContext {
             Expression::DotExpression(tk, left, right) => {
                 let mut instructions = vec![];
 
-                // compile left side
-                instructions.append(&mut self.compile_expression(left.as_ref()));
-                // compile right side.
-                instructions.append(&mut self.compile_expression(right.as_ref()));
+                // Check if we have a namespace to the left
+                let left_side_as_string = self.compile_raw_expression(left.as_ref());
+                // clone namespaces to appease borrow checker
+                let cloned_namespaces = self.imported_modules.clone();
+                // Check if this is a namespace.
+                for namespace in cloned_namespaces.iter() {
+                    if namespace.has_name(&left_side_as_string) {
+                        // We have a namespace, change the instruction to use the correct name
+                        // There are only 3 possibilities for the right side:
+                        // - A call expression
+                        // - A identifier
+                        // - A dot expression
+                        let new_right = self.convert_namespaced_dot_expression(namespace, &right);
+                        instructions.append(&mut self.compile_expression(&new_right));
+                    }
+                }
 
+                if instructions.len() == 0 {
+                    // compile left side
+                    instructions.append(&mut self.compile_expression(left.as_ref()));
+                    // compile right side.
+                    instructions.append(&mut self.compile_expression(right.as_ref()));
+                }
                 instructions
             }
             Expression::StringLiteral(_, literal) => {
@@ -736,6 +830,21 @@ impl NativeContext {
                             StrongValType::Int => {
                                 // Call __str_index
                                 instructions.push(Instruction::Call(STR_INDEX_IDX));
+                            }
+                            _ => self
+                                .errors
+                                .push(native_unsupported_index_expression(index.get_token())),
+                        }
+                    }
+                    StrongValType::Array => {
+                        instructions.append(&mut self.compile_expression(index));
+                        match index_type {
+                            StrongValType::Int => {
+                                // Call __arr_get_item
+                                instructions.append(&mut vec![
+                                    Instruction::Call(ARR_GET_ITEM_IDX),
+                                ]);
+                                // instructions.push(Instruction::Call(ARR_GET_ITEM_IDX));
                             }
                             _ => self
                                 .errors
@@ -871,6 +980,64 @@ impl NativeContext {
                 self.poop_block_scope();
                 vec![]
             }
+            Expression::ArrayLiteral(token, items) => {
+                // Add to variable scope
+                let array_var_idx = self.next_var_idx;
+                // update idx
+                self.next_var_idx += 1;
+                self.variable_scope.get_mut(1).unwrap().push(EasyNativeVar {
+                    name: format!("{}{}", items.as_ref().len(), self.next_var_idx),
+                    idx: array_var_idx,
+                    is_global: false,
+                    value: ConstExpr::empty(),
+                    val_type: StrongValType::Array,
+                    is_mut: true,
+                });
+                let items = items.as_ref();
+                let mut instructions = vec![];
+                // Set the PTR to the array
+                instructions.push(Instruction::I32Const((items.len() * 2) as i32)); // set capicity to current size * 2.
+                instructions.push(Instruction::Call(ARR_ALLOCATE_IDX));
+                instructions.push(Instruction::LocalSet(array_var_idx));
+                // Set length
+                instructions.push(Instruction::LocalGet(array_var_idx));
+                instructions.push(Instruction::I32Const(items.len() as i32));
+                instructions.push(Instruction::Call(ARR_STORE_LENGTH_IDX));
+                // Store capacity
+                instructions.push(Instruction::LocalGet(array_var_idx));
+                instructions.push(Instruction::I32Const((items.len() * 2) as i32));
+                instructions.push(Instruction::Call(ARR_STORE_CAPACITY_IDX));
+
+                // Loop through items, each is added differently
+                for item in items {
+                    // we need our ptr
+                    instructions.push(Instruction::LocalGet(array_var_idx));
+                    // compile expression and add instructions
+                    instructions.append(&mut self.compile_expression(item));
+
+                    // Match push type
+                    match item {
+                        Expression::StringLiteral(_, _) => {
+                            instructions.push(Instruction::Call(ARR_PUSH_STRING_IDX));
+                        }
+                        // Booleans are just ints.
+                        Expression::IntegerLiteral(_, _) | Expression::Boolean(_, _) => {
+                            instructions.push(Instruction::Call(ARR_PUSH_INT_IDX));
+                        }
+                        Expression::FloatLiteral(_, _) => {
+                            instructions.push(Instruction::Call(ARR_PUSH_FLOAT_IDX));
+                        }
+                        Expression::ArrayLiteral(_, _) => {
+                            instructions.push(Instruction::Call(ARR_PUSH_ARRAY_IDX));
+                        }
+                        _ => self
+                            .errors
+                            .push(native_unsupported_expression_in_array(item)),
+                    }
+                }
+
+                instructions
+            }
             Expression::EmptyExpression => {
                 vec![]
             }
@@ -893,6 +1060,9 @@ impl NativeContext {
     ) {
         // get name and params first...
         let name = self.compile_raw_expression(name);
+        // get fn_name based on namespace
+        let name = self.namespace.get_obj_name(&name);
+
         let param_names = params
             .iter()
             .map(|p| self.compile_raw_expression(p))
@@ -907,6 +1077,22 @@ impl NativeContext {
             .collect::<Vec<ValType>>();
         // lets get the type too
         let return_type = self.get_val_type_from_expression(val_type);
+        // For namespace
+        let mut variables = vec![];
+        for (param_n, param_t) in param_names.iter().zip(param_types.iter()) {
+            variables.push(EJVariable {
+                name: param_n.to_owned(),
+                is_mut: true,
+                val_type: param_t.to_owned(),
+            });
+        }
+        // save function to namespace
+        self.namespace.native_ctx.functions.push(EJFunction {
+            name: name.clone(),
+            params: variables,
+            return_type: return_type.clone(),
+        });
+
         // Get the block type
         // let block = {
         //     if let Some(return_val_type) = get_val_type_from_strong(&return_type) {
@@ -1090,9 +1276,8 @@ impl NativeContext {
             Expression::InfixExpression(tk, left, infix, right) => {
                 self.get_val_type_from_expression(left)
             }
-            Expression::FloatLiteral(tk, literal) => {
-                StrongValType::Float                
-            }
+            Expression::FloatLiteral(tk, literal) => StrongValType::Float,
+            Expression::ArrayLiteral(_, _) => StrongValType::Array,
             _ => {
                 // add error
                 self.errors
@@ -1213,5 +1398,52 @@ impl NativeContext {
         }
 
         new_block_type
+    }
+
+    /// Convert a namespaced DotExpression.
+    ///
+    /// This is for when a namespaced dot expressions right side is another dot expression.
+    ///
+    /// We could have:
+    /// import 'c.ej'
+    /// import 'std'
+    ///
+    /// native {
+    ///    fn test() {
+    ///       @std.print(c.variable)
+    ///       // or
+    ///       @std.print(c.method().x)
+    ///    }
+    /// }
+    fn convert_namespaced_dot_expression(
+        &mut self,
+        namespace: &Namespace,
+        expression: &Expression,
+    ) -> Expression {
+        match expression {
+            Expression::Identifier(token, name) => {
+                Expression::Identifier(token.to_owned(), namespace.get_obj_name(name))
+            }
+            Expression::CallExpression(token, name, args) => {
+                let name_as_string = self.compile_raw_expression(name);
+                Expression::CallExpression(
+                    token.to_owned(),
+                    Box::new(Expression::Identifier(
+                        name.get_token().to_owned(),
+                        namespace.get_obj_name(&name_as_string),
+                    )),
+                    args.to_owned(),
+                )
+            }
+            Expression::DotExpression(token, left, right) => {
+                let new_left = self.convert_namespaced_dot_expression(namespace, left);
+                Expression::DotExpression(token.to_owned(), Box::new(new_left), right.to_owned())
+            }
+            Expression::AssignExpression(tk, left, right) => {
+                let new_left = self.convert_namespaced_dot_expression(namespace, &left);
+                Expression::AssignExpression(tk.to_owned(), Box::new(new_left), right.to_owned())
+            }
+            _ => expression.to_owned(),
+        }
     }
 }

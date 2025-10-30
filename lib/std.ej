@@ -3,7 +3,7 @@ macro last(array) {
     #array[#array.length - 1]
 }
 
-macro print(msg) {
+macro print(...msg) {
     console.log(#msg)
 }
 
@@ -51,9 +51,9 @@ macro decouple(idents, values) {
 }
 
 // declare a constant variable 
-macro const(ident, value) {
+macro const(expr) {
     javascript {
-        const #ident = #value;
+        const #expr;
     }
 }
 
@@ -62,7 +62,7 @@ macro run_function(fun) {
 }
 
 macro sleep(ms) {
-    @const(func, fn(ms) {
+    const!(func = fn(ms) {
         javascript{
             return new Promise(resolve => setTimeout(resolve, ms))
         }
@@ -73,7 +73,7 @@ macro sleep(ms) {
 
 // Creates a range
 macro range(kwargs) {
-    @run_function(fn() {
+    run_function!(fn() {
         start = #kwargs.start
         end = #kwargs.end
         step = #kwargs.step ?? 1

@@ -2,17 +2,16 @@ use core::{panic, str};
 use std::fs::read_dir;
 
 pub mod commands;
-pub mod interpreter;
 pub mod repl;
 
-use crate::commands::{repl::start_repl, install::install, compile::compile_main};
+use crate::commands::{compile::compile_main, install::install, repl::start_repl};
 use crate::repl::runtime::run_file;
 
 use clap::{Parser, Subcommand};
 use minifier::js::minify as js_minify;
 
 #[derive(Parser, Debug)]
-#[command(name = "EasyJS", version = easy_utils::utils::version::VERSION_CODE, author = "Jordan Castro <jorda@grupojvm.com>")]
+#[command(name = "EasyJS", version = easyjs_utils::utils::version::VERSION_CODE, author = "Jordan Castro <jorda@grupojvm.com>")]
 #[command(about = "EasyJS compiler, repl, and runner.")]
 /// Activate debug mode
 struct Args {
@@ -54,7 +53,7 @@ enum Commands {
 
         /// Output to the terminal.
         #[arg(short, long, action)]
-        terminal: bool
+        terminal: bool,
     },
     /// Run a EasyJS file/project
     Run {
@@ -68,7 +67,7 @@ enum Commands {
         /// Trailing arguments
         #[arg(trailing_var_arg = true)]
         #[arg(num_args=0..)]
-        args: Vec<String>
+        args: Vec<String>,
     },
     /// Install a easyjs package
     Install {
@@ -77,8 +76,8 @@ enum Commands {
 
         /// The directory to place the .js file
         #[arg(short, long, default_value = None)]
-        forced_dir: Option<String>
-    }
+        forced_dir: Option<String>,
+    },
 }
 
 fn main() {
@@ -93,7 +92,7 @@ fn main() {
             pretty,
             minify,
             output,
-            terminal
+            terminal,
         } => {
             // Get path.
             let ej_code_bytes: Vec<u8> = std::fs::read(&file).expect("Failed to read file.");
@@ -137,10 +136,17 @@ fn main() {
             // write to file
             std::fs::write(out_file, js_code).expect("Filed to write file.");
         }
-        Commands::Run { file, runtime , args} => {
+        Commands::Run {
+            file,
+            runtime,
+            args,
+        } => {
             run_file(&runtime, &file, args);
         }
-        Commands::Install { path_to_js_file , forced_dir} => {
+        Commands::Install {
+            path_to_js_file,
+            forced_dir,
+        } => {
             install(path_to_js_file, forced_dir);
         }
     }

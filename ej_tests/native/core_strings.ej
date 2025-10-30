@@ -1,4 +1,0 @@
-import 'ej_tests/native/TEST_UTILS.ej'
-
-native {
-}

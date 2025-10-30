@@ -6,3 +6,4 @@ pub mod utils;
 pub mod strings;
 pub mod instruction_generator;
 pub mod builtins;
+pub mod arrays;

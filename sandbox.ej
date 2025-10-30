@@ -1,1 +1,7 @@
-console.log('hello world from easyjsr!')
+javascript {
+    import { NAME } from 't.js'
+}
+
+import 'std'
+
+@std.print(NAME)

@@ -1,64 +1,34 @@
 use std::collections::HashMap;
+use std::iter::Map;
 
+use easyjs_utils::utils::sanatize;
 use regex::Regex;
 
 use super::macros::Macro;
 use super::native::compile_native;
 use crate::builtins;
+use crate::compiler::namespaces::{Function, NAMESPACE_PREFIX, Namespace, Struct, Variable};
+use crate::compiler::runes::RuneParser;
 // use crate::interpreter::{interpret_js, is_javascript_var_defined};
 use crate::lexer::lex::{self, ALLOWED_IN_IDENT};
 use crate::lexer::token;
 use crate::parser::ast::{Expression, Statement};
 use crate::parser::{ast, par};
-use easy_utils::utils::{h::hash_string, js_helpers::is_javascript_keyword};
+use crate::typechecker::{
+    StrongValType, get_param_type_by_string, get_param_type_by_string_ej, get_string_rep_of_type,
+};
+use easyjs_utils::utils::{h::hash_string, js_helpers::is_javascript_keyword};
 
 use super::import::import_file;
-
-struct EasyType {
-    /// The name of the type.
-    type_name: String,
-    // TODO: a type_schema.
-    // type_schema: String
-}
-
-/// Variable data. (used mostly for scoping)
-struct Variable {
-    name: String,
-    /// Is mutable
-    is_mutable: bool,
-    /// Variable type
-    easy_type: Option<EasyType>,
-}
-
-/// Used only in transpiler and type checker.
-/// Used to track native function calls.
-///
-/// i.e. convert native() to __easyjs_native_call("native", ["params"], ["returns"], ...args);
-struct NativeFunction {
-    params: Vec<String>,
-    returns: Vec<String>,
-    name: String,
-}
-
-/// Used only in transpiler and type checker.
-/// Holds all native for project.
-struct NativeContext {
-    functions: Vec<NativeFunction>,
-    variables: Vec<String>,
-}
 
 pub struct Transpiler {
     /// Stmt by Stmt
     scripts: Vec<String>,
-    /// All EasyJS macros
-    pub macros: HashMap<String, Macro>,
-    /// All declared EasyJS functions
-    pub functions: Vec<String>,
-    /// All declared EasyJS structs.
-    pub structs: Vec<String>,
+    /// The namespace of this transpiler.
+    pub namespace: Namespace,
 
-    /// All declares structs within modules.
-    pub structs_in_modules: Vec<String>,
+    /// All internal modules/namespaces.
+    pub modules: Vec<Namespace>,
 
     /// Keep a list of all scopes the EasyJS code has.
     scopes: Vec<Vec<Variable>>,
@@ -66,17 +36,14 @@ pub struct Transpiler {
     /// Track all native statements
     native_stmts: Vec<Statement>,
 
-    /// Track native variables and functions
-    native_ctx: NativeContext,
-
     /// Are we in debug mode?
     pub debug_mode: bool,
 
-    /// All imported modules (including stdlib)
-    imported_modules: Vec<String>,
-
     /// Is this being compiled as a module
     is_module: bool,
+
+    /// Custom libraries
+    custom_libs: HashMap<String, String>,
 }
 /// Non Wasm specific (if running in non wasm enviroment, optionally save the wasm binary)
 #[cfg(not(target_arch = "wasm32"))]
@@ -86,25 +53,22 @@ fn save_wasm_bin(wasm_bin: &Vec<u8>) {
     let mut file = std::fs::File::create("easyjs.wasm").unwrap();
     file.write(&wasm_bin).unwrap();
 }
+#[cfg(target_arch = "wasm32")]
+fn save_wasm_bin(wasm_bin: &Vec<u8>) {
+    // Empty body
+}
 
 impl Transpiler {
     pub fn new() -> Self {
         let mut t = Transpiler {
             scripts: vec![],
-            functions: vec![],
-            macros: HashMap::new(),
-            // context: Context::default(),
-            structs: vec![],
+            namespace: Namespace::new("".to_string(), "_".to_string()),
+            modules: vec![],
             scopes: vec![],
-            structs_in_modules: vec![],
             native_stmts: vec![],
-            native_ctx: NativeContext {
-                functions: vec![],
-                variables: vec![],
-            },
             debug_mode: false,
-            imported_modules: Vec::new(),
             is_module: false,
+            custom_libs: HashMap::new(),
         };
 
         // Check the EASYJS_DEBUG variable
@@ -120,6 +84,77 @@ impl Transpiler {
         // add the first scope. This scope will never be popped.
         t.add_scope();
         t
+    }
+
+    /// Create a transpiler with custom libs
+    pub fn with_custom_libs(custom_libs: HashMap<String, String>) -> Self {
+        let mut t = Transpiler::new();
+        t.custom_libs = custom_libs;
+
+        t
+    }
+
+    /// Apply Namespace mangling to native statement.
+    ///
+    /// Call this to get the correct NativeStatement.
+    fn apply_namespace_mangling_to_native(&self, stmt: &Statement) -> Statement {
+        match stmt {
+            Statement::ExportStatement(tk, stmt) => Statement::ExportStatement(
+                tk.to_owned(),
+                Box::new(self.apply_namespace_mangling_to_native(stmt)),
+            ),
+            Statement::ExpressionStatement(tk, expr) => Statement::ExpressionStatement(
+                tk.to_owned(),
+                Box::new(self.apply_namespace_mangling_to_native_expr(&expr)),
+            ),
+            Statement::VariableStatement(tk, name, val_type, value, infer_type) => {
+                let name_identifier = match name.as_ref() {
+                    Expression::Identifier(tk, name) => (tk, name),
+                    _ => {
+                        unreachable!("It is not possible to reach this in a varaible statement.")
+                    }
+                };
+                Statement::VariableStatement(
+                    tk.to_owned(),
+                    Box::new(Expression::Identifier(
+                        name_identifier.0.to_owned(),
+                        self.namespace.get_obj_name(name_identifier.1),
+                    )),
+                    val_type.to_owned(),
+                    value.to_owned(),
+                    *infer_type,
+                )
+            }
+            _ => stmt.to_owned(),
+        }
+    }
+
+    /// Apply Namespace mangling to native expressions.
+    ///
+    /// Call this to get the correct Expression.
+    fn apply_namespace_mangling_to_native_expr(&self, expression: &Expression) -> Expression {
+        match expression {
+            Expression::FunctionLiteral(tk, name, params, return_type, body) => {
+                let name_transpiled = match name.as_ref() {
+                    Expression::Identifier(tk, identifier) => (tk, identifier),
+                    _ => {
+                        panic!("Not possible that function name is not a IDENTIFIER")
+                    }
+                };
+                let name_expression = Expression::Identifier(
+                    name_transpiled.0.to_owned(),
+                    self.namespace.get_obj_name(name_transpiled.1),
+                );
+                Expression::FunctionLiteral(
+                    tk.to_owned(),
+                    Box::new(name_expression),
+                    params.to_owned(),
+                    return_type.to_owned(),
+                    body.to_owned(),
+                )
+            }
+            _ => expression.to_owned(),
+        }
     }
 
     /// Add a statement to the native context.
@@ -200,12 +235,19 @@ impl Transpiler {
                     }
                 };
 
-                // add to ctx
-                self.native_ctx.functions.push(NativeFunction {
-                    params: param_types,
-                    returns: vec![return_types],
+                // add to native ctx
+                self.namespace.native_ctx.functions.push(Function {
                     name: fn_name,
-                });
+                    params: param_types
+                        .iter()
+                        .map(|v| Variable {
+                            name: String::from(""),
+                            is_mut: true,
+                            val_type: get_param_type_by_string(v),
+                        })
+                        .collect::<Vec<Variable>>(),
+                    return_type: get_param_type_by_string(&return_types),
+                })
             }
             _ => {
                 return;
@@ -218,22 +260,52 @@ impl Transpiler {
     }
 
     /// Transpile a module.
-    pub fn transpile_module(&mut self, p: ast::Program) -> String {
+    pub fn transpile_module(&mut self, file_name: &str, alias: &str, p: ast::Program) -> String {
         let mut t = Transpiler::new();
         t.is_module = true;
-        let js = t.transpile(p);
-        self.native_ctx
-            .functions
-            .append(&mut t.native_ctx.functions);
-        self.native_ctx
-            .variables
-            .append(&mut t.native_ctx.variables);
-        // Have to add the imported native statements to the top first.
-        let mut native_stmts = t.native_stmts.clone();
-        native_stmts.append(&mut self.native_stmts);
-        self.native_stmts = native_stmts;
+        // Clean the filename
+        let cleaned_file_name = sanatize::get_filename_without_extension(file_name);
+        t.namespace.id = cleaned_file_name;
+        t.namespace.alias = alias.to_string();
 
-        self.macros.extend(t.macros);
+        // Transpile the code now.
+        let js = t.transpile(p);
+
+        // Add the namespace to our modules
+        self.modules.push(t.namespace.clone());
+
+        // Check if this namespace goes into global scope
+        if alias == "_" {
+            self.namespace.variables.extend(t.namespace.variables);
+            // also extend variable scope
+            if let (Some(self_inner), Some(t_inner)) = (self.scopes.get_mut(0), t.scopes.get(0)) {
+                self_inner.extend(t_inner.iter().cloned());
+            }
+
+            self.namespace.functions.extend(t.namespace.functions);
+            self.namespace.structs.extend(t.namespace.structs);
+            self.namespace.macros.extend(t.namespace.macros);
+        }
+
+        if t.native_stmts.len() > 0 {
+            // extend native_stmts
+            let mut new_native_stmts = t.native_stmts.clone();
+            new_native_stmts.extend(self.native_stmts.clone());
+            self.native_stmts = new_native_stmts;
+
+            // also extend native_ctx
+            // This will always go to the global scope ma G.
+            self.namespace
+                .native_ctx
+                .functions
+                .extend(t.namespace.native_ctx.functions);
+            self.namespace
+                .native_ctx
+                .variables
+                .extend(t.namespace.native_ctx.variables);
+        }
+
+        // return JS code
         js
     }
 
@@ -304,11 +376,12 @@ impl Transpiler {
                 Statement::NativeStatement(_, stmts) => {
                     // loop through body
                     for stmt in stmts.as_ref() {
+                        let mangled_stmt = self.apply_namespace_mangling_to_native(stmt);
                         // add to native_stmts
-                        self.native_stmts.push(stmt.clone());
+                        self.native_stmts.push(mangled_stmt.clone());
 
                         // add to context
-                        self.add_stmt_to_native_ctx(stmt, false);
+                        self.add_stmt_to_native_ctx(&mangled_stmt.clone(), false);
                     }
                 }
                 _ => {
@@ -346,8 +419,8 @@ impl Transpiler {
             ast::Statement::ReturnStatement(token, expression) => {
                 Some(self.transpile_return_stmt(token, expression.as_ref().to_owned()))
             }
-            ast::Statement::ImportStatement(_token, file_path) => {
-                Some(self.transpile_import_stmt(&file_path))
+            ast::Statement::ImportStatement(_token, file_path, alias) => {
+                Some(self.transpile_import_stmt(&file_path, alias))
             }
             ast::Statement::ExpressionStatement(token, expression) => {
                 Some(self.transpile_expression_stmt(token, expression.as_ref().to_owned()))
@@ -401,8 +474,206 @@ impl Transpiler {
                 self.add_macro_function(macro_name, macro_params, macro_body);
                 Some(String::from(""))
             }
+            Statement::ClassStatement(tk, name, extends, stmts) => {
+                Some(self.transpile_class_stmt(&tk, name.as_ref(), extends.as_ref(), &stmts))
+            }
             _ => None,
         }
+    }
+
+    fn transpile_internal_class_stmt(
+        &mut self,
+        class_name: &String,
+        stmt: &Statement,
+        is_pub: bool,
+    ) -> String {
+        match stmt {
+            Statement::ExportStatement(_, stmt) => {
+                self.transpile_internal_class_stmt(class_name, stmt, true)
+            }
+            Statement::VariableStatement(tk, ident, type_, value, should_infer) => {
+                let tag = { if is_pub { "" } else { "#" } };
+
+                let var_name = self.transpile_expression(ident.as_ref().to_owned());
+                let var_result: String = self.transpile_expression(value.as_ref().to_owned());
+
+                format!("{tag}{var_name}={var_result}\n\n")
+            }
+            Statement::ExpressionStatement(tk, expr) => {
+                let mut result = String::new();
+                match expr.as_ref() {
+                    Expression::FunctionLiteral(tk, fn_name, params, type_, block) => {
+                        // Check name of function
+                        let mut fn_name_parsed =
+                            self.transpile_expression(fn_name.as_ref().to_owned());
+                        let mut fn_is_pub = is_pub;
+                        match fn_name_parsed.as_str() {
+                            "__new__" => {
+                                fn_name_parsed = "constructor".to_string();
+                                fn_is_pub = true;
+                            }
+                            _ => {}
+                        }
+                        // Check if static or non static
+                        let mut is_static = true;
+                        let mut cleaned_params = vec![];
+                        for param in params.as_ref() {
+                            match param {
+                                Expression::Identifier(_, ident) => {
+                                    if ident == "self" {
+                                        is_static = false;
+                                    } else {
+                                        cleaned_params.push(param.to_owned());
+                                    }
+                                }
+                                Expression::IdentifierWithType(_, ident, _) => {
+                                    if ident == "self" {
+                                        is_static = false;
+                                    } else {
+                                        cleaned_params.push(param.to_owned());
+                                    }
+                                }
+                                _ => {
+                                    cleaned_params.push(param.to_owned());
+                                }
+                            }
+                        }
+                        let tag = { if fn_is_pub { "" } else { "#" } };
+
+                        // If this is the constructor, always assume super()
+                        // Otherwise if not the constructor, it's up to the developer to call super()
+                        let mut final_block = block.to_owned();
+                        if fn_name_parsed.as_str() == "constructor" {
+                            match final_block.as_ref() {
+                                Statement::BlockStatement(tk, stmts) => {
+                                    // Create super()
+                                    let new_stmt = Statement::ExpressionStatement(
+                                        tk.clone(),
+                                        Box::new(Expression::CallExpression(
+                                            tk.clone(),
+                                            Box::new(Expression::Identifier(
+                                                tk.clone(),
+                                                "super".to_string(),
+                                            )),
+                                            Box::new(Vec::new()),
+                                        )),
+                                    );
+                                    // Add super()
+                                    let mut stmts = stmts.as_ref().to_owned();
+                                    stmts.insert(0, new_stmt);
+
+                                    // Reset block
+                                    final_block = Box::new(Statement::BlockStatement(
+                                        tk.clone(),
+                                        Box::new(stmts.to_owned()),
+                                    ));
+                                }
+                                _ => {
+                                    unimplemented!()
+                                }
+                            }
+                        }
+
+                        let function = Expression::FunctionLiteral(
+                            tk.to_owned(),
+                            Box::new(Expression::Identifier(
+                                fn_name.get_token().to_owned(),
+                                format!("{tag}{fn_name_parsed}"),
+                            )),
+                            Box::new(cleaned_params),
+                            type_.to_owned(),
+                            final_block.to_owned(),
+                        );
+                        // Transpile the function but just removed the `function` keyword from the beginning
+                        let tf = self.transpile_expression(function);
+                        // Remove 'function'
+                        // FUNCTION = 8 len
+                        result.push_str(&tf.trim()[8..]);
+                        result.push('\n');
+                        result
+                    }
+                    _ => {
+                        return String::from("");
+                    }
+                }
+            }
+            // Statement::MacroStatement(_, _, _, _) => {
+            // }
+            _ => {
+                // Could not parse
+                // TODO: Error of some sort
+                return String::from("");
+            }
+        }
+    }
+
+    fn transpile_class_stmt(
+        &mut self,
+        tk: &token::Token,
+        name: &Expression,
+        extends: &Vec<Expression>,
+        stmts: &Vec<Statement>,
+    ) -> String {
+        let mut result = String::new();
+
+        let mut class_name: String;
+        let mut base_name: String;
+        match name {
+            Expression::Identifier(_, ident) => {
+                base_name = self.namespace.get_obj_name(ident);
+                class_name = format!("__EASYJS_{}_INTERNAL", base_name);
+                result
+                    .push_str(format!("const {class_name} = Base => class extends Base ").as_str());
+            }
+            _ => {
+                return String::from("");
+            }
+        };
+        result.push('{');
+
+        // Variables, Expressions...
+        for stmt in stmts {
+            let sss = self.transpile_internal_class_stmt(&class_name, stmt, false);
+            result.push_str(sss.as_str());
+        }
+
+        result.push('}');
+
+        // Ok now let's actually create our class.
+        result.push_str(format!("\nclass {base_name} extends ").as_str());
+
+        // Extensions
+        let mut times_extended = 0;
+        if extends.len() > 0 {
+            for expr in extends {
+                times_extended += 1;
+                let mut real_class_name: String;
+                match expr {
+                    Expression::Identifier(_, ident) => {
+                        real_class_name = format!("__EASYJS_{ident}_INTERNAL");
+                    }
+                    Expression::DotExpression(_, _, _) => {
+                        real_class_name = format!(
+                            "__EASYJS_{}_INTERNAL",
+                            self.transpile_expression(expr.to_owned())
+                        );
+                    }
+                    _ => {
+                        return String::from("");
+                    }
+                }
+
+                // Add extension
+                result.push_str(format!("{real_class_name}(").as_str());
+            }
+        }
+        result.push_str(class_name.as_str());
+        result.push_str("(class{})");
+        for i in 0..times_extended {
+            result.push(')');
+        }
+        result.push_str("{}");
+        result
     }
 
     fn transpile_enum_stmt(&mut self, name: &str, options: &Vec<Expression>) -> String {
@@ -412,7 +683,13 @@ impl Transpiler {
             return "".to_string();
         }
 
-        result.push_str(format!("const {} = ", name).as_str());
+        result.push_str(
+            format!(
+                "const {} = ",
+                self.namespace.get_obj_name(&name.to_string())
+            )
+            .as_str(),
+        );
         // result.push_str("enum ");
         result.push_str(" Object.freeze({");
 
@@ -429,18 +706,18 @@ impl Transpiler {
         result
     }
 
-    fn transpile_import_stmt(&mut self, file_path: &str) -> String {
+    fn transpile_import_stmt(&mut self, file_path: &str, alias: Option<Box<Expression>>) -> String {
         // Check if already imported
-        if self.imported_modules.contains(&file_path.to_string()) {
+        if self.modules.iter().any(|v| v.id == file_path) {
             return "".to_string();
         }
-        // add to imported modules
-        self.imported_modules.push(file_path.to_string());
-        let contents = import_file(file_path);
+        // Load contents
+        let contents = import_file(file_path, &self.custom_libs);
         if contents == "".to_string() {
             return "".to_string();
         }
 
+        // Parse the code.
         let lexer = lex::Lex::new_with_file(contents, file_path.to_owned());
         let mut parser = par::Parser::new(lexer);
         let program = parser.parse_program();
@@ -452,12 +729,20 @@ impl Transpiler {
             return "".to_string();
         }
 
-        self.transpile_module(program)
+        // Grab the alias, if any.
+        let alias_string: String;
+        if let Some(alias) = alias {
+            alias_string = self.transpile_expression(alias.as_ref().to_owned());
+        } else {
+            alias_string = String::from("");
+        }
+
+        self.transpile_module(file_path, &alias_string, program)
     }
 
     fn transpile_native_stmts(&mut self) -> String {
         let mut res = String::new();
-        let easy_wasm = compile_native(&self.native_stmts);
+        let easy_wasm = compile_native(&self.native_stmts, &self.namespace, &self.modules);
         if easy_wasm.is_err() {
             println!("Error: {}", easy_wasm.err().unwrap());
             // TODO: add error
@@ -475,129 +760,7 @@ impl Transpiler {
             res.push_str(",");
         }
         res.push_str("]);\n");
-
-        res.push_str("
-            const __easyjs_native = new WebAssembly.Module(__easyjs_native_module);
-            const __easyjs_native_instance = new WebAssembly.Instance(__easyjs_native);
-            class __EasyJSNativeInterop {
-                /**
-                 * Function for converting a string to native.
-                 */
-                static convert_string_to_native(instance, str) {
-                    // get length and bytes
-                    const strLen = str.length;
-                    const strBytes = new TextEncoder('utf-8').encode(str);
-
-                    // allocate space and get pointer
-                    const ptr = instance.exports.__str_alloc(strLen);
-
-                    // store length
-                    instance.exports.__str_store_len(ptr, strLen);
-
-                    // Write the string to memory
-                    for (let i = 0; i < strBytes.length; i++) {
-                        instance.exports.__str_store_byte(ptr, 4 + i, strBytes[i]);
-                    }
-                    return ptr;
-                }
-
-                /**
-                 * Function for reading a string from native.
-                 */
-                static read_string_from_native(instance, ptr) {
-                    const length = instance.exports.__str_get_len(ptr);
-
-                    const memoryBuffer = new Uint8Array(instance.exports.memory.buffer, ptr + 4, length);
-
-                    // Decode the string
-                    const decodedString = new TextDecoder('utf-8').decode(memoryBuffer);
-
-                    return decodedString;
-                }
-            }
-
-            function __easyjs_native_call(fnName, paramTypes, returnTypes, ...args) {
-                if (!__easyjs_native_instance) {
-                    throw new Error('No instance of __easyjs_native loaded');
-                }
-
-                if (!__easyjs_native_instance.exports[fnName]) {
-                    throw new Error(`Function ${fnName} not found in __easyjs_native`);
-                }
-
-                if (paramTypes.length !== args.length) {
-                    throw new Error('Number of arguments does not match number of parameters');
-                }
-
-                // go through params and make sure args match type
-                for (let i = 0; i < args.length; i++) {
-                    const arg = args[i];
-                    const paramType = paramTypes[i];
-
-                    switch (paramType) {
-                        case 'string': {
-                        if (typeof arg !== 'string') {
-                            throw new Error(`Argument ${i} is not a string`);
-                        }
-
-                        // this is a string so we need to convert it to a native pointer.
-                        args[i] = __EasyJSNativeInterop.convert_string_to_native(__easyjs_native_instance, args[i])
-                        break;
-                        }
-                        case 'int': {
-                        if (typeof arg !== 'number' || !Number.isInteger(arg)) {
-                            throw new Error(`Argument ${i} is not an integer`);
-                        }
-                        break;
-                        }
-                        case 'float': {
-                        if (typeof arg !== 'number' || isNaN(arg)) {
-                            throw new Error(`Argument ${i} is not a valid float`);
-                        }
-                        break;
-                        }
-                        case 'bool': {
-                        // booleans must be true/false or a number
-                        if (typeof arg !== 'boolean' && typeof arg !== 'number') {
-                            throw new Error(`Argument ${i} is not a valid boolean`);
-                        }
-                        // if true/false convert it to a int
-                        if (typeof arg === 'boolean') {
-                            args[i] = arg == true ? 1 : 0;
-                        } else {
-                            // make sure that the value is 0 or 1
-                            args[i] = arg > 0 ? 1 : 0;
-                        }
-                        break;
-                        }
-                    }
-                }
-
-                let result = __easyjs_native_instance.exports[fnName](...args);
-
-                // match result type
-                // TODO: support multiple return types
-                switch (returnTypes[0]) {
-                    case 'string': {
-                        // get length
-                        result = __EasyJSNativeInterop.read_string_from_native(__easyjs_native_instance, result);
-                        break;
-                    }
-                    case 'int': {
-                        break;
-                    }
-                    case 'float': {
-                        break;
-                    }
-                    case 'bool': {
-                        result = result == 0 ? false : true
-                        break;
-                    }
-                }
-
-                return result;
-            }\n\n
-        ");
+        res.push_str(include_str!("../native_runner.js"));
 
         res
     }
@@ -683,7 +846,8 @@ impl Transpiler {
         ej_type: Option<&ast::Expression>,
         value: ast::Expression,
     ) -> String {
-        let name_string = self.transpile_expression(name.clone());
+        let transpiled_name = self.transpile_expression(name.clone());
+        let name_string = self.namespace.get_obj_name(&transpiled_name);
 
         // check if this already exists in scope
         let mut found = false;
@@ -701,18 +865,28 @@ impl Transpiler {
 
         if !found {
             // check for type
-            let mut easy_type: Option<EasyType> = None;
+            let mut val_type: StrongValType = StrongValType::None;
             if let Some(ej_type) = ej_type {
-                easy_type = Some(EasyType {
-                    type_name: self.transpile_expression(ej_type.to_owned()),
-                });
+                // transpile
+                let type_name = self.transpile_expression(ej_type.to_owned());
+                val_type = get_param_type_by_string_ej(&type_name);
             }
 
+            // Add to scope
             self.scopes.last_mut().unwrap().push(Variable {
                 name: name_string.clone(),
-                is_mutable: true,
-                easy_type,
+                is_mut: true,
+                val_type: val_type.clone(),
             });
+            // Add to namespace if there is only one scope i.e. global scope.
+            if self.scopes.len() == 1 {
+                // Add to namespace
+                self.namespace.variables.push(Variable {
+                    name: name_string.clone(),
+                    is_mut: true,
+                    val_type: val_type,
+                });
+            }
             format!(
                 "let {} = {};\n",
                 name_string,
@@ -875,6 +1049,7 @@ impl Transpiler {
         let has_semicolon = match expression {
             Expression::FunctionLiteral(_, _, _, _, _) => false,
             Expression::DocCommentExpression(_, _) => false,
+            Expression::MacroExpression(_, _, _) => false,
             _ => true,
         };
         let res = self.transpile_expression(expression);
@@ -892,6 +1067,11 @@ impl Transpiler {
     ) -> String {
         let mut res = String::new();
         let mut parsed_mixins = vec![];
+        // Struct namespace holders.
+        let mut struct_params: Vec<Variable> = vec![];
+        let mut struct_variables: Vec<Variable> = vec![];
+        let mut struct_methods: Vec<Function> = vec![];
+        let mut struct_static_methods: Vec<Function> = vec![];
 
         if let Some(mixins) = mixins {
             for mixin in mixins.as_ref().to_owned() {
@@ -901,9 +1081,12 @@ impl Transpiler {
         }
 
         res.push_str("function ");
-        let struct_name = self.transpile_expression(name);
-        self.structs.push(struct_name.clone());
+        let name_transpiled = self.transpile_expression(name);
+        let struct_name = self.namespace.get_obj_name(&name_transpiled);
+
+        // Compile the actual namespaced version.
         res.push_str(&struct_name);
+        // res.push_str(&struct_name);
         res.push_str("(");
 
         let mut struct_vars = vec![];
@@ -912,13 +1095,36 @@ impl Transpiler {
             let vars = vars.as_ref().to_owned();
             for i in 0..vars.len() {
                 let var = &vars[i];
-                let var_name = self.transpile_expression(var.clone());
+                let mut var_name: String;
+                let mut val_type: StrongValType = StrongValType::None;
+                match var {
+                    Expression::Identifier(_, name) => {
+                        var_name = name.to_owned();
+                    }
+                    Expression::IdentifierWithType(_, name, var_type) => {
+                        var_name = name.to_owned();
+                        val_type = get_param_type_by_string_ej(
+                            &self.transpile_expression(var_type.as_ref().to_owned()),
+                        );
+                    }
+                    _ => {
+                        panic!("TODO: some transpiler error for struct variables")
+                    }
+                }
+                // Add to transpilation process. name: value
                 struct_vars.push((var_name.clone(), None));
                 res.push_str(&var_name);
                 // only if it is not the last variable add a comma
                 if i != vars.len() - 1 {
                     res.push_str(", ");
                 }
+
+                // Add to namespace struct params
+                struct_params.push(Variable {
+                    name: var_name,
+                    is_mut: true,
+                    val_type,
+                });
             }
         }
 
@@ -936,10 +1142,30 @@ impl Transpiler {
                 //     res.push_str(format!("{}.{} = {};\n", struct_name, name, value).as_str());
                 // }
                 ast::Statement::VariableStatement(_, name, _, value, _) => {
+                    let mut val_type = StrongValType::None;
+
+                    match name.as_ref() {
+                        Expression::IdentifierWithType(_, _, var_type) => {
+                            val_type = get_param_type_by_string_ej(
+                                &self.transpile_expression(var_type.as_ref().to_owned()),
+                            );
+                        }
+                        _ => {}
+                    }
+
+                    // TODO: infer type automatically
+
                     let name = self.transpile_expression(name.as_ref().to_owned());
                     let value = self.transpile_expression(value.as_ref().to_owned());
 
-                    struct_vars.push((name, Some(value)));
+                    struct_vars.push((name.clone(), Some(value)));
+
+                    // Also add to struct_variable
+                    struct_variables.push(Variable {
+                        name,
+                        is_mut: false,
+                        val_type,
+                    });
                 }
                 _ => {}
             }
@@ -956,13 +1182,23 @@ impl Transpiler {
                 Expression::DocCommentExpression(tk, comments) => {
                     result = self.transpile_doc_comment_expr(tk, comments);
                 }
-                Expression::FunctionLiteral(_, name, params, _, body) => {
+                Expression::FunctionLiteral(_, name, params, return_val_type, body) => {
                     result = (self.transpile_struct_method(
                         &struct_name,
                         cleaned_method_is_static.0,
                         false,
                         cleaned_method_is_static.1,
                     ));
+
+                    let fn_name = &self.transpile_expression(name.as_ref().to_owned());
+                    // Add to struct methods
+                    let function = self.create_namespace_function(fn_name, params, return_val_type);
+
+                    if cleaned_method_is_static.1 {
+                        struct_static_methods.push(function);
+                    } else {
+                        struct_methods.push(function);
+                    }
                 }
                 Expression::AsyncExpression(_, function) => {
                     result = (self.transpile_struct_method(
@@ -971,6 +1207,27 @@ impl Transpiler {
                         true,
                         cleaned_method_is_static.1,
                     ));
+
+                    // Add to struct methods
+                    match function.as_ref() {
+                        Expression::FunctionLiteral(_, name, params, return_type, body) => {
+                            let fn_name = &self.transpile_expression(name.as_ref().to_owned());
+                            let namespace_function = self.create_namespace_function(
+                                fn_name,
+                                params.to_owned(),
+                                return_type.to_owned(),
+                            );
+                            if cleaned_method_is_static.1 {
+                                struct_static_methods.push(namespace_function);
+                            } else {
+                                struct_methods.push(namespace_function);
+                            }
+                        }
+                        _ => {
+                            panic!("Transpiler error: This has to be a function.")
+                        }
+                    }
+                    // let function = self.create_namespace_function(name, params, return_type)
                 }
                 _ => {}
             }
@@ -1017,6 +1274,16 @@ impl Transpiler {
         // close the functoin
         res.push_str("}\n");
         // }\n
+
+        // add struct to namespace
+        self.namespace.structs.push(Struct {
+            name: struct_name,
+            params: struct_params,
+            variables: struct_variables,
+            methods: struct_methods,
+            static_methods: struct_static_methods,
+        });
+
         res
     }
 
@@ -1043,15 +1310,14 @@ impl Transpiler {
 
                 if quote_type == "`" {
                     // extract expressions
-                    let re = Regex::new(r"\$\{([^}]*)\}").unwrap();
-                    let expressions: Vec<String> = re
-                        .captures_iter(&str_value)
-                        .map(|cap| cap[1].to_string())
-                        .collect();
+                    let rp = RuneParser::new(str_value.clone());
+                    let expressions = rp.expressions;
 
                     for expression in expressions {
                         let mut internal_t = Transpiler::new();
-                        internal_t.macros = self.macros.clone();
+                        internal_t.namespace = self.namespace.clone();
+                        internal_t.modules = self.modules.clone();
+
                         let mut response = internal_t.transpile_from_string(expression.clone());
                         response = response.trim().to_string();
                         if response.ends_with(";") {
@@ -1119,18 +1385,20 @@ impl Transpiler {
 
                 res
             }
-            Expression::FunctionLiteral(token, name, paramters, _, body) => {
+            Expression::FunctionLiteral(token, name, paramters, return_type, body) => {
                 let mut res = String::new();
 
-                res.push_str("function ");
-                match name.as_ref().to_owned() {
-                    Expression::Identifier(token, value) => {
-                        self.functions.push(value.clone());
-                        res.push_str(&value);
-                        res.push_str(" (");
-                    }
-                    _ => panic!("Function names must be IDENT."),
+                // add to namespace
+                let fn_name = self.transpile_expression(name.as_ref().to_owned());
+                {
+                    let namespace_function =
+                        self.create_namespace_function(&fn_name, paramters.clone(), return_type);
+                    self.namespace.functions.push(namespace_function);
                 }
+
+                res.push_str(
+                    format!("function {}(", self.namespace.get_obj_name(&fn_name)).as_str(),
+                );
 
                 let ps = paramters.as_ref().to_owned();
                 let joined_params = ps
@@ -1157,94 +1425,27 @@ impl Transpiler {
 
                 // check if name_exp exists in native_ctx
                 let native_fn = self
+                    .namespace
                     .native_ctx
                     .functions
                     .iter()
-                    .find(|f| f.name == name_exp);
+                    .find(|f| f.name == self.namespace.get_obj_name(&name_exp));
                 if native_fn.is_some() {
-                    let native_fn = native_fn.unwrap();
-                    // native call
-                    res.push_str("__easyjs_native_call(");
-                    // add name
-                    res.push_str(format!("'{}',", native_fn.name).as_str());
-
-                    // add param_types
-                    res.push_str("[");
-                    for param_type in native_fn.params.iter() {
-                        res.push_str(format!("'{}'", param_type).as_str());
-                        res.push_str(",");
-                    }
-                    res.push_str("],");
-
-                    // add return types
-                    res.push_str("[");
-                    for return_type in native_fn.returns.iter() {
-                        res.push_str(format!("'{}'", return_type).as_str());
-                        res.push_str(",");
-                    }
-                    res.push_str("]");
-
-                    // check if we need to add a ','
-                    if arguments.as_ref().len() > 0 {
-                        res.push_str(",");
-                    }
+                    res.push_str(&self.transpile_native_function_with_args(
+                        &self.namespace,
+                        &self.namespace.get_obj_name(&name_exp),
+                        arguments.as_ref().to_owned(),
+                    ));
                 } else {
                     res.push_str(&name_exp);
                     res.push_str("(");
                 }
 
                 // parse the args
-                let mut parsed_args = vec![];
-                // the named args if any
-                let mut named_args: Vec<Vec<ast::Expression>> = vec![];
-
-                // keep track if there are named parameters.
-                let mut has_named = false;
-                // ok, double check the arguments
-                for arg in arguments.as_ref().to_owned() {
-                    match arg {
-                        ast::Expression::AssignExpression(_t, left, right) => {
-                            has_named = true;
-                            named_args
-                                .push(vec![left.as_ref().to_owned(), right.as_ref().to_owned()]);
-                        }
-                        _ => {
-                            if has_named {
-                                // this is bad because you can't have non named after named
-                                panic!("Non named parameter after named parameter");
-                            } else {
-                                parsed_args.push(arg);
-                            }
-                        }
-                    }
-                }
-
-                let args = arguments.as_ref().to_owned();
-                let joined_args = parsed_args
-                    .iter()
-                    .map(|p| self.transpile_expression(p.to_owned()))
-                    .collect::<Vec<_>>()
+                let parsed_args = self
+                    .transpile_call_arguments(arguments.as_ref().to_owned())
                     .join(",");
-                res.push_str(&joined_args);
-
-                if (has_named) {
-                    if parsed_args.len() > 0 {
-                        res.push_str(",");
-                    }
-                    res.push_str("{");
-                    for i in 0..named_args.len() {
-                        let arg = &named_args[i];
-                        res.push_str(&self.transpile_expression(arg.first().unwrap().to_owned()));
-                        res.push_str(":");
-                        res.push_str(&self.transpile_expression(arg.last().unwrap().to_owned()));
-
-                        if i < named_args.len() - 1 {
-                            res.push_str(",");
-                        }
-                    }
-                    res.push_str("}");
-                }
-
+                res.push_str(&parsed_args);
                 res.push_str(")");
 
                 res
@@ -1270,15 +1471,34 @@ impl Transpiler {
             Expression::DotExpression(token, left, right) => {
                 let mut res = String::new();
 
-                res.push_str(&self.transpile_expression(left.as_ref().to_owned()));
-                res.push_str(".");
-                let mut r = self.transpile_expression(right.as_ref().to_owned());
+                // Check if the left side transpiled is actually a namespace.
+                let left_side = self.transpile_expression(left.as_ref().to_owned());
 
-                if r.starts_with("(") {
-                    r = r[1..r.len() - 1].to_string();
+                let cloned_modules = self.modules.clone();
+                for namespace in cloned_modules.iter() {
+                    if namespace.has_name(&left_side) {
+                        // It is a namespace!
+                        // There are only 3 possibilities for the right side:
+                        // - A call expression
+                        // - A identifier
+                        // - A dot expression
+                        let new_right = self.convert_namespaced_dot_expression(namespace, &right);
+                        res.push_str(&self.transpile_expression(new_right));
+                    }
                 }
-                res.push_str(&r);
 
+                // Otherwise it is a regular dot expression.
+                if res.len() == 0 {
+                    let right_side = self.transpile_expression(right.as_ref().to_owned());
+                    res.push_str(&left_side);
+                    res.push_str(".");
+                    let mut r = right_side.clone();
+
+                    if r.starts_with("(") {
+                        r = r[1..r.len() - 1].to_string();
+                    }
+                    res.push_str(&r);
+                }
                 res
             }
             Expression::LambdaLiteral(token, paramters, body) => {
@@ -1293,10 +1513,25 @@ impl Transpiler {
                     .join(",");
                 res.push_str(&joined_params);
                 res.push_str(") => {\n");
-                let stmt = self.transpile_stmt(body.as_ref().to_owned());
-                if let Some(stmt) = stmt {
-                    res.push_str(&stmt);
-                }
+                res.push_str(
+                    match body.as_ref() {
+                        Statement::EmptyStatement => String::from(" return undefined; "),
+                        Statement::ExpressionStatement(token, expression) => {
+                            let mut finish = String::from("return ");
+                            let compiled =
+                                self.transpile_expression(expression.as_ref().to_owned());
+                            finish.push_str(&compiled);
+                            finish
+                        }
+                        Statement::BlockStatement(token, statements) => {
+                            let stmt = self.transpile_stmt(body.as_ref().to_owned()).unwrap();
+                            stmt
+                        }
+                        _ => unimplemented!(),
+                    }
+                    .as_str(),
+                );
+
                 res.push_str("}");
 
                 res
@@ -1425,13 +1660,6 @@ impl Transpiler {
             Expression::NotExpression(token, exp) => {
                 format!("!{}", self.transpile_expression(exp.as_ref().to_owned()))
             }
-            Expression::AsExpression(token, left, right) => {
-                format!(
-                    "{} as {}",
-                    self.transpile_expression(left.as_ref().to_owned()),
-                    self.transpile_expression(right.as_ref().to_owned())
-                )
-            }
             Expression::IIFE(_, block) => {
                 format!(
                     "(() => {{\n{}\n}})()",
@@ -1472,46 +1700,61 @@ impl Transpiler {
                 )
             }
             Expression::MacroExpression(_, name, arguments) => {
-                let macro_name = self.transpile_expression(name.as_ref().to_owned());
+                // Check if this has a namespace
+                let mut macro_object: Option<Macro> = None;
+
+                // Check macro namespace is correct, or udapet it
+                let full_macro_name = self.transpile_expression(name.as_ref().to_owned());
+                println!("Full macro name: {full_macro_name}");
+
+                // The macro might already be namespaced, so we need to go through all namespaces
+                // and see if we can catch it.
+                // Starting with the current one
+
+                if let Some(found_macro) = self.namespace.macros.get(&full_macro_name) {
+                    macro_object = Some(found_macro.clone());
+                } else {
+                    if !full_macro_name.starts_with(NAMESPACE_PREFIX) {
+                        return "".to_string();
+                    }
+
+                    for namespace in self.modules.iter() {
+                        if let Some(found_macro) = namespace.macros.get(&full_macro_name) {
+                            macro_object = Some(found_macro.clone());
+                            break;
+                        }
+                    }
+                }
+                if macro_object.is_none() {
+                    return "".to_string();
+                }
+                let macro_object = macro_object.unwrap();
                 let macro_arguments = arguments.as_ref().to_owned();
 
                 // parse the body first.
-                let transpiled_body = if let Some(mac) = self.macros.get(&macro_name) {
-                    // parse the macro body
-                    match &mac.body {
-                        Statement::BlockStatement(tk, stmts) => {
-                            let mut body =
-                                self.transpile_macro_block_stmt(stmts.as_ref().to_owned());
-                            body = body[0..body.len() - 1].to_string();
+                let transpiled_body = match &macro_object.body {
+                    Statement::BlockStatement(tk, stmts) => {
+                        let mut body = self.transpile_macro_block_stmt(stmts.as_ref().to_owned());
+                        // body = body[0..body.len() - 1].to_string();
 
-                            if body.ends_with(';') {
-                                body = body.strip_suffix(';').unwrap().to_string();
-                            }
-
-                            body
+                        if body.ends_with(';') {
+                            body = body.strip_suffix(';').unwrap().to_string();
                         }
-                        _ => "".to_string(),
+
+                        body
                     }
-                } else {
-                    "".to_string()
+                    Statement::ExpressionStatement(tk, macro_expro) => {
+                        self.transpile_expression(macro_expro.as_ref().to_owned())
+                    }
+                    _ => "".to_string(),
                 };
 
-                // check if macro args are empty
-                if macro_arguments.len() == 0 {
-                    if let Some(mac) = self.macros.get(&macro_name) {
-                        return mac.compile(vec![], transpiled_body);
-                    }
-                }
-                let macro_arguments: Vec<String> = macro_arguments
-                    .iter()
-                    .map(|p| self.transpile_expression(p.to_owned()))
-                    .collect::<Vec<String>>();
+                // Check for named macro arguments
+                let macro_arguments = self.transpile_call_arguments(macro_arguments);
 
-                if let Some(mac) = self.macros.get(&macro_name) {
-                    mac.compile(macro_arguments, transpiled_body)
-                } else {
-                    String::from("")
-                }
+                let macro_arguments =
+                    self.lineup_macro_args(macro_arguments, macro_object.paramaters.clone());
+                macro_object.compile(macro_arguments, transpiled_body)
             }
             Expression::SpreadExpression(tk, expression) => {
                 format!(
@@ -1540,22 +1783,14 @@ impl Transpiler {
         let pms = self.join_expressions(params.to_owned());
         let mut parsed_args = vec![];
 
+        let macro_name = self.namespace.get_obj_name(&name);
         for a in pms.split(",") {
             parsed_args.push(a.to_string());
         }
 
-        // let body = match body {
-        //     Statement::BlockStatement(_, stmts) => {
-        //         self.transpile_macro_block_stmt(stmts.as_ref().to_owned())
-        //     }
-        //     _ => "".to_string()
-        // };
-
-        // add the body up to the last ';\n'
-        self.macros.insert(
-            name.to_owned(),
-            Macro::new(name, parsed_args, body), // Macro::new(name, parsed_args, body[0..body.len() - 1].to_string()),
-        );
+        let ej_macro = Macro::new(macro_name.clone(), parsed_args, body);
+        // add to namespace
+        self.namespace.macros.insert(macro_name, ej_macro);
     }
 
     /// Transpile a struct method
@@ -1676,6 +1911,265 @@ impl Transpiler {
             _ => {}
         }
         (method, false)
+    }
+
+    /// Transpile the arguments in a call.
+    ///
+    /// Works for CallExpression and MacroExpression
+    fn transpile_call_arguments(&mut self, arguments: Vec<Expression>) -> Vec<String> {
+        let mut result = vec![];
+        let mut has_named = false;
+        let mut named_params = String::new();
+
+        for i in 0..arguments.len() {
+            let argument = arguments[i].clone();
+            match argument {
+                // Expression::Identifier(tk, name) => {
+                //     if has_named {
+                //         // TODO: better errors
+                //         panic!("Can not have unnmaed after named");
+                //     }
+                //     result.push_str(&name);
+                //     if i < arguments.len() - 1 {
+                //         result.push_str(",");
+                //     }
+                // }
+                Expression::AssignExpression(tk, ident, value) => {
+                    if !has_named {
+                        has_named = true;
+                        named_params.push_str("{");
+                    }
+                    let ident_parsed = self.transpile_expression(ident.as_ref().to_owned());
+                    let value_parsed = self.transpile_expression(value.as_ref().to_owned());
+
+                    named_params.push_str(format!("'{ident_parsed}': {value_parsed},").as_str());
+                }
+                _ => {
+                    if has_named {
+                        // TODO: better errors
+                        panic!("Can not have unnamed after named");
+                    }
+
+                    result.push(self.transpile_expression(argument));
+                }
+            }
+        }
+
+        if has_named {
+            named_params.push_str("}");
+            result.push(named_params);
+        }
+
+        result
+    }
+
+    /// Lineup macro arguments to correctly pass in:
+    ///
+    /// regular arguments
+    /// default paramaters
+    /// n number arguments.
+    fn lineup_macro_args(
+        &self,
+        macro_arguments: Vec<String>,
+        macro_params: Vec<String>,
+    ) -> Vec<String> {
+        let mut result = vec![];
+
+        for (i, param) in macro_params.iter().enumerate() {
+            if param.contains("=") {
+                // This is a default paramater
+                let value = param
+                    .split("=")
+                    .collect::<Vec<&str>>()
+                    .get(1)
+                    .unwrap()
+                    .trim()
+                    .to_string();
+
+                if let Some(macro_param) = macro_arguments.get(i) {
+                    result.push(macro_param.to_owned());
+                } else {
+                    result.push(value);
+                }
+            } else if param.contains("...") {
+                // This is a n number of params
+                let mut n_args = String::new();
+                for j in i..macro_arguments.len() {
+                    n_args.push_str(&macro_arguments.get(j).unwrap().to_string());
+                    if j < macro_arguments.len() - 1 {
+                        n_args.push_str(",");
+                    }
+                }
+                result.push(n_args);
+            } else {
+                if macro_arguments.len() <= i {
+                    result.push(String::from("undefined"));
+                } else {
+                    // Regular
+                    result.push(macro_arguments.get(i).unwrap().to_string());
+                }
+            }
+        }
+        result
+    }
+
+    /// Create a Namespace function from name, params, and return_type
+    fn create_namespace_function(
+        &mut self,
+        name: &String,
+        params: Box<Vec<Expression>>,
+        return_type: Option<Box<Expression>>,
+    ) -> Function {
+        let function_type = {
+            if let Some(return_type) = return_type {
+                get_param_type_by_string_ej(
+                    &self.transpile_expression(return_type.as_ref().to_owned()),
+                )
+            } else {
+                StrongValType::None
+            }
+        };
+
+        let fn_name: String;
+        if !name.contains('.') {
+            fn_name = self.namespace.get_obj_name(name);
+        } else {
+            fn_name = name.to_owned();
+        }
+
+        Function {
+            name: fn_name,
+            params: params
+                .as_ref()
+                .to_owned()
+                .iter()
+                .map(|v| match v {
+                    Expression::Identifier(_, name) => Variable {
+                        name: name.to_owned(),
+                        is_mut: true,
+                        val_type: StrongValType::None,
+                    },
+                    Expression::IdentifierWithType(_, name, type_name) => Variable {
+                        name: name.to_owned(),
+                        is_mut: true,
+                        val_type: get_param_type_by_string_ej(
+                            &self.transpile_expression(type_name.as_ref().to_owned()),
+                        ),
+                    },
+                    _ => {
+                        panic!("Some transpiler error for params in structs.")
+                    }
+                })
+                .collect(),
+            return_type: function_type,
+        }
+    }
+
+    /// Transpile a native function call with arguments.
+    ///
+    /// Arguments can be empty.
+    ///
+    /// Function name MUST ALREADY BE created!!!
+    fn transpile_native_function_with_args(
+        &self,
+        namespace: &Namespace,
+        fn_name: &str,
+        args: Vec<Expression>,
+    ) -> String {
+        let mut res = String::new();
+        // Get native function
+        let native_fn = namespace
+            .native_ctx
+            .functions
+            .iter()
+            .find(|v| v.name == fn_name);
+        if native_fn.is_some() {
+            let native_fn = native_fn.unwrap();
+            res.push_str("__easyjs_native_call(");
+            // add name
+            res.push_str(format!("'{}',", native_fn.name).as_str());
+
+            // add param types
+            res.push_str("[");
+            for param_type in native_fn.params.iter() {
+                res.push_str(&format!(
+                    "'{}'",
+                    get_string_rep_of_type(&param_type.val_type)
+                ));
+                res.push_str(",");
+            }
+            res.push_str("], ");
+
+            // add return types
+            res.push_str("[");
+            res.push_str(format!("'{}'", get_string_rep_of_type(&native_fn.return_type)).as_str());
+            res.push_str("]");
+
+            // Not sure I need this?
+            if args.len() > 0 {
+                res.push_str(",");
+            }
+        }
+
+        res
+    }
+
+    /// Convert a namespaced DotExpression.
+    ///
+    /// This is for when a namespaced dot expressions right side is another dot expression.
+    ///
+    /// We could have:
+    /// import 'c.ej'
+    /// import 'std'
+    ///
+    /// native {
+    ///    fn test() {
+    ///       std.print!(c.variable)
+    ///       // or
+    ///       std.print!(c.method().x)
+    ///    }
+    /// }
+    fn convert_namespaced_dot_expression(
+        &mut self,
+        namespace: &Namespace,
+        expression: &Expression,
+    ) -> Expression {
+        match expression {
+            Expression::Identifier(token, name) => {
+                Expression::Identifier(token.to_owned(), namespace.get_obj_name(name))
+            }
+            Expression::CallExpression(token, name, args) => {
+                let name_as_string = self.transpile_expression(name.as_ref().to_owned());
+                Expression::CallExpression(
+                    token.to_owned(),
+                    Box::new(Expression::Identifier(
+                        name.get_token().to_owned(),
+                        namespace.get_obj_name(&name_as_string),
+                    )),
+                    args.to_owned(),
+                )
+            }
+            Expression::DotExpression(token, left, right) => {
+                let new_left = self.convert_namespaced_dot_expression(namespace, left);
+                Expression::DotExpression(token.to_owned(), Box::new(new_left), right.to_owned())
+            }
+            Expression::AssignExpression(tk, left, right) => {
+                let new_left = self.convert_namespaced_dot_expression(namespace, &left);
+                Expression::AssignExpression(tk.to_owned(), Box::new(new_left), right.to_owned())
+            }
+            Expression::MacroExpression(tk, name, args) => {
+                let name_as_string = self.transpile_expression(name.as_ref().to_owned());
+                Expression::MacroExpression(
+                    tk.to_owned(),
+                    Box::new(Expression::Identifier(
+                        name.get_token().to_owned(),
+                        namespace.get_obj_name(&name_as_string),
+                    )),
+                    args.to_owned(),
+                )
+            }
+            _ => expression.to_owned(),
+        }
     }
 }
 

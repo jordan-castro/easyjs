@@ -1,4 +1,4 @@
-// EasyJS STD version 0.4.2
+// EasyJS STD version 0.4.5
 const AGENTS: &str = r##"// Property of easyjs 
  
 class Agent { 
@@ -24,12 +24,46 @@ macro get_week_day(d) {
 macro is_weekend(d) { 
     [5,6].indexOf(#d.getDay()) != -1 
 }"##;
+const HTML: &str = r##"// A full HTML DSL using macros 
+macro html(elements) { 
+    "<html> 
+        ${#elements} 
+    </html>" 
+} 
+ 
+macro head(elements) { 
+    "<head>${#elements}</head>" 
+} 
+ 
+macro title(title) { 
+    "<title>${#title}</title>" 
+} 
+ 
+macro body(elements, kwargs) { 
+    javascript{ 
+        <body style='${#kwargs?.style ?? ""}'> 
+            #elements 
+        </body> 
+    } 
+} 
+ 
+macro h1(inner, kwargs) { 
+    "<h1 style='${#kwargs.style}'>${#inner}</h1>" 
+} 
+ 
+macro elements(els) { 
+    javascript{ 
+        `${(#els.map(((e) => e)).join('\n'))}` 
+    } 
+} 
+ 
+"##;
 const IO: &str = r##"// File/Directory reading/writing 
  
-import 'std' 
+import 'std' as _ 
  
-@const(fs, require('node:fs')) 
-@const(fs_promises, require('node:fs/promises')) 
+@const(fs = require('node:fs')) 
+@const(fs_promises = require('node:fs/promises')) 
  
 // Read a file 
 macro read_file(file_path, encoding, is_async) { 
@@ -190,7 +224,7 @@ macro last(array) {
     #array[#array.length - 1] 
 } 
  
-macro print(msg) { 
+macro print(...msg) { 
     console.log(#msg) 
 } 
  
@@ -238,9 +272,9 @@ macro decouple(idents, values) {
 } 
  
 // declare a constant variable  
-macro const(ident, value) { 
+macro const(expr) { 
     javascript { 
-        const #ident = #value; 
+        const #expr; 
     } 
 } 
  
@@ -249,7 +283,7 @@ macro run_function(fun) {
 } 
  
 macro sleep(ms) { 
-    @const(func, fn(ms) { 
+    const!(func = fn(ms) { 
         javascript{ 
             return new Promise(resolve => setTimeout(resolve, ms)) 
         } 
@@ -260,7 +294,7 @@ macro sleep(ms) {
  
 // Creates a range 
 macro range(kwargs) { 
-    @run_function(fn() { 
+    run_function!(fn() { 
         start = #kwargs.start 
         end = #kwargs.end 
         step = #kwargs.step ?? 1 
@@ -387,12 +421,12 @@ macro make_capital(str) {
 }"##;
 const SYS: &str = r##"// copywright of easyjs 
  
-import 'std' 
+import 'std' as _ 
  
 /// Command line args that do not include the file_name or runtime 
-@const(args, process.argv.slice(2, process.argv.length)) 
+@const(args = process.argv.slice(2, process.argv.length)) 
 /// File name 
-@const(file_name, process.argv[1]) 
+@const(file_name = process.argv[1]) 
  
 /// Execute a shell command. 
 macro exec(command) { 
@@ -403,18 +437,18 @@ macro exec(command) {
         // use exec 
         if ___runtime == 'deno' { 
             split_command = #command.split(' ') 
-            @const(command, new Deno.command(split_command[0], { 
+            @const(command = new Deno.command(split_command[0], { 
                 args: [ 
                     ...split_command[1..] 
                 ] 
             })) 
-            @const(result, await command.output()) 
+            @const(result = await command.output()) 
             err = result.code 
             stdout = result.stdout 
             stderr = result.stderr 
         } else { 
             // We use node otherwise 
-            @const({exec}, require('child_process')) 
+            @const({exec} = require('child_process')) 
  
             exec(#command, fn(e, so, se) { 
                 err = e 
@@ -427,11 +461,12 @@ macro exec(command) {
     })() 
 }"##;
 
-/// Load a STD library from EasyJS version 0.4.2, or an empty string if not found.
+/// Load a STD library from EasyJS version 0.4.5, or an empty string if not found.
 pub fn load_std(name: &str) -> String {
 	match name {
 		"agents" => AGENTS,
 		"date" => DATE,
+		"html" => HTML,
 		"io" => IO,
 		"malloc" => MALLOC,
 		"math" => MATH,

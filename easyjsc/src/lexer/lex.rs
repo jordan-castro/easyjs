@@ -94,26 +94,74 @@ impl Lex {
         }
     }
 
+    /// Read a runes contents seperately
+    fn read_rune(&mut self) -> String {
+        if self.current_char != '{' {
+            "".to_string()
+        } else {
+            let mut rune = String::new();
+            let mut brace_count = 1;
+            while brace_count > 0 && !self.is_eof() {
+                if self.current_char != '\\' && self.peek_char() == '{' {
+                    brace_count += 1;
+                }
+
+                if self.current_char == '\\' && self.peek_char() == '}' {
+                    rune.push(self.current_char); // consume \
+                    self.read_char(); // go to }
+                    rune.push(self.current_char); // conusme }
+                    self.read_char();
+                }
+
+                if self.current_char != '\\' && self.peek_char() == '}' {
+                    brace_count -= 1;
+                }
+
+                rune.push(self.current_char);
+                self.read_char();
+            }
+
+            rune
+        }
+    }
+
     /// Read a string from '' to ""
     fn read_string(&mut self, cs: char) -> String {
         // Go to next char to not be stuck in the "
         self.read_char();
 
         let mut result = String::new();
+        let mut run = 0;
 
         // go until end of statement.
         while self.current_char != cs && !self.is_eof() {
+            // Check if is a rune
+            if (self.current_char != '\\' && self.peek_char() == '$') || (run == 0 && self.current_char == '$') {
+                if run > 0 {
+                    result.push(self.current_char); // consume whatever this char is
+                    println!("{}", self.current_char);
+                    self.read_char();
+                }
+                result.push(self.current_char); // consume $
+                self.read_char();
+
+                let rune = self.read_rune();
+                result.push_str(&rune);
+                continue;
+            }
+
             // check for an escaped quote.
             if self.current_char == '\\' && (self.peek_char() == '"' || self.peek_char() == '\'') {
                 result.push(self.current_char);
                 // move pass the backslash
                 self.read_char();
-                continue;
             }
 
             // add the current character to the result string
             result.push(self.current_char);
             self.read_char();
+
+            run += 1;
         }
 
         result

@@ -2,12 +2,12 @@ use wasm_encoder::{BlockType, Function, Instruction, MemArg, TypeSection, ValTyp
 
 use crate::{
     emitter::builtins::{
-        ALLOCATE_STRING_IDX, ALLOCATE_STRING_NAME, GLOBAL_STRING_IDX, STORE_STRING_LENGTH_IDX,
+        ALLOCATE_STRING_IDX, ALLOCATE_STRING_NAME, GLOBAL_HEAP_IDX, STORE_STRING_LENGTH_IDX,
         STORE_STRING_LENGTH_NAME, STR_CHAR_CODE_AT_IDX, STR_CHAR_CODE_AT_NAME, STR_CONCAT_IDX,
         STR_CONCAT_NAME, STR_GET_LEN_IDX, STR_GET_LEN_NAME, STR_INDEX_IDX, STR_INDEX_NAME,
         STR_STORE_BYTE_IDX, STR_STORE_BYTE_NAME,
     },
-    new_function_with_instructions, set_string_byte_in_loop,
+    new_function_with_instructions, set_string_byte_in_loop, typechecker::StrongValType,
 };
 
 use super::{
@@ -16,7 +16,6 @@ use super::{
         set_local_to_global,
     },
     signatures::{EasyNativeFN, FunctionSignature},
-    utils::StrongValType,
 };
 
 // /// Generate a Native function for concating 2 strings together.
@@ -33,7 +32,7 @@ pub fn allocate_string() -> EasyNativeFN {
     let mut instructions = vec![];
 
     // set ptr to GLOBAL_STRING_IDX
-    instructions.append(&mut set_local_to_global(1, GLOBAL_STRING_IDX));
+    instructions.append(&mut set_local_to_global(1, GLOBAL_HEAP_IDX));
 
     // get length of string
     instructions.append(&mut get_local(0));

@@ -1,12 +1,13 @@
 use crate::commands::compile;
-use easy_utils::utils;
-use easyjsr::EasyJSR;
+use easyjs_utils::utils;
+// use easyjsr::EJR;
 use std::{
     io::{BufRead, BufReader, Read, Write},
     process::{Child, ChildStdout, Command, Stdio},
     thread::sleep,
     time::Duration,
 };
+use crate::repl::easyjsr::EasyJSR;
 // use easyjsr::run_js;
 
 const EASY_JS_CONSTANT: &str = "001101";
@@ -41,7 +42,7 @@ impl InternalRuntime {
     pub fn new(crash_on_error: bool) -> InternalRuntime {
         InternalRuntime {
             crash_on_error,
-            runtime: EasyJSR::new().expect("Could not load easyjsr."),
+            runtime: EasyJSR::new(),
         }
     }
 }
@@ -82,7 +83,7 @@ impl Runtime {
 
 impl RT for InternalRuntime {
     fn send_command(&mut self, command: &str) -> Vec<String> {
-        self.runtime.run_js(command);
+        self.runtime.run(command);
         vec![]
     }
 
@@ -156,9 +157,8 @@ pub fn run_file(runtime: &str, path: &str, arguments: Vec<String>) {
             child.wait().expect("FAILED TO WAIT ON BUN");
         }
         "easyjsr" => {
-            let mut rt = EasyJSR::new().expect("Could not create easyjs runtime.");
-            rt.run_js(&js_content)
-                .expect("Could not run js code with easyjs runtime.");
+            let mut rt = EasyJSR::new();
+            rt.run_file(&js_content, path);
         }
         _ => {
             println!(
@@ -173,6 +173,6 @@ pub fn create_runtime(runtime: &str, crash_on_error: bool) -> Box<dyn RT> {
     match runtime {
         "easyjsr" => Box::new(InternalRuntime::new(crash_on_error)),
         "node" | "deno" => Box::new(Runtime::new(runtime, crash_on_error)),
-        _ => panic!("Unsupported runtime: {runtime}")
+        _ => panic!("Unsupported runtime: {runtime}"),
     }
 }

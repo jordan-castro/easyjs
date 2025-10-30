@@ -1,44 +1,44 @@
 use crate::{compiler::transpile::Transpiler, lexer::lex, parser::par, std};
-use easy_utils::utils::reader::read_file;
+use easyjs_utils::utils::reader::read_file;
 
 pub const INT_RANGE: &str = "int_range";
 
-/// EasyJS builtin include
-/// 
-/// Includes a easyjs file that becomed modulirazed as 
-/// const file_name = {
-///     file module...
-/// }
-/// 
-pub fn include(file_path_param: &str, transpiler: &mut Transpiler) -> String {
-    // parse the file path
-    let binding = file_path_param.replace("'", "").replace("\"", "");
+// /// EasyJS builtin include
+// /// 
+// /// Includes a easyjs file that becomed modulirazed as 
+// /// const file_name = {
+// ///     file module...
+// /// }
+// /// 
+// pub fn include(file_path_param: &str, transpiler: &mut Transpiler) -> String {
+//     // parse the file path
+//     let binding = file_path_param.replace("'", "").replace("\"", "");
 
-    let contents : String;
-    let file_path : String;
+//     let contents : String;
+//     let file_path : String;
 
-    // check if binding includes a ":"
-    if binding.contains(":") {
-        // this could be a core module
-        let core_module = binding.split(":").collect::<Vec<_>>()[1];
-        // file path
-        file_path = core_module.to_string();
-        // check with std
-        contents = std::load_std(core_module);
-    } else {
-        file_path = binding;
-        // read the file
-        contents = read_file(&file_path);
-    }
+//     // check if binding includes a ":"
+//     if binding.contains(":") {
+//         // this could be a core module
+//         let core_module = binding.split(":").collect::<Vec<_>>()[1];
+//         // file path
+//         file_path = core_module.to_string();
+//         // check with std
+//         contents = std::load_std(core_module);
+//     } else {
+//         file_path = binding;
+//         // read the file
+//         contents = read_file(&file_path);
+//     }
 
-    // get an AST from the contents
-    // create a lexer
-    let lexer = lex::Lex::new_with_file(contents, file_path.to_string());
-    // create a parser
-    let mut parser = par::Parser::new(lexer);
-    // parse the program
-    let program = parser.parse_program();
-    let result = transpiler.transpile_module(program);
+//     // get an AST from the contents
+//     // create a lexer
+//     let lexer = lex::Lex::new_with_file(contents, file_path.to_string());
+//     // create a parser
+//     let mut parser = par::Parser::new(lexer);
+//     // parse the program
+//     let program = parser.parse_program();
+//     let result = transpiler.transpile_module(program);
 
-    result
-}
+//     result
+// }

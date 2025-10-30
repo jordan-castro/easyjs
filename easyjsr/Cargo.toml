@@ -1,8 +1,18 @@
 [package]
 name = "easyjsr"
-version = "0.1.0"
+version = "0.4.5"
 edition = "2024"
+license = "Apache-2.0"
+keywords = ["javascript", "runtime", "language"]
+description = "easyjs internal JS runtime"
+homepage = "https://jordanmcastro.com/easyjs"
+repository = "https://github.com/jordan-castro/easyjs"
+readme = "README.md"
 
 [dependencies]
-rquickjs = "=0.9.0"
 tokio = { version = "1.45.1", features = ["full"] }
+lazy_static = "1.5.0"
+bindgen = "0.71.0"
+
+[build-dependencies]
+cc = "1.2.38"

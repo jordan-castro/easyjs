@@ -3,3 +3,5 @@ native {
         return n1 + n2
     }
 }
+
+test = add(1,2)

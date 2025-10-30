@@ -1,0 +1,6 @@
+// This script will compile into <html><p>Hello World</p></html>
+macro TEST(text) {
+    "<html><p>$#text</p></html>"
+}
+
+@TEST("Your mom")
