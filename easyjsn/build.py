@@ -20,6 +20,7 @@ cmd += ' -OReleaseSmall'
 print(cmd.split(' '))
 
 subprocess.call(cmd.split(' '))
-if os.path.exists('./easyjsn.wasm'):
-    os.remove('./easyjsn.wasm')
-os.rename('./root.wasm', './easyjsn.wasm')
+PATH = "../easyjsc/easyjsn.wasm"
+if os.path.exists(PATH):
+    os.remove(PATH)
+os.rename('./root.wasm', PATH)

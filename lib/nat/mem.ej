@@ -1,0 +1,44 @@
+import "nat/std.ej"
+
+native {
+    /// Global heap
+    pub heap = 1024
+    /// Global Page size 
+    pub page_size = 65536
+    /// Global nullptr
+    pub nullptr = 0
+
+    /// Int type
+    pub IntType = 1
+    /// Float type
+    pub FloatType = 2
+    /// String type
+    pub StringType = 3
+    /// Array type
+    pub ArrayType = 4
+    /// Dict type
+    pub DictType = 5
+    /// Struct type
+    pub StructType = 6
+
+    /// Allocate something on the heap.
+    pub fn malloc(size:int):int {
+        ptr = heap
+        heap += size
+        return ptr
+    } 
+
+    /// Set variable type
+    pub fn set_type(ptr:int, var_type:int) {
+        set_ptr(ptr, var_type)
+    }
+
+    /// Get variable type
+    pub fn get_type(ptr:int):int {
+        if ptr == nullptr {
+            return nullptr
+        }
+
+        get_ptr(ptr)
+    }
+}

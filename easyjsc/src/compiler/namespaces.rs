@@ -149,8 +149,7 @@ impl Namespace {
 
     /// Check if this namespace has said name
     pub fn has_name(&self, name: &String) -> bool {
-        if &self.alias == name || self.id.split('.').collect::<Vec<&str>>().first().unwrap() == name
-        {
+        if &self.alias == name {
             true
         } else {
             false

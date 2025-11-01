@@ -1,0 +1,9 @@
+native {
+    pub fn set_ptr(position:int, value:int) {
+        __i32_store(value, position, 0)
+    }
+
+    pub fn get_ptr(position:int):int {
+        __i32_load(position, 0)
+    }
+}

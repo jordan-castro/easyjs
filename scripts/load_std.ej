@@ -1,8 +1,11 @@
 // This script takes the .ej files from lib directory and places them in the rust std
 // directory as strings. This will replace all current code in src/std/mod.rs
 
-import 'io'
 import 'std'
+
+javascript {
+    import { File, Dir } from "ejr:io.js";
+}
 
 fn clean_file_contents(contents) {
     ncontents = contents.replaceAll('\t', ' ')
@@ -12,7 +15,7 @@ fn clean_file_contents(contents) {
 }
 
 fn glob_files(dir_path, file_ending) {
-    contents = @read_dir(dir_path, false)
+    contents = Dir.read_sync(dir_path, false)
 
     files = []
 
@@ -25,7 +28,7 @@ fn glob_files(dir_path, file_ending) {
     return files
 }
 
-version = @read_file('lib/version', 'utf8', false)
+version = File.read_sync('lib/version', 'utf8')
 
 lib_files = glob_files('lib/', '.ej')
 

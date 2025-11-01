@@ -264,8 +264,7 @@ impl Transpiler {
         let mut t = Transpiler::new();
         t.is_module = true;
         // Clean the filename
-        let cleaned_file_name = sanatize::get_filename_without_extension(file_name);
-        t.namespace.id = cleaned_file_name;
+        t.namespace.id = file_name;
         t.namespace.alias = alias.to_string();
 
         // Transpile the code now.
@@ -275,7 +274,7 @@ impl Transpiler {
         self.modules.push(t.namespace.clone());
 
         // Check if this namespace goes into global scope
-        if alias == "_" {
+        if alias.len() == 0 {
             self.namespace.variables.extend(t.namespace.variables);
             // also extend variable scope
             if let (Some(self_inner), Some(t_inner)) = (self.scopes.get_mut(0), t.scopes.get(0)) {

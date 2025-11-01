@@ -34,8 +34,7 @@ use crate::{
     },
 };
 use wasm_encoder::{
-    BlockType, ConstExpr, ExportKind, Function, FunctionSection, GlobalType, Instruction,
-    MemorySection, MemoryType, Module, TypeSection, ValType,
+    BlockType, ConstExpr, ExportKind, Function, FunctionSection, GlobalType, Instruction, MemorySection, MemoryType, Module, RawSection, SectionId, TypeSection, ValType
 };
 
 /// Get the left side idx from a InfixExpression.
@@ -85,20 +84,17 @@ macro_rules! generate_n_assign_instructions {
     }};
 }
 
-// "int" => {
-//     let (is_global, left_idx) = get_left_side_idx!(left);
-//     if is_global {
-//         instructions.append(&mut vec![
-//             Instruction::I32Add,
-//             Instruction::GlobalSet(left_idx as u32)
-//         ]);
-//     } else {
-//         instructions.append(&mut vec![
-//             Instruction::I32Add,
-//             Instruction::LocalSet(left_idx as u32)
-//         ]);
-//     }
-// }
+/// For adding the raw binary from easyjsn.wasm
+macro_rules! add_raw_binary {
+    ($module:expr, $reader:expr, $section:expr) => {{
+        let range = $reader.range();
+        let raw = &bytes[range.start..range.end];
+        $module.section(&RawSection {
+            id: $section,
+            data: raw.to_vec()
+        });
+    }};
+}
 
 /// easyjs native is a bare bones language feature. Think of it as C for the web.
 /// To use easyjs native features, wrap your easyjs code in a native block like so:
@@ -157,31 +153,37 @@ pub fn compile_native(
     ctx.namespace = module_namespace.clone();
     ctx.imported_modules = imported_modules.clone();
 
-    // Builtin functions
-    let mut builtin_fns = vec![
-        // STRING METHODS
-        allocate_string(),
-        store_string_length(),
-        native_str_store_byte(),
-        native_str_get_len(),
-        native_str_concat(),
-        native_str_index(),
-        native_str_char_code_at(),
-        // ARRAY METHODS
-        native_allocate_array(),
-        native_arr_store_length(),
-        native_arr_store_capacity(),
-        native_arr_get_len(),
-        native_arr_get_cap(),
-        native_arr_reallocate(),
-        native_arr_push_int(),
-        native_arr_push_float(),
-        native_arr_push_string(),
-        native_arr_push_array(),
-        native_arr_get_item()
-    ];
-    // add to native context.
-    ctx.functions.append(&mut builtin_fns);
+    // Parse easyjsn
+    let bytes = include_bytes!("../../easyjsn.wasm");
+
+    // Setup WASM module
+    let mut module = wasm_encoder::Module::new();
+
+    // // Builtin functions
+    // let mut builtin_fns = vec![
+    //     // STRING METHODS
+    //     allocate_string(),
+    //     store_string_length(),
+    //     native_str_store_byte(),
+    //     native_str_get_len(),
+    //     native_str_concat(),
+    //     native_str_index(),
+    //     native_str_char_code_at(),
+    //     // ARRAY METHODS
+    //     native_allocate_array(),
+    //     native_arr_store_length(),
+    //     native_arr_store_capacity(),
+    //     native_arr_get_len(),
+    //     native_arr_get_cap(),
+    //     native_arr_reallocate(),
+    //     native_arr_push_int(),
+    //     native_arr_push_float(),
+    //     native_arr_push_string(),
+    //     native_arr_push_array(),
+    //     native_arr_get_item()
+    // ];
+    // // add to native context.
+    // ctx.functions.append(&mut builtin_fns);
     // update function_idx
     ctx.next_fn_idx = ctx.functions.len() as u32;
 
@@ -204,10 +206,7 @@ pub fn compile_native(
         // only return the first error
         return Err(ctx.errors[0].clone());
     }
-
-    // Setup WASM modules
-    let mut module = wasm_encoder::Module::new();
-
+    let mut type_section = TypeSection::new();    
     // create function section here to add types correctly.
     let mut function_section = wasm_encoder::FunctionSection::new();
     // Type Section (Defines function signatures)
