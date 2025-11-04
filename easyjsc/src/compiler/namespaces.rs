@@ -130,17 +130,7 @@ impl Namespace {
     ///
     /// Works with variables, functions, structs, and macros.
     pub fn get_obj_name(&self, obj_name: &String) -> String {
-        if self.alias.is_empty() {
-            if self.id.is_empty() {
-                obj_name.to_string()
-            } else {
-                format!(
-                    "{NAMESPACE_PREFIX}{}_{}",
-                    self.id.split('.').collect::<Vec<&str>>().first().unwrap(),
-                    obj_name
-                )
-            }
-        } else if self.alias == "_" {
+        if self.alias.is_empty() || self.alias == "_" {
             obj_name.to_string()
         } else {
             format!("{NAMESPACE_PREFIX}{}_{}", self.alias, obj_name)

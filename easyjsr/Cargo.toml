@@ -10,9 +10,8 @@ repository = "https://github.com/jordan-castro/easyjs"
 readme = "README.md"
 
 [dependencies]
-tokio = { version = "1.45.1", features = ["full"] }
 lazy_static = "1.5.0"
-bindgen = "0.71.0"
 
 [build-dependencies]
+bindgen = "0.71.0"
 cc = "1.2.38"

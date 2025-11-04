@@ -1,0 +1,15 @@
+class File {
+    pub fn read(file_path:string):string {
+        return __ejr_file_read(file_path)
+    }
+
+    pub fn write(file_path:string, contents:string, encoding:string='utf-8') {
+        __ejr_file_write(file_path, contents, encoding)
+    }
+}
+
+class Dir {
+    pub fn read(dir_path:string):string {
+        return __ejr_dir_read(dir_path)
+    }
+}

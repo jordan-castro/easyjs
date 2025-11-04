@@ -1,5 +1,6 @@
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::env;
 
 /// Collect all files with a given extension in a directory (non-recursive).
 fn collect_files(dir: &Path, ext: &str) -> Vec<PathBuf> {
@@ -15,7 +16,39 @@ fn collect_files(dir: &Path, ext: &str) -> Vec<PathBuf> {
     files
 }
 
+fn build_bindings() {
+    let include_dir = env::var("EJR_INCLUDE_DIR").unwrap_or_default();
+    // Gen rust bindings    
+    let wrapper_header = "include/wrapper.h";
+    if !Path::new(wrapper_header).exists() {
+        panic!("wrapper.h not found in include/");
+    }
+    let out_path = "bindings.rs";
+
+    if !include_dir.is_empty() {
+        let bindings = bindgen::Builder::default()
+            .header(wrapper_header)
+            .parse_callbacks(Box::new(bindgen::CargoCallbacks))
+            .generate()
+            .expect("Unable to generate bindings with bindgen");
+        
+        bindings.write_to_file(&out_path).expect("Could not write bindings!");
+    } else {
+        let bindings = bindgen::Builder::default()
+            .header(wrapper_header)
+            .clang_arg(format!("-I{include_dir}"))
+            .parse_callbacks(Box::new(bindgen::CargoCallbacks))
+            .generate()
+            .expect("Unable to generate bindings with bindgen");
+        
+        bindings.write_to_file(&out_path).expect("Could not write bindings!");
+
+    }
+}
+
 fn main() {
+    build_bindings();
+    
     // Paths under ejr_lib
     let include_dir = PathBuf::from("ejr_lib/include");
     let src_dir = PathBuf::from("ejr_lib/src");

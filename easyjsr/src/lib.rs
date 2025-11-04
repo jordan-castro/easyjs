@@ -102,6 +102,12 @@ pub struct JSMethod {
     method: RustCallbackFn,
 }
 
+impl JSMethod {
+    pub fn new(name:&str, method: RustCallbackFn) -> Self {
+        JSMethod { name: name.to_string(), method }
+    }
+}
+
 /// Runtime context
 struct RuntimeContext {
     opaque_map: HashMap<u32, OpaqueObject>,
@@ -188,9 +194,33 @@ pub fn str_to_cstr(val: &str) -> CString {
     CString::new(val).expect("Could not convert val into cString")
 }
 
+/// Convert a C string into a Rust string.
 pub fn cstr_to_string(val: *mut i8) -> String {
     unsafe {
         CStr::from_ptr(val).to_string_lossy().into_owned()
+    }
+}
+
+/// Get a String from a JSArg.
+pub fn jsarg_as_string(jsarg: *mut ejr::JSArg) -> Option<String> {
+    let arg = derefernce_jsarg(&jsarg);
+    if arg.type_ != JSArgType::String.c_val() {
+        return None;
+    }
+
+    unsafe {
+        Some(cstr_to_string(arg.value.str_val.cast_mut()))
+    }
+}
+
+/// Get a Int from a JSArg.
+pub fn jsarg_as_int(jsarg: *mut ejr::JSArg) -> Option<i32> {
+    let arg = derefernce_jsarg(&jsarg);
+    if arg.type_ != JSArgType::Int.c_val() {
+        return None;
+    }
+    unsafe {
+        Some(arg.value.int_val)
     }
 }
 
@@ -358,6 +388,15 @@ pub fn jsarg_null() -> *mut ejr::JSArg {
 pub fn jsarg_undefined() -> *mut ejr::JSArg {
     unsafe {
         ejr::jsarg_undefined()
+    }
+}
+
+/// Create a JSArg value of Exception
+pub fn jsarg_exception(message: &str, name: &str) -> *mut ejr::JSArg {
+    let c_message = str_to_cstr(message);
+    let c_name = str_to_cstr(name);
+    unsafe {
+        ejr::jsarg_exception(c_message.as_ptr(), c_name.as_ptr())
     }
 }
 

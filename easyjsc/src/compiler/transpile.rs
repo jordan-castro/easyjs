@@ -264,7 +264,7 @@ impl Transpiler {
         let mut t = Transpiler::new();
         t.is_module = true;
         // Clean the filename
-        t.namespace.id = file_name;
+        t.namespace.id = file_name.to_string();
         t.namespace.alias = alias.to_string();
 
         // Transpile the code now.
@@ -484,7 +484,7 @@ impl Transpiler {
         &mut self,
         class_name: &String,
         stmt: &Statement,
-        is_pub: bool,
+        is_pub: bool
     ) -> String {
         match stmt {
             Statement::ExportStatement(_, stmt) => {
@@ -590,6 +590,20 @@ impl Transpiler {
                         result.push_str(&tf.trim()[8..]);
                         result.push('\n');
                         result
+                    }
+                    Expression::AsyncExpression(tk, expr) => {
+                        let response = self.transpile_internal_class_stmt(
+                            class_name, 
+                            &Statement::ExpressionStatement(tk.to_owned(), expr.to_owned()), 
+                            is_pub, 
+                        );
+
+                        // Add async if expr was compiled
+                        if response.len() > 0 {
+                            format!("async {response}")
+                        } else {
+                            String::from("")
+                        }
                     }
                     _ => {
                         return String::from("");
@@ -1704,7 +1718,6 @@ impl Transpiler {
 
                 // Check macro namespace is correct, or udapet it
                 let full_macro_name = self.transpile_expression(name.as_ref().to_owned());
-                println!("Full macro name: {full_macro_name}");
 
                 // The macro might already be namespaced, so we need to go through all namespaces
                 // and see if we can catch it.
