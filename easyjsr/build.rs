@@ -2,6 +2,16 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::env;
 
+/// Get the CWD of the crate
+fn join_on_easyjr_dir(path_to_join: &str) -> String {
+    let mut base = env!("CARGO_MANIFEST_DIR").to_string();
+    base = base.replace("\\", "/");
+    base.push('/');
+    base.push_str(path_to_join);
+
+    base
+} 
+
 /// Collect all files with a given extension in a directory (non-recursive).
 fn collect_files(dir: &Path, ext: &str) -> Vec<PathBuf> {
     let mut files = Vec::new();
@@ -18,12 +28,14 @@ fn collect_files(dir: &Path, ext: &str) -> Vec<PathBuf> {
 
 fn build_bindings() {
     let include_dir = env::var("EJR_INCLUDE_DIR").unwrap_or_default();
-    // Gen rust bindings    
-    let wrapper_header = "include/wrapper.h";
+    let include_dir = join_on_easyjr_dir(&include_dir);
+    // Gen rust bindings
+    let wrapper_header = join_on_easyjr_dir("include/wrapper.h");
+    let wrapper_header = wrapper_header.as_str();
     if !Path::new(wrapper_header).exists() {
         panic!("wrapper.h not found in include/");
     }
-    let out_path = "bindings.rs";
+    let out_path = join_on_easyjr_dir("bindings.rs");
 
     if !include_dir.is_empty() {
         let bindings = bindgen::Builder::default()
@@ -47,13 +59,13 @@ fn build_bindings() {
 }
 
 fn main() {
-    build_bindings();
+    // build_bindings();
     
     // Paths under ejr_lib
-    let include_dir = PathBuf::from("ejr_lib/include");
-    let src_dir = PathBuf::from("ejr_lib/src");
-    let lib_dir = PathBuf::from("ejr_lib/lib");
-    let source_dir = PathBuf::from("ejr_lib/");
+    let include_dir = PathBuf::from(join_on_easyjr_dir("ejr_lib/include"));
+    let src_dir = PathBuf::from(join_on_easyjr_dir("ejr_lib/src"));
+    let lib_dir = PathBuf::from(join_on_easyjr_dir("ejr_lib/lib"));
+    let source_dir = PathBuf::from(join_on_easyjr_dir("ejr_lib/"));
 
     // Collect source files
     let cpp_sources = collect_files(&src_dir, "cpp");

@@ -59,14 +59,11 @@
 - v0.5.0 Fix to call super() always in classes
 
 ## Runtime
-- ~~Use ejr instead.~~
-- ~~v0.5.0 Update to use jsarg_make_list and jsarg_free_all instaed of creating *mut *mut~~
-- ~~update text_encoder.js to text_encoder.ej~~
 - Write Wasm Imp
   - strings
     - https://www.w3schools.com/js/js_string_methods.asp
     - tests
-- ~~Fix console issue.~~
+- Fix io
 
 ## Commands
 - v0.5.0 Remove the install command. Keep that with ezpkg.
@@ -77,7 +74,7 @@
 - v0.4.6 A
 
 ## Native (WASM)
-- v0.4.6 WASM runtime in zig.
+- v0.4.6 WASM runtime in native.
 - v0.4.x Additions
   - instruction generator
   - smart memory

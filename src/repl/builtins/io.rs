@@ -49,7 +49,6 @@ fn dir_read(args: Vec<JSArg>, op: &OpaqueObject) -> JSArgResult {
         if entries.is_err() {
             let err = entries.err().unwrap();
             return rust_error_exception!(err);
-            // return Some(jsarg_exception(err.to_string().as_str(), "RuntimeException"));
         }
         let entries = entries.expect("Could not get entries");
         for entry in entries {

@@ -1,6 +1,6 @@
 use easyjsr::{EJR, derefernce_jsarg, jsarg_as_string};
 
-use crate::repl::builtins::{console::include_console, text_decoder::include_text_decoder, text_encoder::include_text_encoder};
+use crate::repl::builtins::{console::include_console, text_decoder::include_text_decoder, text_encoder::include_text_encoder, io::include_io};
 
 pub struct EasyJSR {
     ejr: EJR,
@@ -18,6 +18,7 @@ impl EasyJSR {
         include_console(&mut s.ejr);
         include_text_encoder(&mut s.ejr);
         include_text_decoder(&mut s.ejr);
+        include_io(&mut s.ejr);
 
         s
     }

@@ -1,3 +1,7 @@
+javascript {
+    import 'ejr:io';
+}
+
 class File {
     pub fn read(file_path:string):string {
         return __ejr_file_read(file_path)

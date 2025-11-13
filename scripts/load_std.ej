@@ -6,10 +6,6 @@
 import 'std'
 print!('test')
 
-javascript {
-    import { * } from "ejr:io";
-}
-
 File.write('test.js', '// Hello Jordan!')
 
 fn clean_file_contents(contents) {

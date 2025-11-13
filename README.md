@@ -1,7 +1,7 @@
 # easyjs
 easyjs is a general purpose programming language that compiles to JS and WASM.
-I've never been a fan of JS but it has a huge ecosystem and runs natively in the browser.
-JS algondside with WASM, Macros, and types can be really powerful.
+JavaScript has a huge ecosystem and runs natively in the browser.
+JS algondside with WASM, Macros, and types becomes really powerful.
 
 ## ECMAScript version
 Easyjs uses the ECMAScript 2020 version (ES11). 
