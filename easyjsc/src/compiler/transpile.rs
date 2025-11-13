@@ -585,6 +585,10 @@ impl Transpiler {
                         );
                         // Transpile the function but just removed the `function` keyword from the beginning
                         let tf = self.transpile_expression(function);
+                        // Add static
+                        if is_static {
+                            result.push_str("static ");
+                        }
                         // Remove 'function'
                         // FUNCTION = 8 len
                         result.push_str(&tf.trim()[8..]);
@@ -1108,22 +1112,8 @@ impl Transpiler {
             let vars = vars.as_ref().to_owned();
             for i in 0..vars.len() {
                 let var = &vars[i];
-                let mut var_name: String;
-                let mut val_type: StrongValType = StrongValType::None;
-                match var {
-                    Expression::Identifier(_, name) => {
-                        var_name = name.to_owned();
-                    }
-                    Expression::IdentifierWithType(_, name, var_type) => {
-                        var_name = name.to_owned();
-                        val_type = get_param_type_by_string_ej(
-                            &self.transpile_expression(var_type.as_ref().to_owned()),
-                        );
-                    }
-                    _ => {
-                        panic!("TODO: some transpiler error for struct variables")
-                    }
-                }
+                let (var_name, val_type, default_value) = self.transpile_function_paramater(var);
+
                 // Add to transpilation process. name: value
                 struct_vars.push((var_name.clone(), None));
                 res.push_str(&var_name);
@@ -1761,7 +1751,6 @@ impl Transpiler {
                     _ => "".to_string(),
                 };
 
-                // Check for named macro arguments
                 let macro_arguments = self.transpile_call_arguments(macro_arguments);
 
                 let macro_arguments =
@@ -1927,52 +1916,53 @@ impl Transpiler {
 
     /// Transpile the arguments in a call.
     ///
-    /// Works for CallExpression and MacroExpression
+    /// Works for CallExpression
     fn transpile_call_arguments(&mut self, arguments: Vec<Expression>) -> Vec<String> {
-        let mut result = vec![];
-        let mut has_named = false;
-        let mut named_params = String::new();
+        arguments.iter().map(|v| self.transpile_expression(v.to_owned())).collect()
+        // let mut result = vec![];
+        // let mut has_named = false;
+        // let mut named_params = String::new();
 
-        for i in 0..arguments.len() {
-            let argument = arguments[i].clone();
-            match argument {
-                // Expression::Identifier(tk, name) => {
-                //     if has_named {
-                //         // TODO: better errors
-                //         panic!("Can not have unnmaed after named");
-                //     }
-                //     result.push_str(&name);
-                //     if i < arguments.len() - 1 {
-                //         result.push_str(",");
-                //     }
-                // }
-                Expression::AssignExpression(tk, ident, value) => {
-                    if !has_named {
-                        has_named = true;
-                        named_params.push_str("{");
-                    }
-                    let ident_parsed = self.transpile_expression(ident.as_ref().to_owned());
-                    let value_parsed = self.transpile_expression(value.as_ref().to_owned());
+        // for i in 0..arguments.len() {
+        //     let argument = arguments[i].clone();
+        //     match argument {
+        //         // Expression::Identifier(tk, name) => {
+        //         //     if has_named {
+        //         //         // TODO: better errors
+        //         //         panic!("Can not have unnmaed after named");
+        //         //     }
+        //         //     result.push_str(&name);
+        //         //     if i < arguments.len() - 1 {
+        //         //         result.push_str(",");
+        //         //     }
+        //         // }
+        //         Expression::AssignExpression(tk, ident, value) => {
+        //             if !has_named {
+        //                 has_named = true;
+        //                 named_params.push_str("{");
+        //             }
+        //             let ident_parsed = self.transpile_expression(ident.as_ref().to_owned());
+        //             let value_parsed = self.transpile_expression(value.as_ref().to_owned());
 
-                    named_params.push_str(format!("'{ident_parsed}': {value_parsed},").as_str());
-                }
-                _ => {
-                    if has_named {
-                        // TODO: better errors
-                        panic!("Can not have unnamed after named");
-                    }
+        //             named_params.push_str(format!("'{ident_parsed}': {value_parsed},").as_str());
+        //         }
+        //         _ => {
+        //             if has_named {
+        //                 // TODO: better errors
+        //                 panic!("Can not have unnamed after named");
+        //             }
 
-                    result.push(self.transpile_expression(argument));
-                }
-            }
-        }
+        //             result.push(self.transpile_expression(argument));
+        //         }
+        //     }
+        // }
 
-        if has_named {
-            named_params.push_str("}");
-            result.push(named_params);
-        }
+        // if has_named {
+        //     named_params.push_str("}");
+        //     result.push(named_params);
+        // }
 
-        result
+        // result
     }
 
     /// Lineup macro arguments to correctly pass in:
@@ -2055,26 +2045,57 @@ impl Transpiler {
                 .as_ref()
                 .to_owned()
                 .iter()
-                .map(|v| match v {
-                    Expression::Identifier(_, name) => Variable {
-                        name: name.to_owned(),
+                .map(|v| -> Variable {
+                    let result = self.transpile_function_paramater(v);
+                    Variable {
                         is_mut: true,
-                        val_type: StrongValType::None,
-                    },
-                    Expression::IdentifierWithType(_, name, type_name) => Variable {
-                        name: name.to_owned(),
-                        is_mut: true,
-                        val_type: get_param_type_by_string_ej(
-                            &self.transpile_expression(type_name.as_ref().to_owned()),
-                        ),
-                    },
-                    _ => {
-                        panic!("Some transpiler error for params in structs.")
+                        val_type: result.1,
+                        name: result.0    
                     }
                 })
                 .collect(),
             return_type: function_type,
         }
+    }
+
+    /// Transpile a function paramater.
+    /// 
+    /// Works for:
+    /// 
+    /// - identifer
+    /// - identifiers:type
+    /// - identifier:type=value
+    /// - identifier=value
+    /// 
+    /// returns identifier, type, default_value
+    fn transpile_function_paramater(&mut self, paramater: &Expression) -> (String, StrongValType, String) {
+        let mut ident= String::new();
+        let mut val_type: StrongValType = StrongValType::None;
+        let mut default_value = String::new();
+
+        match paramater {
+            Expression::Identifier(_, name) => {
+                ident = name.to_owned();
+            }
+            Expression::IdentifierWithType(_, name, v_type) => {
+                ident = name.to_owned();
+                val_type = get_param_type_by_string_ej(
+                    &self.transpile_expression(v_type.as_ref().to_owned())
+                );
+            }
+            Expression::AssignExpression(_, left, right) => {
+                let ident_and_val = self.transpile_function_paramater(&left);
+                ident = ident_and_val.0;
+                val_type = ident_and_val.1;
+
+                default_value = self.transpile_expression(right.as_ref().to_owned());
+            }
+            _ => {
+                panic!("TODO: error (Not a identifier, idetnfier with type, or assignment)");
+            }
+        }
+
+        (ident, val_type, default_value)
     }
 
     /// Transpile a native function call with arguments.

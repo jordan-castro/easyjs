@@ -43,19 +43,10 @@
 - v0.5.0 Remove := option. Always infer types (native only)
 - ~~v0.5.0 Remove '@' symbol on macros~~
 - v0.5.0 Add hygenic macros
-- v0.5.0 Allow macros to except expressions, stmts, infix, prefix, etc
-- v0.5.0 Allow macros to take arguments without parenthesis?
-  - const! x = 0
-  - html! {
-      body! {
-        h1! {
-          // .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. 
-        }
-      }
-    }
-  - const!(x=0)
-  - html!(
-      body!(h1!(), h1!()))
+- v0.5.0 Support for calling private class functions and variables.
+- ~~v0.5.0 Allow macros to except expressions~~
+- ~~v0.5.0 Disallow macros to accept kwargs~~
+- ~~v0.5.0 Remove kwargs support. JS alrady supports it~~
 - v0.5.0 Fix to call super() always in classes
 
 ## Runtime

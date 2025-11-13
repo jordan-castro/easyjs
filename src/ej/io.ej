@@ -17,3 +17,8 @@ class Dir {
         return __ejr_dir_read(dir_path)
     }
 }
+
+import 'std'
+
+print!('test')
+print!(File.read('io.js'))
