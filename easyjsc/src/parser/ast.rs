@@ -79,12 +79,13 @@ pub enum Statement {
     /// A continue statement
     ContinueStatement(tk::Token),
 
-    /// Declaring the macro (macro, ident, arguments, body as BlockStatment)
+    /// Declaring the macro (macro, ident, arguments, body as BlockStatment) (bool is for hygenic or not)
     MacroStatement(
         tk::Token,
         Box<Expression>,
         Box<Vec<Expression>>,
         Box<Statement>,
+        bool
     ),
 
     /// A class statement. (Identifier, Extensions, variables and methods [static and non-static])
@@ -119,7 +120,7 @@ impl Statement {
             Statement::EnumStatement(token, _, _) => token,
             Statement::BreakStatement(token) => token,
             Statement::ContinueStatement(token) => token,
-            Statement::MacroStatement(token, _, _, _) => token,
+            Statement::MacroStatement(token, _, _, _, _) => token,
             Statement::ClassStatement(token, _, _, _) => token,
         }
     }
@@ -142,7 +143,7 @@ impl Statement {
             Statement::EnumStatement(_, _, _) => "EnumStatement",
             Statement::BreakStatement(_) => "BreakStatement",
             Statement::ContinueStatement(_) => "ContinueStatement",
-            Statement::MacroStatement(_, _, _, _) => "MacroDecleration",
+            Statement::MacroStatement(_, _, _, _, _) => "MacroStatement",
             Statement::ClassStatement(_, _, _, _) => "ClassStatement"
         }
         .to_string()

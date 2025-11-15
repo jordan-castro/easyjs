@@ -2,7 +2,43 @@ macro print(n) {
     console.log(#n)
 }
 
-Print = macro(n) console.log(#n)
+macro Print(n) console.log(#n)
 
-@print('test')
-@Print('test')
+print!('test')
+Print!('test')
+
+
+macro Print(n) {{
+    // Return easyjs
+    compile_ej("console.log('${#n}')")
+    // Return JS
+    "console.log(`${#n}`);"
+}}
+
+macro make_class(name, variables, init, methods) {{
+    name = #name
+    variables = #variables
+    init = #init
+    methods = #methods
+
+    result = "class $name {\n"
+
+    for variable in variables {
+        result += "${variable.name} = ${variable.value}\n"
+    }
+
+    result += "}"
+
+    result
+}}
+
+make_class!("Person", [
+    {
+        name: "name",
+        value: "'Jordan'"
+    },
+    {
+        name: "age",
+        value: 23
+    }
+])

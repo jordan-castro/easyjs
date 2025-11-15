@@ -17,6 +17,7 @@ wasm-bindgen = "0.2.95"
 wasm-encoder = { version = "0.224.0", default-features = false }
 easyjs_utils = { path = "../easyjs_utils", version = "0.1.0" }
 regex = "1.11.1"
+easyjsr = { path = "../easyjsr" }
 
 [lints.rust]
 unused = "allow"

@@ -18,6 +18,7 @@ use crate::typechecker::{
     StrongValType, get_param_type_by_string, get_param_type_by_string_ej, get_string_rep_of_type,
 };
 use easyjs_utils::utils::{h::hash_string, js_helpers::is_javascript_keyword};
+use easyjsr::{EJR, JSArg, JSArgResult, OpaqueObject, jsarg_as_string, jsarg_exception, jsarg_string};
 
 use super::import::import_file;
 
@@ -44,6 +45,9 @@ pub struct Transpiler {
 
     /// Custom libraries
     custom_libs: HashMap<String, String>,
+
+    /// A EJR reference
+    ejr: EJR
 }
 /// Non Wasm specific (if running in non wasm enviroment, optionally save the wasm binary)
 #[cfg(not(target_arch = "wasm32"))]
@@ -58,6 +62,26 @@ fn save_wasm_bin(wasm_bin: &Vec<u8>) {
     // Empty body
 }
 
+/// For compiling easyJS code within hygenic macros.
+fn ejr_compile_ej(args: Vec<JSArg>, opaque: &OpaqueObject) -> JSArgResult {
+    if args.len() != 1 {
+        return Some(jsarg_exception("This method expects 1 argument only", "ArgumentCountException"))
+    }
+
+    let ej_script = jsarg_as_string(args[0]);
+    if ej_script.is_none() {
+        return Some(jsarg_exception("Expected string.", "WrongTypeException"));
+    }
+
+    let ej_script = ej_script.unwrap();
+
+    // Compile
+    let mut t = Transpiler::new();
+    let result = t.transpile_from_string(ej_script);
+
+    Some(jsarg_string(&result))
+}
+
 impl Transpiler {
     pub fn new() -> Self {
         let mut t = Transpiler {
@@ -69,7 +93,11 @@ impl Transpiler {
             debug_mode: false,
             is_module: false,
             custom_libs: HashMap::new(),
+            ejr: EJR::new()
         };
+
+        // Register hygenic macro method.
+        t.ejr.register_callback("compile_ej", Box::new(ejr_compile_ej), None);
 
         // Check the EASYJS_DEBUG variable
         let is_debug_mode_var = std::env::var("EASYJS_DEBUG");
@@ -465,12 +493,12 @@ impl Transpiler {
             }
             Statement::BreakStatement(tk) => Some("break".to_string()),
             Statement::ContinueStatement(tk) => Some("continue".to_string()),
-            Statement::MacroStatement(_, name, paramaters, body) => {
+            Statement::MacroStatement(_, name, paramaters, body, is_hygenic) => {
                 let macro_name: String = self.transpile_expression(name.as_ref().to_owned());
                 let macro_params = paramaters.as_ref().to_owned();
                 let macro_body = body.as_ref().to_owned();
 
-                self.add_macro_function(macro_name, macro_params, macro_body);
+                self.add_macro_function(macro_name, macro_params, macro_body, is_hygenic);
                 Some(String::from(""))
             }
             Statement::ClassStatement(tk, name, extends, stmts) => {
@@ -1755,7 +1783,7 @@ impl Transpiler {
 
                 let macro_arguments =
                     self.lineup_macro_args(macro_arguments, macro_object.paramaters.clone());
-                macro_object.compile(macro_arguments, transpiled_body)
+                macro_object.compile(macro_arguments, transpiled_body, &mut self.ejr)
             }
             Expression::SpreadExpression(tk, expression) => {
                 format!(
@@ -1780,7 +1808,7 @@ impl Transpiler {
     }
 
     /// Add a macro function to later be used when calling.
-    fn add_macro_function(&mut self, name: String, params: Vec<Expression>, body: Statement) {
+    fn add_macro_function(&mut self, name: String, params: Vec<Expression>, body: Statement, is_hygenic: bool) {
         let pms = self.join_expressions(params.to_owned());
         let mut parsed_args = vec![];
 
@@ -1789,7 +1817,7 @@ impl Transpiler {
             parsed_args.push(a.to_string());
         }
 
-        let ej_macro = Macro::new(macro_name.clone(), parsed_args, body);
+        let ej_macro = Macro::new(macro_name.clone(), parsed_args, body, is_hygenic);
         // add to namespace
         self.namespace.macros.insert(macro_name, ej_macro);
     }

@@ -1398,6 +1398,7 @@ fn parse_macro_expression(p: &mut Parser) -> ast::Expression {
 fn parse_macro_decleration(p: &mut Parser) -> ast::Statement {
     p.debug_print("parse_macro_decleration");
     let token = p.c_token.to_owned(); // macro
+    let mut is_hygenic = false;
 
     if !p.expect_peek(token::IDENT) {
         return ast::empty_statement();
@@ -1440,14 +1441,27 @@ fn parse_macro_decleration(p: &mut Parser) -> ast::Statement {
             return ast::Statement::EmptyStatement;
         }
 
-        return ast::Statement::MacroStatement(token, Box::new(name), Box::new(args), Box::new(expression));
+        return ast::Statement::MacroStatement(token, Box::new(name), Box::new(args), Box::new(expression), false);
     }
     // Consume {
     p.next_token();
 
+    if p.cur_token_is(token::L_BRACE) {
+        // hygenic
+        is_hygenic = true;
+        p.next_token();
+    }
     let body = parse_block_statement(p);
 
-    ast::Statement::MacroStatement(token, Box::new(name), Box::new(args), Box::new(body))
+    // Consume final } if hygenic
+    if is_hygenic {
+        if !p.cur_token_is(token::R_BRACE) {
+            p.add_error("Hygenic must end in double } like: }}");            
+        }
+        p.next_token();
+    }
+
+    ast::Statement::MacroStatement(token, Box::new(name), Box::new(args), Box::new(body), is_hygenic)
 }
 
 fn parse_struct_statement(p: &mut Parser) -> ast::Statement {

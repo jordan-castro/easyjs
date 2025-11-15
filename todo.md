@@ -12,14 +12,12 @@
     - string
     - dyn
     - array
-- v0.5 Add classes
+- ~~v0.5 Add classes~~
 - v0.4 Finish adding all operators
   - <<
   - ^ 
-- v0.4 allow non string keys in objects.
+- ~~v0.4 allow non string keys in objects.~~
 - ~~v0.4 update namespace to just use 1 '_' instead of 2~~
-- v0.5.0 Small Interepteter for templates
-- v0.5.0 Update tests
 - v0.5.0 Add FFI options...
 - ~~v0.5.0 Add fn(args) expression TO (args) => expression~~
 - ~~v0.5.0 Add macro(args) expression TO (args) => macro~~
@@ -42,7 +40,7 @@
 - v0.6.0 Possibly allow anonomous functions and classes?
 - v0.5.0 Remove := option. Always infer types (native only)
 - ~~v0.5.0 Remove '@' symbol on macros~~
-- v0.5.0 Add hygenic macros
+- ~~v0.5.0 Add hygenic macros~~
 - v0.5.0 Support for calling private class functions and variables.
 - ~~v0.5.0 Allow macros to except expressions~~
 - ~~v0.5.0 Disallow macros to accept kwargs~~
@@ -135,7 +133,7 @@
   - macros advanced.
 
 ## Docs
-- Write better documentation
+- TODO
 
 ## lib
 - v0.5.0 Start on a JS -> EJ lib conversion.
