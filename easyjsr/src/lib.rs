@@ -502,38 +502,6 @@ impl EJR {
         self.ptr as usize as *mut c_void
     }
 
-    // Rust first methods
-    
-    // /// Get from user_data
-    // pub fn get_user_data<T: 'static>(&self, id: u32) -> Option<&T> {
-    //     self.user_data.get(&id)?.downcast_ref::<T>()
-    // }
-
-    // /// Get mut from user_data
-    // pub fn get_user_data_mut<T: 'static>(&mut self, id: u32) -> Option<&mut T> {
-    //     self.user_data.get_mut(&id)?.downcast_mut::<T>()
-    // }
-
-    // fn insert_user_data<T: 'static>(&mut self, data: T) -> u32 {
-    //     let id = self.next_user_data_id;
-    //     self.user_data.insert(id, Box::new(data));
-    //     self.next_user_data_id += 1;
-
-    //     id
-    // }
-
-    // fn insert_cb(&mut self, cb: RustCallbackFn) -> u32 {
-    //     let id = self.next_cb_fn_id;
-    //     self.cb_fns.insert(id, cb);
-    //     self.next_cb_fn_id += 1;
-        
-    //     id
-    // }
-
-    // fn add_oo(&mut self, oo: *mut c_void) {
-    //     self.opaque_objects.push(oo);
-    // }
-
     /// Setup the file loader.
     pub fn set_file_loader(&self, func: LoaderFn) {
         let mut reg = RUNTIME_REGISTRY.lock().unwrap();
@@ -553,6 +521,8 @@ impl EJR {
     }
 
     /// Evaluate a JS module.
+    /// 
+    /// The value returned will never be readable (if successfull). Will only ever be undefined (SUCCESS!), -1 for failure, or exception value.
     pub fn eval_module(&self, script: &str, script_name: &str) -> i32 {
         // C conversions
         let script_cstr = str_to_cstr(script);
@@ -705,6 +675,13 @@ impl EJR {
 
         unsafe {
             ejr::ejr_register_module(self.rt, module_name_cstr.as_ptr(), ptr, method_length);
+        }
+    }
+
+    /// Await a promise.
+    pub fn await_promise(&self, value_id: i32) -> i32 {
+        unsafe {
+            ejr::ejr_await_promise(self.rt, value_id)
         }
     }
 

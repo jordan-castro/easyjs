@@ -1,24 +1,15 @@
-javascript {
-    import 'ejr:io';
-}
-
 class File {
     pub fn read(file_path:string):string {
-        return __ejr_file_read(file_path)
+        return ___ejr_file_read(file_path)
     }
 
     pub fn write(file_path:string, contents:string, encoding:string='utf-8') {
-        __ejr_file_write(file_path, contents, encoding)
+        ___ejr_file_write(file_path, contents, encoding)
     }
 }
 
 class Dir {
     pub fn read(dir_path:string):string {
-        return __ejr_dir_read(dir_path)
+        return ___ejr_dir_read(dir_path)
     }
 }
-
-import 'std'
-
-print!('test')
-print!(File.read('io.js'))

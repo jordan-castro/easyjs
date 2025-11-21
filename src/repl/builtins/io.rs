@@ -16,17 +16,15 @@ fn file_read(args: Vec<JSArg>, op: &OpaqueObject) -> JSArgResult {
         return Some(jsarg_exception("No string for file_path", "name"));
     }
 
-    let data = std::fs::read(file_path.unwrap());
-    if data.is_err() {
-        let err = data.err().unwrap();
+    let contents = fs::read_to_string(file_path.unwrap());
+    // let data = std::fs::read(file_path.unwrap());
+    if contents.is_err() {
+        let err = contents.err().unwrap();
         return Some(jsarg_exception(err.to_string().as_str(), "RuntimeError"));
     }
-    let data = data.expect("Could not parse");
-    let mut br = BufReader::new(data.as_slice()); 
-    let mut string_result = String::new();
-    br.buffer().read_to_string(&mut string_result);
+    let contents = contents.unwrap();
 
-    Some(jsarg_string(&string_result))
+    Some(jsarg_string(&contents))
 }
 
 /// Dir.read
@@ -98,13 +96,14 @@ fn file_write(args: Vec<JSArg>, op: &OpaqueObject) -> JSArgResult {
 }
 
 pub fn include_io(ejr: &mut EJR) {
-    let module_fns = vec![
-        JSMethod::new("__ejr_file_read", Box::new(file_read)),
-        JSMethod::new("__ejr_file_write", Box::new(file_write)),
-        JSMethod::new("__ejr_dir_read", Box::new(dir_read))
-    ];
-    let module_script = include_str!("../../ej/io.ej");
+    ejr.register_callback("___ejr_file_read", Box::new(file_read), None);
+    ejr.register_callback("___ejr_file_write", Box::new(file_write), None);
+    ejr.register_callback("___ejr_dir_read", Box::new(dir_read), None);
 
-    ejr.register_module("ejr:io", module_fns, None);
-    ejr.eval_script(module_script, "<io>");
+    let script = include_str!("../../ej/io.ej");
+
+    // Compile ej script
+    let js = easyjsc::compile_easy_js(script.to_string());
+
+    ejr.eval_script(&js, "<io>");
 }

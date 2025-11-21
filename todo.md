@@ -52,7 +52,8 @@
   - strings
     - https://www.w3schools.com/js/js_string_methods.asp
     - tests
-- Fix io
+- ~~Fix io~~
+- Fix build script to build bindings JIT.
 
 ## Commands
 - v0.5.0 Remove the install command. Keep that with ezpkg.
@@ -60,7 +61,8 @@
 - v0.4.6 Add a update command to the CLI, this will install the most recent version from Github.
 - v0.4.6 allow compilation via strings
 - v0.4.6 Make the default `easyjs` command default to repl.
-- v0.4.6 A
+- v0.5.0 When calling easyjs file.ej (assume running)
+- v0.4.6 When calling easyjs file.ej file.js (assume compiling)
 
 ## Native (WASM)
 - v0.4.6 WASM runtime in native.
@@ -134,6 +136,7 @@
 
 ## Docs
 - TODO
+- Document how to build easyjs compiler
 
 ## lib
 - v0.5.0 Start on a JS -> EJ lib conversion.

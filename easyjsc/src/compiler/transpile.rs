@@ -62,26 +62,6 @@ fn save_wasm_bin(wasm_bin: &Vec<u8>) {
     // Empty body
 }
 
-/// For compiling easyJS code within hygenic macros.
-fn ejr_compile_ej(args: Vec<JSArg>, opaque: &OpaqueObject) -> JSArgResult {
-    if args.len() != 1 {
-        return Some(jsarg_exception("This method expects 1 argument only", "ArgumentCountException"))
-    }
-
-    let ej_script = jsarg_as_string(args[0]);
-    if ej_script.is_none() {
-        return Some(jsarg_exception("Expected string.", "WrongTypeException"));
-    }
-
-    let ej_script = ej_script.unwrap();
-
-    // Compile
-    let mut t = Transpiler::new();
-    let result = t.transpile_from_string(ej_script);
-
-    Some(jsarg_string(&result))
-}
-
 impl Transpiler {
     pub fn new() -> Self {
         let mut t = Transpiler {
@@ -95,9 +75,6 @@ impl Transpiler {
             custom_libs: HashMap::new(),
             ejr: EJR::new()
         };
-
-        // Register hygenic macro method.
-        t.ejr.register_callback("compile_ej", Box::new(ejr_compile_ej), None);
 
         // Check the EASYJS_DEBUG variable
         let is_debug_mode_var = std::env::var("EASYJS_DEBUG");
@@ -1783,7 +1760,16 @@ impl Transpiler {
 
                 let macro_arguments =
                     self.lineup_macro_args(macro_arguments, macro_object.paramaters.clone());
-                macro_object.compile(macro_arguments, transpiled_body, &mut self.ejr)
+
+                let result = macro_object.compile(macro_arguments, transpiled_body, &mut self.ejr);
+                
+                // Compile hygenic macros...
+                if macro_object.is_hygenic {
+                    let mut t = Transpiler::new();
+                    t.transpile_from_string(result)
+                } else {
+                    result
+                }
             }
             Expression::SpreadExpression(tk, expression) => {
                 format!(

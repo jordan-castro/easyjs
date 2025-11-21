@@ -1,3 +1,3 @@
-// VERSION 7
+// VERSION 8
 
 #include "ejr.h"

@@ -517,6 +517,16 @@ void ejr_register_callback(EasyJSRHandle* handle, const char* fn_name, C_Callbac
 void ejr_register_module(EasyJSRHandle* handle, const char* module_name, JSMethod* methods, size_t method_count);
 
 /**
+ * @brief Await a JSValue. Does not free the passed in value.
+ * 
+ * @param handle The easyjsr runtime.
+ * @param value_id The Promise value
+ * 
+ * @return the Id of the awaited promise.
+ */
+int ejr_await_promise(EasyJSRHandle* handle, int value_id);
+
+/**
  * @brief Free a C string.
  * 
  * @param c_string The c string to free.

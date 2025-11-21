@@ -37,18 +37,6 @@ impl EasyJSR {
 
     pub fn run_file(&self, js_content: &str, file_name: &str) {
         let result = self.ejr.eval_module(js_content, file_name);
-
-        // TODO: ejr_await_promise
-
-        // Print result
-        let str = self.ejr.val_to_string(result);
-        self.ejr.free_jsvalue(result);
-        // if let Some(str) = str {
-        //     println!("{str}");
-        //     // Free val
-        //     self.ejr.free_jsvalue(result);
-        // } else {
-        //     println!("Nigga");
-        // }
+        // TODO: catch error...
     }
 }

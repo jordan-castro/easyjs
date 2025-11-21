@@ -693,6 +693,13 @@ unsafe extern "C" {
     );
 }
 unsafe extern "C" {
+    #[doc = " @brief Await a JSValue. Does not free the passed in value.\n\n @param handle The easyjsr runtime.\n @param value_id The Promise value\n\n @return the Id of the awaited promise."]
+    pub fn ejr_await_promise(
+        handle: *mut EasyJSRHandle,
+        value_id: ::std::os::raw::c_int,
+    ) -> ::std::os::raw::c_int;
+}
+unsafe extern "C" {
     #[doc = " @brief Free a C string.\n\n @param c_string The c string to free."]
     pub fn ejr_free_string(c_string: *mut ::std::os::raw::c_char);
 }
