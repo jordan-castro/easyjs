@@ -1,0 +1,58 @@
+import 'std'
+
+print!('Hello World')
+
+x : int = 0
+y : float = 1.0
+z : string = '2'
+
+array1 : array[int, float, string] = [0, 1.0, '2']
+dyn_array : array = []
+
+u = null
+u = undefined
+
+object = {
+    one: 1,
+    two: 2,
+    method: fn() {
+        print!(self.one)
+    }
+}
+
+class Person {
+    name: string
+    age: int
+    occupation = null
+
+    fn __new__(self, name, age, occupation) {
+        self.name = name
+        self.age = age
+        self.occupation = occupation
+    }
+}
+
+// WASM functions
+native {
+    fn add(n1:[int, float], n2:[int, float]):int {
+        n1 + n2
+    }
+}
+
+print!(add(1,2))
+
+// Macros
+// text based macro
+macro print(...arg) {
+    console.log(#args)
+}
+
+print!('test') // -> console.log('test')
+
+// Hygenic Macros
+macro run_logic() {{
+    ""
+}} 
+
+jsimport!('utils.js', ['MathUtils', 'FileUtils'])
+// import {MathUtils, FileUtils} from 'utils.js'

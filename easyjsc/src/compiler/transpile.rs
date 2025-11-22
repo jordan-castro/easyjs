@@ -1672,7 +1672,7 @@ impl Transpiler {
                 )
             }
             Expression::NotExpression(token, exp) => {
-                format!("!{}", self.transpile_expression(exp.as_ref().to_owned()))
+                format!("!({})", self.transpile_expression(exp.as_ref().to_owned()))
             }
             Expression::IIFE(_, block) => {
                 format!(

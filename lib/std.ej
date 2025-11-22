@@ -148,17 +148,12 @@ macro freeze(object) {
     Object.freeze(#object)
 }
 
-// Check type
-macro is_type(variable, type_name) {
-    typeof(#variable) == #type_name
-}
-
-// log error
-macro log_error(err) {
+// console.error macro
+macro eprint(err) {
     console.error(#err)
 }
 
-// JS comment
+// Keep comment alive after compilation by wrapping it in a javascript block
 macro jsc(comment) {
     javascript{
         // #comment
@@ -192,3 +187,52 @@ macro is_null_undefined(object) {
         (#object === null || #object === undefined)
     }
 }
+
+// Import from a JS file without having to wrap in a javascript block.
+macro jsimport(file, imports=[]) {{
+    fn {
+        imports = #imports
+
+        result = "import "
+        has_brace = false
+
+        if imports.length > 0 {
+            has_brace = true
+            result += "{ "
+        }
+
+        // Loop through imports...
+        for imp in imports {
+            // Check if is a object
+            if imp is 'object' {
+                // Get key:value
+                key = keys!(imp)[0]
+                value = imp[key]
+
+                result += "$key as $value "
+            } else {
+                // No import if not a string...
+                if not imp is 'string' {
+                    return ""
+                }
+                // Must be a string
+                result += "$imp "
+            }
+
+            if imp != last!(imports) {
+                result += ","
+            }
+        }
+
+        if has_brace {
+            result += "} from "
+        }
+
+        result += "'${#file}'"
+
+        // Wrap in javascript statement to not be compiled
+        return "javascript{
+            $result
+        }"
+    }
+}}
