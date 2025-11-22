@@ -1,7 +1,39 @@
-javascript {
-    import { NAME } from 't.js'
-}
-
 import 'std'
 
-@std.print(NAME)
+macro jsimport(imports, file) {{
+    imports = #imports
+    keys = keys!(imports)
+
+    console.log("Hello world!")
+
+    result = "import "
+    has_brace = false
+
+    if keys.length > 0 {
+        has_brace = true
+        result += "{ "
+    }
+    for key in keys {
+        if imports[key] == key {
+            // No alias needed
+            result += "$key "        
+        } else {
+            // Alias needed
+            result += "$key as ${imports[key]} "
+        }
+
+        if key != last!(keys) {
+            key += ","
+        }
+    }
+
+    if has_brace {
+        result += "} from "
+    }
+
+    result += #file
+
+    result
+}}
+
+jsimport!({t}, 'test.js')

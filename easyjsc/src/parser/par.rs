@@ -1443,10 +1443,11 @@ fn parse_macro_decleration(p: &mut Parser) -> ast::Statement {
 
         return ast::Statement::MacroStatement(token, Box::new(name), Box::new(args), Box::new(expression), false);
     }
-    // Consume {
+    // Go to {
     p.next_token();
 
-    if p.cur_token_is(token::L_BRACE) {
+    // Has to be {{
+    if p.cur_token_is(token::L_BRACE) && p.peek_token_is(token::L_BRACE) {
         // hygenic
         is_hygenic = true;
         p.next_token();

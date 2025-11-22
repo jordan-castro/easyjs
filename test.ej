@@ -1,0 +1,5 @@
+import 'std' as std
+
+macro argv() process.argv
+
+std.print!(argv!())

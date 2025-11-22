@@ -937,6 +937,12 @@ impl Transpiler {
                 response.push_str(&stmt);
             }
         }
+
+        response = response.trim().to_string();
+        if response.ends_with(";") {
+            response.truncate(response.len() - 1);
+        }
+
         response
     }
 
@@ -1744,10 +1750,6 @@ impl Transpiler {
                         let mut body = self.transpile_macro_block_stmt(stmts.as_ref().to_owned());
                         // body = body[0..body.len() - 1].to_string();
 
-                        if body.ends_with(';') {
-                            body = body.strip_suffix(';').unwrap().to_string();
-                        }
-
                         body
                     }
                     Statement::ExpressionStatement(tk, macro_expro) => {
@@ -2096,6 +2098,9 @@ impl Transpiler {
                 val_type = get_param_type_by_string_ej(
                     &self.transpile_expression(v_type.as_ref().to_owned())
                 );
+            }
+            Expression::SpreadExpression(_, expr) => {
+                ident = self.transpile_expression(expr.as_ref().to_owned());
             }
             Expression::AssignExpression(_, left, right) => {
                 let ident_and_val = self.transpile_function_paramater(&left);
