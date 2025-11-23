@@ -896,10 +896,12 @@ fn parse_function_literal(p: &mut Parser) -> ast::Expression {
     // params
     let parameters = parse_function_paramaters(p);
 
-    let mut var_type: Option<Box<ast::Expression>> = None;
+    let mut var_type: Box<ast::Expression>;
     // check for type
     if p.peek_token_is(token::COLON) {
-        var_type = Some(Box::new(parse_type(p)));
+        var_type = Box::new(parse_type(p));
+    } else {
+        var_type = Box::new(Expression::Type(token.clone(), String::from("none")));
     }
 
     if !p.expect_peek(token::L_BRACE) {

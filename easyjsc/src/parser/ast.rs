@@ -201,7 +201,7 @@ pub enum Expression {
         tk::Token,
         Box<Expression>,
         Box<Vec<Expression>>,
-        Option<Box<Expression>>,
+        Box<Expression>,
         Box<Statement>,
     ),
     // fn(params) {statement} OR fn(params) stmt

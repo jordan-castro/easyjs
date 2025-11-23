@@ -53,6 +53,8 @@ pub fn get_param_type_by_string(string: &str) -> StrongValType {
         "float" => StrongValType::Float,
         "string" => StrongValType::String,
         "array" => StrongValType::Array,
+        "" => StrongValType::None,
+        "none" => StrongValType::None,
         _ => StrongValType::NotSupported,
     }
 }
@@ -88,6 +90,7 @@ pub fn get_val_type_from_strong(strong: &StrongValType) -> Option<ValType> {
         StrongValType::Bool => Some(ValType::I32),
         StrongValType::String => Some(ValType::I32),
         StrongValType::Array => Some(ValType::I32),
+        StrongValType::None => Some(ValType::I32),
         // TODO: Implement StrongValType::None
         _ => None,
     }

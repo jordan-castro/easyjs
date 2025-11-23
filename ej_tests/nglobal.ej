@@ -1,0 +1,10 @@
+native {
+    TEST:int = 12
+    pub fn add(n1:int):int {
+        TEST += 2
+        return TEST + n1
+    }
+}
+
+console.log(add(1))
+console.log(add(1))

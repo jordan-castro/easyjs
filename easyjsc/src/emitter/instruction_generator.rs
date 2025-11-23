@@ -59,49 +59,49 @@ macro_rules! set_string_byte_in_loop {
     };
 }
 
-/// Get arguments from when a wasm_core function is called.
-///
-/// `arguments:&Vec<Expression>` a vector of expressions as arguments
-///
-/// `core_fn_name:&str` the name of the core function.
-///
-/// `error:&str` A possible error message.
-///
-/// `errors:Vec<String>` mutable vector to ad the error to.
-///
-/// returns: `args: Vec<u32>` The generated arguments.
-macro_rules! wasm_core_args {
-    ($arguments:expr, $core_fn_name:expr, $error:expr, $errors:expr) => {{
-        let mut args = vec![];
-        for arg in $arguments {
-            match arg {
-                Expression::IntegerLiteral(_, value) => {
-                    args.push(*value as u32);
-                }
-                _ => $errors.push(make_native_error(arg.get_token(), $error)),
-            }
-        }
+// /// Get arguments from when a wasm_core function is called.
+// ///
+// /// `arguments:&Vec<Expression>` a vector of expressions as arguments
+// ///
+// /// `core_fn_name:&str` the name of the core function.
+// ///
+// /// `error:&str` A possible error message.
+// ///
+// /// `errors:Vec<String>` mutable vector to ad the error to.
+// ///
+// /// returns: `args: Vec<u32>` The generated arguments.
+// macro_rules! wasm_core_args {
+//     ($arguments:expr, $core_fn_name:expr, $error:expr, $errors:expr) => {{
+//         let mut args = vec![];
+//         for arg in $arguments {
+//             match arg {
+//                 Expression::IntegerLiteral(_, value) => {
+//                     args.push(*value as u32);
+//                 }
+//                 _ => $errors.push(make_native_error(arg.get_token(), $error)),
+//             }
+//         }
 
-        args
-    }};
-}
+//         args
+//     }};
+// }
 
 pub type EasyInstructions = Vec<Instruction<'static>>;
 
 /// Is a function a core wasm function?
 pub fn is_wasm_core(fn_name: &str) -> bool {
     match fn_name {
-        "__local_get" => true,
-        "__local_set" => true,
-        "__global_get" => true,
-        "__global_set" => true,
-        "__i32_store" => true,
-        "__i32_store_16" => true,
-        "__i32_store_8" => true,
-        "__i32_add" => true,
-        "__i32_load" => true,
-        "__i32_load8u" => true,
-        "__call" => true,
+        "__local_get__" => true,
+        "__local_set__" => true,
+        "__global_get__" => true,
+        "__global_set__" => true,
+        "__i32_store__" => true,
+        "__i32_store_16__" => true,
+        "__i32_store_8__" => true,
+        "__i32_add__" => true,
+        "__i32_load__" => true,
+        "__i32_load8u__" => true,
+        "__call__" => true,
         _ => false,
     }
 }
@@ -110,57 +110,24 @@ pub fn is_wasm_core(fn_name: &str) -> bool {
 pub fn call_wasm_core_function(
     errors: &mut Vec<String>,
     name: &str,
-    arguments: &Vec<Expression>,
+    args: Vec<u32>,
 ) -> EasyInstructions {
+    // TODO: error handling
     match name {
-        // i32_store(align: u32, offset: u64, memory_index: u32)
         "__i32_store" => {
-            let args = wasm_core_args!(
-                arguments,
-                "__i32_store",
-                "Expected number as argument",
-                errors
-            );
             i32_store(args[0] as u32, args[1] as u64, args[2] as u32)
         }
-        // i32_store_16(align: u32, offset: u64, memory_index: u32)
         "__i32_store_16" => {
-            let mut args = wasm_core_args!(
-                arguments,
-                "__i32_store_16",
-                "Expected number as argument",
-                errors
-            );
-
             i32_store_16(args[0] as u32, args[1] as u64, args[2] as u32)
         }
         // i32_store_8(align: u32, offset: u64, memory_index: u32)
         "__i32_store_8" => {
-            let mut args = wasm_core_args!(
-                arguments,
-                "__i32_store_8",
-                "Expected number as argument",
-                errors
-            );
-
             i32_store_8(args[0] as u32, args[1] as u64, args[2] as u32)
         }
         "__local_get" => {
-            let mut args = wasm_core_args!(
-                arguments,
-                "__local_get",
-                "Expected number as argument",
-                errors
-            );
             get_local(args[0] as u32)
         }
         "__local_set" => {
-            let mut args = wasm_core_args!(
-                arguments,
-                "__local_set",
-                "Expected number as argument",
-                errors
-            );
             set_local(args[0] as u32)
         }
         // sometimes basic instructions need to be called
@@ -171,12 +138,6 @@ pub fn call_wasm_core_function(
             vec![Instruction::F32Add]
         }
         "__i32_load" => {
-            let mut args = wasm_core_args!(
-                arguments,
-                "__i32_load",
-                "Expected number as argument",
-                errors
-            );
             vec![Instruction::I32Load(MemArg {
                 offset: args[0] as u64,
                 align: args[1],
@@ -184,12 +145,6 @@ pub fn call_wasm_core_function(
             })]
         }
         "__i32_load8u" => {
-            let mut args = wasm_core_args!(
-                arguments,
-                "__i32_load8u",
-                "Expected number as argument",
-                errors
-            );
             vec![Instruction::I32Load(MemArg {
                 offset: args[0] as u64,
                 align: args[1],
@@ -197,25 +152,12 @@ pub fn call_wasm_core_function(
             })]
         }
         "__global_get" => {
-            let mut args = wasm_core_args!(
-                arguments,
-                "__global_get",
-                "Expected number as argument",
-                errors
-            );
             vec![Instruction::GlobalGet(args[0])]
         }
         "__global_set" => {
-            let mut args = wasm_core_args!(
-                arguments,
-                "__global_set",
-                "Expected number as argument",
-                errors
-            );
             vec![Instruction::GlobalSet(args[0])]
         }
         "__call" => {
-            let mut args = wasm_core_args!(arguments, "__call", "Expected number as argument", errors);
             vec![Instruction::Call(args[0])]
         }
         _ => {

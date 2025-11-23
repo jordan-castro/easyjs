@@ -1,0 +1,10 @@
+// Example config file for ezpkg configs.
+
+// DO NOT CHANGE VARIABLE NAME!
+config = new EJConfig()
+
+config.name = 'ezpkg'
+config.source = 'src/main.ej'
+config.packges = [
+    new Package("easy_math", "v0.1.2", "https://link.com/to"),
+]

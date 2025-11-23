@@ -212,7 +212,7 @@ impl Transpiler {
                                 }
                             },
                             _ => {
-                                unimplemented!("TODO: add some kind of error for no type.");
+                                unimplemented!("TODO: add some kind of error for no type. {:#?}", param);
                             }
                         }
                     }
@@ -221,15 +221,11 @@ impl Transpiler {
                 };
                 // find out return types (as string...)
                 let return_types = {
-                    if let Some(result) = result {
-                        match result.as_ref() {
-                            Expression::Type(_, ty) => ty.to_owned(),
-                            _ => {
-                                unimplemented!("TODO: add some kind of error for no type.");
-                            }
+                    match result.as_ref() {
+                        Expression::Type(_, ty) => ty.to_owned(),
+                        _ => {
+                            String::from("none")
                         }
-                    } else {
-                        unimplemented!("TODO: add some kind of error for no type.");
                     }
                 };
 
@@ -2036,17 +2032,11 @@ impl Transpiler {
         &mut self,
         name: &String,
         params: Box<Vec<Expression>>,
-        return_type: Option<Box<Expression>>,
+        return_type: Box<Expression>,
     ) -> Function {
-        let function_type = {
-            if let Some(return_type) = return_type {
-                get_param_type_by_string_ej(
-                    &self.transpile_expression(return_type.as_ref().to_owned()),
-                )
-            } else {
-                StrongValType::None
-            }
-        };
+        let function_type = get_param_type_by_string_ej(
+                &self.transpile_expression(return_type.as_ref().to_owned()),
+            );
 
         let fn_name: String;
         if !name.contains('.') {

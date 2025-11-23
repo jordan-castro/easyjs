@@ -1,12 +1,10 @@
-import "nat/std.ej"
-
 native {
     /// Global heap
-    pub heap = 1024
+    pub heap:int = 1024
     /// Global Page size 
-    pub page_size = 65536
+    pub page_size:int = 65536
     /// Global nullptr
-    pub nullptr = 0
+    pub nullptr:int = 0
 
     /// Int type
     pub IntType = 1
@@ -20,6 +18,14 @@ native {
     pub DictType = 5
     /// Struct type
     pub StructType = 6
+
+    pub fn set_ptr(position:int, value:int) {
+        __i32_store__(value, position, 0)
+    }
+
+    pub fn get_ptr(position:int):int {
+        return __i32_load__(position, 0)
+    }
 
     /// Allocate something on the heap.
     pub fn malloc(size:int):int {
@@ -39,6 +45,6 @@ native {
             return nullptr
         }
 
-        get_ptr(ptr)
+        return get_ptr(ptr)
     }
 }

@@ -5,16 +5,27 @@ use std::{collections::HashMap, string, vec};
 use crate::{
     compiler::namespaces::{Function as EJFunction, Namespace, Variable as EJVariable},
     emitter::{
-        arrays::{native_allocate_array, native_arr_get_cap, native_arr_get_item, native_arr_get_len, native_arr_push_array, native_arr_push_float, native_arr_push_int, native_arr_push_string, native_arr_reallocate, native_arr_store_capacity, native_arr_store_length}, builtins::{
-            ALLOCATE_STRING_IDX, ARR_ALLOCATE_IDX, ARR_GET_ITEM_IDX, ARR_PUSH_ARRAY_IDX, ARR_PUSH_FLOAT_IDX, ARR_PUSH_INT_IDX, ARR_PUSH_STRING_IDX, ARR_STORE_CAPACITY_IDX, ARR_STORE_LENGTH_IDX, STORE_STRING_LENGTH_IDX, STR_CONCAT_IDX, STR_GET_LEN_IDX, STR_INDEX_IDX, STR_STORE_BYTE_IDX
-        }, instruction_generator::{
-            call_wasm_core_function, is_wasm_core, set_local_string, EasyInstructions
-        }, signatures::{
-            create_type_section, EasyNativeBlock, EasyNativeFN, EasyNativeVar, FunctionSignature
-        }, strings::{
+        arrays::{
+            native_allocate_array, native_arr_get_cap, native_arr_get_item, native_arr_get_len,
+            native_arr_push_array, native_arr_push_float, native_arr_push_int,
+            native_arr_push_string, native_arr_reallocate, native_arr_store_capacity,
+            native_arr_store_length,
+        },
+        builtins::{
+            ALLOCATE_STRING_IDX, ARR_ALLOCATE_IDX, ARR_GET_ITEM_IDX, ARR_PUSH_ARRAY_IDX,
+            ARR_PUSH_FLOAT_IDX, ARR_PUSH_INT_IDX, ARR_PUSH_STRING_IDX, ARR_STORE_CAPACITY_IDX,
+            ARR_STORE_LENGTH_IDX, STORE_STRING_LENGTH_IDX, STR_CONCAT_IDX, STR_GET_LEN_IDX,
+            STR_INDEX_IDX, STR_STORE_BYTE_IDX,
+        },
+        instruction_generator::{EasyInstructions, set_local_string},
+        signatures::{
+            EasyNativeBlock, EasyNativeFN, EasyNativeVar, FunctionSignature, create_type_section,
+        },
+        strings::{
             allocate_string, native_str_char_code_at, native_str_concat, native_str_get_len,
             native_str_index, native_str_store_byte, store_string_length,
-        }, utils::expression_is_ident
+        },
+        utils::expression_is_ident,
     },
     errors::{
         native_can_not_compile_raw_expression, native_can_not_get_value_from_expression,
@@ -30,11 +41,13 @@ use crate::{
     lexer::token::{self, Token},
     parser::ast::{Expression, Statement},
     typechecker::{
-        get_param_type_by_named_expression, get_param_type_by_string, get_val_type_from_strong, StrongValType, I32_TYPE_IDX
+        I32_TYPE_IDX, StrongValType, get_param_type_by_named_expression, get_param_type_by_string,
+        get_val_type_from_strong,
     },
 };
 use wasm_encoder::{
-    BlockType, ConstExpr, ExportKind, Function, FunctionSection, GlobalType, Instruction, MemorySection, MemoryType, Module, RawSection, SectionId, TypeSection, ValType
+    BlockType, ConstExpr, ExportKind, Function, FunctionSection, GlobalType, Instruction, MemArg,
+    MemorySection, MemoryType, Module, RawSection, SectionId, TypeSection, ValType,
 };
 
 /// Get the left side idx from a InfixExpression.
@@ -91,22 +104,41 @@ macro_rules! add_raw_binary {
         let raw = &bytes[range.start..range.end];
         $module.section(&RawSection {
             id: $section,
-            data: raw.to_vec()
+            data: raw.to_vec(),
         });
     }};
+}
+
+/// Is a function a core wasm function?
+pub fn is_wasm_core(fn_name: &str) -> bool {
+    match fn_name {
+        // "__local_get__" => true,
+        // "__local_set__" => true,
+        // "__global_get__" => true,
+        // "__global_set__" => true,
+        // "__call__" => true,
+        "__i32_store__" => true,
+        "__i32_store_16__" => true,
+        "__i32_store_8__" => true,
+        "__i32_add__" => true,
+        "__i32_load__" => true,
+        "__i32_load8u__" => true,
+        _ => false,
+    }
 }
 
 /// easyjs native is a bare bones language feature. Think of it as C for the web.
 /// To use easyjs native features, wrap your easyjs code in a native block like so:
 /// ```
+/// import 'wasm/raw.ej' as raw
+///
 /// native { // native wrapper
-///     raw = @use_mod("raw") // import raw instructions
 ///
 ///     fn main() {
 ///         // While not required, this is where you would apply advanced logic to global variables
 ///         // for example, if you have a global variable of type int, you could set it to a function call.
 ///         // You can not do that automatically in global scope. i.e. native {} without a fn scope.
-///         // no need to return anything. This is a void fn
+///         // no need to return anything. This is a none/void fn
 ///     }
 ///     
 ///     fn add(a:int, b:int):int { // types are required in native blocks!
@@ -115,9 +147,7 @@ macro_rules! add_raw_binary {
 ///         // You can also use raw wasm calls.
 ///         raw.local_get(raw.local_from_ident(a))
 ///         raw.local_get(raw.local_from_ident(b))
-///         raw.i32_add()
-///         // this gets returned automatically
-///         raw.return_() // but you can also use raw
+///         return raw.i32_add()
 ///     }
 ///
 ///     // Builtin types [int, float, string, array, bool, dict, any]
@@ -130,19 +160,16 @@ macro_rules! add_raw_binary {
 ///         raw.i32_store8(0,0,0)
 ///         // The rest of the string
 ///         // This is done automatically by the native{} compiler.
-///         raw.get_local(0) // return the string pointer
+///         return raw.get_local(0) // return the string pointer
 ///     }
 /// }
 ///
 /// ```
 ///
-/// It should be mentioned that `native` is only implemented to a very basic degree. The reason for this is because currently,
-/// easyjs does not make me any money of any kind.
+/// It should be mentioned that `native` is only implemented to a very basic degree.
 ///
-/// But with the basic implementation a person could essentially program every type of logic they want. They could even add arrays, dicts, sets, etc.
-///
-/// `native` only supports functions, variables [global and local], math, and strings [only raw and concat]. To add to any of those you would have to
-/// use the builtin raw instructions.
+/// But with the basic implementation a person could essentially program every type of logic they want. Thanks to supporting of all of web
+/// assemblies built in functions. And advanced macros (hygenic and text based).
 pub fn compile_native(
     stmts: &Vec<Statement>,
     module_namespace: &Namespace,
@@ -152,9 +179,6 @@ pub fn compile_native(
     let mut ctx = NativeContext::new();
     ctx.namespace = module_namespace.clone();
     ctx.imported_modules = imported_modules.clone();
-
-    // Parse easyjsn
-    let bytes = include_bytes!("../../easyjsn.wasm");
 
     // Setup WASM module
     let mut module = wasm_encoder::Module::new();
@@ -206,7 +230,7 @@ pub fn compile_native(
         // only return the first error
         return Err(ctx.errors[0].clone());
     }
-    let mut type_section = TypeSection::new();    
+    let mut type_section = TypeSection::new();
     // create function section here to add types correctly.
     let mut function_section = wasm_encoder::FunctionSection::new();
     // Type Section (Defines function signatures)
@@ -234,19 +258,27 @@ pub fn compile_native(
 
     // Global Section (Declares global variables)
     let mut global_section = wasm_encoder::GlobalSection::new();
-    // TODO: dynamic global setting
-    global_section.global(
-        // This is the heap
-        GlobalType {
-            mutable: true,
-            shared: false,
-            val_type: ValType::I32,
-        },
-        &ConstExpr::i32_const(0),
-    );
-    // for var in ctx.variable_scope[0].iter() {
-    //     let mut global = wasm_encoder::
-    // }
+    // // TODO: dynamic global setting
+    // global_section.global(
+    //     // This is the heap
+    //     GlobalType {
+    //         mutable: true,
+    //         shared: false,
+    //         val_type: ValType::I32,
+    //     },
+    //     &ConstExpr::i32_const(0),
+    // );
+    // Add global variables
+    for var in ctx.variable_scope[0].iter() {
+        global_section.global(
+            GlobalType {
+                mutable: var.is_mut,
+                shared: false,
+                val_type: get_val_type_from_strong(&var.val_type).unwrap(),
+            },
+            &var.value,
+        );
+    }
     module.section(&global_section);
 
     // Export Section (Exports functions, memory, globals, etc.)
@@ -516,7 +548,7 @@ impl NativeContext {
             Expression::FloatLiteral(_, val) => ConstExpr::f32_const(*val as f32),
             Expression::Boolean(_, val) => ConstExpr::i32_const(*val as i32),
             Expression::Identifier(_, name) => {
-                // check if null
+                // check if null, Globals if not a basic type (int, float, bool) need to be set to null and instanced in a main() function
                 if name != "null" {
                     self.errors
                         .push(native_unsupported_expression_as_value_for_global_variable(
@@ -568,7 +600,7 @@ impl NativeContext {
                 vec![]
             }
             Expression::FunctionLiteral(_, name, params, val_type, body) => {
-                self.compile_function_literal(name, params, val_type.as_ref().unwrap(), body);
+                self.compile_function_literal(name, params, val_type, body);
                 vec![]
                 // self.instructions.iter().last().unwrap().1.clone()
             }
@@ -736,6 +768,14 @@ impl NativeContext {
                 let name = self.compile_raw_expression(name);
                 // get namespace defined name.
                 let mangled_name = self.namespace.get_obj_name(&name);
+                
+                // Parse arguments first...
+                let mut parsed_arguments = vec![];
+
+                for arg in arguments.as_ref() {
+                    let mut instructions = self.compile_expression(arg);
+                    parsed_arguments.append(instructions.as_mut());
+                }
 
                 let fun_idx = self.get_fun_idx_from_name(&mangled_name);
                 if fun_idx.is_none() {
@@ -746,21 +786,14 @@ impl NativeContext {
                         return vec![];
                     } else {
                         // We have a core function. Call it and pass back the instructions
-                        return call_wasm_core_function(
-                            &mut self.errors,
-                            mangled_name.as_str(),
-                            arguments,
-                        );
+                        let fn_call = call_wasm_core_function(String::from(mangled_name));
+                        parsed_arguments.push(fn_call);
+
+                        return parsed_arguments.clone();
                     }
                 }
                 let fun_idx = fun_idx.unwrap();
 
-                let mut parsed_arguments = vec![];
-
-                for arg in arguments.as_ref() {
-                    let mut instructions = self.compile_expression(arg);
-                    parsed_arguments.append(instructions.as_mut());
-                }
 
                 let mut result = vec![];
                 result.append(&mut parsed_arguments);
@@ -840,9 +873,7 @@ impl NativeContext {
                         match index_type {
                             StrongValType::Int => {
                                 // Call __arr_get_item
-                                instructions.append(&mut vec![
-                                    Instruction::Call(ARR_GET_ITEM_IDX),
-                                ]);
+                                instructions.append(&mut vec![Instruction::Call(ARR_GET_ITEM_IDX)]);
                                 // instructions.push(Instruction::Call(ARR_GET_ITEM_IDX));
                             }
                             _ => self
@@ -1038,6 +1069,10 @@ impl NativeContext {
                 instructions
             }
             Expression::EmptyExpression => {
+                vec![Instruction::I32Const(0)]
+            }
+            Expression::DocCommentExpression(tk, comments) => {
+                // TODO: Add comments to Namespace for LSP and documentation IG.
                 vec![]
             }
             _ => {
@@ -1132,13 +1167,17 @@ impl NativeContext {
             self.variable_scope.get_mut(1).unwrap().remove(0);
         }
 
-        self.instructions
-            .get_mut(&self.next_fn_idx)
-            .unwrap()
-            .append(&mut vec![
-                Instruction::Unreachable, // To make sure if works
-                Instruction::End,
-            ]);
+        let mut instructions = self.instructions.get_mut(&self.next_fn_idx).unwrap();
+        // Check if return_type is None (i.e. void) so we can add a return 0
+        if return_type == StrongValType::None {
+            instructions.append(&mut vec![Instruction::I32Const(0), Instruction::Return])
+        }
+
+        // Always end with Unreachble and End.
+        instructions.append(&mut vec![
+            Instruction::Unreachable, // To make sure if works
+            Instruction::End,
+        ]);
 
         // set the function
         // get variables of current scope.
@@ -1255,13 +1294,14 @@ impl NativeContext {
             Expression::FunctionLiteral(tk, _, _, val_type, _) => {
                 // There is no way to infer the return type of a function (not yet)
                 // TODO: infer return type of function. also in JS
-                if val_type.is_none() {
-                    self.errors
-                        .push(native_can_not_get_value_from_expression(tk));
-                    StrongValType::NotSupported
-                } else {
-                    self.get_val_type_from_expression(val_type.clone().unwrap().as_ref())
-                }
+                self.get_val_type_from_expression(val_type)
+                // if val_type.is_none() {
+                //     self.errors
+                //         .push(native_can_not_get_value_from_expression(tk));
+                //     StrongValType::NotSupported
+                // } else {
+                //     self.get_val_type_from_expression(val_type.clone().unwrap().as_ref())
+                // }
             }
             Expression::StringLiteral(tk, literal) => StrongValType::String,
             Expression::IntegerLiteral(tk, literal) => StrongValType::Int,
@@ -1334,18 +1374,6 @@ impl NativeContext {
         None
     }
 
-    // /// Get variable idx from name
-    // fn get_var_idx_from_name(&self, name: &str) -> Option<u32> {
-    //     for scope in self.variable_scope.iter() {
-    //         for var in scope.iter() {
-    //             if var.name == *name {
-    //                 return Some(var.idx);
-    //             }
-    //         }
-    //     }
-    //     None
-    // }
-
     /// Insert a instruction at a specific in a specific function.
     ///
     /// This is used in:
@@ -1404,14 +1432,14 @@ impl NativeContext {
     /// This is for when a namespaced dot expressions right side is another dot expression.
     ///
     /// We could have:
-    /// import 'c.ej'
-    /// import 'std'
+    /// import 'c.ej' as c
+    /// import 'std' as std
     ///
     /// native {
     ///    fn test() {
-    ///       @std.print(c.variable)
+    ///       std.print!(c.variable)
     ///       // or
-    ///       @std.print(c.method().x)
+    ///       std.print!(c.method().x)
     ///    }
     /// }
     fn convert_namespaced_dot_expression(
@@ -1444,5 +1472,26 @@ impl NativeContext {
             }
             _ => expression.to_owned(),
         }
+    }
+
+}
+
+fn call_wasm_core_function(function_name: String) -> Instruction<'static> {
+    let mem_arg = MemArg {
+        offset: 0,
+        align: 0,
+        memory_index: 0,
+    };
+
+    match function_name.as_str() {
+        "__i32_store__" => Instruction::I32Store(mem_arg),
+        "__i32_store_16" => Instruction::I32Store16(mem_arg),
+        "__i32_store_8" => Instruction::I32Store8(mem_arg),
+        // sometimes basic instructions need to be called
+        "__i32_add__" => Instruction::I32Add,
+        "__f32_add__" => Instruction::F32Add,
+        "__i32_load__" => Instruction::I32Load(mem_arg),
+        "__i32_load8u__" => Instruction::I32Load(mem_arg),
+        _ => unreachable!("This is not a core wasm function."),
     }
 }

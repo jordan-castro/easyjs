@@ -56,13 +56,12 @@
 - Fix build script to build bindings JIT.
 
 ## Commands
-- v0.5.0 Remove the install command. Keep that with ezpkg.
-  - ezpkg should be written mostly in `native` easyjs with Rust backed runtime features.
+- ~~v0.5.0 Remove the install command. Keep that with ezpkg.~~
 - v0.4.6 Add a update command to the CLI, this will install the most recent version from Github.
 - v0.4.6 allow compilation via strings
-- v0.4.6 Make the default `easyjs` command default to repl.
-- v0.5.0 When calling easyjs file.ej (assume running)
-- v0.4.6 When calling easyjs file.ej file.js (assume compiling)
+- ~~v0.4.6 Make the default `easyjs` command default to repl.~~
+- ~~v0.5.0 When calling easyjs file.ej (assume running)~~
+- ~~v0.4.6 When calling easyjs file.ej file.js (assume compiling)~~
 
 ## Native (WASM)
 - v0.4.6 WASM runtime in native.
@@ -123,6 +122,10 @@
 - v0.5.0 GC add a garbage collector OR a free method.
 - v0.5.0 Allow for multiple return types in JS side
 - v0.5.0 Dot methods
+- ~~v0.5.0 Actual globals~~
+- ~~v0.5.0 Dynamic wasm core~~
+- ~~v0.5.0 None (Void) methods~~
+- v0.5.0 Add a main() function for Global initializtions.
 
 ## Website
 - v0.4.0 Links
@@ -149,6 +152,15 @@
   - build
   - buildwasm
   - move_to_bin
+
+## Package manager (ezpkg)
+- v0.6.0 Try to use as much native as possible (if possible)
+- v0.6.0 Backend with ejr (rust based)
+- v0.6.0 For config files:
+  - JSON (Is the easiest and most well-known...)
+  - TOML (Is smaller, easier once learned...)
+  - easyjs (Write code? Just in a VERY sandboxed enviroment) YUH!
+- v0.6.0 Option to compile directly to a .wasm file and skip the .js file
 
 ## Tests
 - add tests.
