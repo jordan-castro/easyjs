@@ -46,6 +46,11 @@
 - ~~v0.5.0 Disallow macros to accept kwargs~~
 - ~~v0.5.0 Remove kwargs support. JS alrady supports it~~
 - v0.5.0 Fix to call super() always in classes
+- v0.5.0 Add Doc comments to Namespace (i.e. save them for each variable, function, and class) (In NATIVE too)
+- v0.5.0 Keep track of class methods in Namespace
+- v0.5.0 Add classes to namespace.
+- v0.5.0 Keep track of struct methods in Namespace
+- v0.5.0 Clean up emitter folder.
 
 ## Runtime
 - Write Wasm Imp

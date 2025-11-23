@@ -934,11 +934,6 @@ impl Transpiler {
             }
         }
 
-        response = response.trim().to_string();
-        if response.ends_with(";") {
-            response.truncate(response.len() - 1);
-        }
-
         response
     }
 
@@ -1744,8 +1739,6 @@ impl Transpiler {
                 let transpiled_body = match &macro_object.body {
                     Statement::BlockStatement(tk, stmts) => {
                         let mut body = self.transpile_macro_block_stmt(stmts.as_ref().to_owned());
-                        // body = body[0..body.len() - 1].to_string();
-
                         body
                     }
                     Statement::ExpressionStatement(tk, macro_expro) => {

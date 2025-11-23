@@ -1,4 +1,55 @@
 import 'std'
 
+struct Grow {
+    fn grow(self) {
+        self.age += 1
+    }
+}
 
-jsimport!('ejr:io')
+struct ReadDiary {
+    fn read(self) {
+        for entry in self.diary {
+            print!(entry)
+        }
+    }
+}
+
+struct WriteDiary {
+    fn write(self, entry) {
+        self.diary.push(entry)
+    }
+}
+
+struct Occupation[
+    job,
+    years
+] {
+    fn join_job(self, job) {
+        self.job = job
+        self.years = 0
+    }
+}
+
+struct Person[
+    name, 
+    age
+] with Grow, ReadDiary, WriteDiary, Occupation {
+    diary = []
+
+    fn static_method() {
+        print!('static')
+    }
+}
+
+p = Person('Jordan', 23)
+print!(p.age)
+p.grow()
+print!(p.age)
+Person.static_method()
+
+p.write('This is a test!')
+p.read()
+
+p.join_job('CEO of EpochTech')
+print!(p.job)
+print!(p.years)
