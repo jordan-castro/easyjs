@@ -1,7 +1,0 @@
-native {
-    pub fn add(n1:int, n2:int):int {
-        return n1 + n2
-    }
-}
-
-test = add(1,2)

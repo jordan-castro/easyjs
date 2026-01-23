@@ -1,0 +1,29 @@
+namespace ejr {
+    fn t() {
+        return 1
+    }
+
+    native {
+        fn nt():int {
+            return 1
+        }
+    }
+}
+
+// ejr.ej
+fn t() {
+    return 1
+}
+
+native {
+    fn nt():int {
+        return 1
+    }
+}
+
+// io.ej
+import 'ejr' as ejr
+
+// red.ej
+import 'ejr' as nn
+

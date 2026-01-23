@@ -150,11 +150,32 @@ impl Lex {
                 continue;
             }
 
+            // Check for an escaped backslash
+            if self.current_char == '\\' && self.peek_char() == '\\' {
+                // add first \
+                result.push(self.current_char);
+                // move to next \
+                self.read_char();
+                // add second \
+                result.push(self.current_char);
+                // move to next char
+                self.read_char();
+                // Continue with loop
+                continue;
+            }
+
             // check for an escaped quote.
             if self.current_char == '\\' && (self.peek_char() == '"' || self.peek_char() == '\'') {
+                // add \
                 result.push(self.current_char);
                 // move pass the backslash
                 self.read_char();
+                // Add next char
+                result.push(self.current_char);
+                // Move to next char
+                self.read_char();
+                // Continue loop
+                continue;
             }
 
             // add the current character to the result string

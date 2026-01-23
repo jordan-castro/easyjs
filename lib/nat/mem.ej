@@ -19,32 +19,35 @@ native {
     /// Struct type
     pub StructType = 6
 
-    pub fn set_ptr(position:int, value:int) {
-        __i32_store__(value, position, 0)
+    /// Set a PTR. I32 only
+    pub fn __set_ptr__(position:int, value:int) {
+        __i32_store__(position, value)
     }
 
-    pub fn get_ptr(position:int):int {
-        return __i32_load__(position, 0)
+    /// Get a PTR. I32 only
+    pub fn __get_ptr__(position:int):int {
+        return __i32_load__(position)
     }
 
     /// Allocate something on the heap.
-    pub fn malloc(size:int):int {
+    /// Simply grows the size of the heap by the requested amount.
+    pub fn __malloc__(size:int):int {
         ptr = heap
         heap += size
         return ptr
     } 
 
     /// Set variable type
-    pub fn set_type(ptr:int, var_type:int) {
-        set_ptr(ptr, var_type)
+    pub fn __set_type__(ptr:int, var_type:int) {
+        __set_ptr__(ptr, var_type)
     }
 
     /// Get variable type
-    pub fn get_type(ptr:int):int {
+    pub fn __get_type__(ptr:int):int {
         if ptr == nullptr {
             return nullptr
         }
 
-        return get_ptr(ptr)
+        return __get_ptr__(ptr)
     }
 }

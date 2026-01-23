@@ -12,6 +12,12 @@
 //      file_x = 0
 //      console.log(file_x)
 
+// Variable, function, structs, classes, etc are all mangled in the Transpiler stage.
+// This includes Native Varaibles and Functions. They are mangled within the Transpiler stage.
+// The reason is because the Native context is compiled all at once. (i.e. all files in one).
+// Which means from the native side we don't need to use namespace.get_obj_name() unless there is some DotExpression.
+// And all variables/functions/structs/classes exist in their corresponding paramaters within the NativeContext, not the Namespace.
+
 use std::collections::HashMap;
 
 use crate::typechecker::StrongValType;
@@ -54,17 +60,6 @@ pub struct Struct {
     /// The static methods of the struct
     pub static_methods: Vec<Function>,
 }
-
-// /// Used only in transpiler and type checker.
-// /// Used to track native function calls.
-// ///
-// /// i.e. convert native() to __easyjs_native_call("native", ["params"], ["returns"], ...args);
-// #[derive(Debug, Clone)]
-// pub struct NativeFunction {
-//     params: Vec<StrongValType>,
-//     returns: Vec<StrongValType>,
-//     name: String,
-// }
 
 /// Used only in transpiler and type checker.
 /// Holds all native for project.

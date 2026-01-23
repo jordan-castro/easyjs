@@ -572,10 +572,12 @@ fn parse_var_statement(p: &mut Parser) -> ast::Statement {
 
     let name = parse_identifier(p, false);
 
-    let mut var_type: Option<Box<ast::Expression>> = None;
+    let mut var_type: Box<ast::Expression>;
     // check for type
     if p.peek_token_is(token::COLON) {
-        var_type = Some(Box::new(parse_type(p)));
+        var_type = Box::new(parse_type(p));
+    } else {
+        var_type = Box::new(none_type(token.clone()));
     }
 
     if !p.peek_token_is(token::ASSIGN) && !p.peek_token_is(token::TYPE_ASSIGNMENT) {
@@ -596,7 +598,7 @@ fn parse_var_statement(p: &mut Parser) -> ast::Statement {
 
     let value = parse_expression(p, LOWEST);
 
-    ast::Statement::VariableStatement(token, Box::new(name), var_type, Box::new(value), infer_type)
+    ast::Statement::VariableStatement(token, Box::new(name), var_type, Box::new(value))
 }
 
 fn parse_return_statement(p: &mut Parser) -> ast::Statement {
@@ -901,7 +903,7 @@ fn parse_function_literal(p: &mut Parser) -> ast::Expression {
     if p.peek_token_is(token::COLON) {
         var_type = Box::new(parse_type(p));
     } else {
-        var_type = Box::new(Expression::Type(token.clone(), String::from("none")));
+        var_type = Box::new(none_type(token.clone()));
     }
 
     if !p.expect_peek(token::L_BRACE) {
@@ -1539,9 +1541,8 @@ fn parse_struct_statement(p: &mut Parser) -> ast::Statement {
             if !stmt.eq(ast::Statement::VariableStatement(
                 token::EMPTY_TOKEN,
                 ast::empty_box_exp(),
-                None,
                 ast::empty_box_exp(),
-                false,
+                ast::empty_box_exp(),
             )) {
                 return ast::empty_statement();
             }
@@ -1793,4 +1794,9 @@ fn parse_class_statement(p: &mut Parser) -> ast::Statement {
     }
 
     ast::Statement::ClassStatement(token, Box::new(class_name), Box::new(extensions), Box::new(stmts))
+}
+
+/// Helper for a none type
+fn none_type(tk: token::Token) -> ast::Expression {
+    ast::Expression::Type(tk, String::from("none"))
 }

@@ -1,5 +1,2 @@
-import 'ej_tests/strings.ej'
+import 'sandbox.ej'
 import 'std'
-
-@print(n)
-@print(n1) 

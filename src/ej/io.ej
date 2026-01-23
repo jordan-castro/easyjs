@@ -12,4 +12,8 @@ class Dir {
     pub fn read(dir_path:string):string {
         return ___ejr_dir_read(dir_path)
     }
+
+    pub fn is_dir(path:string):bool {
+        return ___ejr_dir_is_dir(path)
+    }
 }

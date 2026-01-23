@@ -1,6 +1,6 @@
 use std::{fs, io::{BufReader, Read}, path::Path};
 
-use easyjsr::{EJR, JSArg, JSArgResult, JSArgType, JSMethod, OpaqueObject, cstr_to_string, derefernce_jsarg, jsarg_as_string, jsarg_carray, jsarg_exception, jsarg_list, jsarg_string};
+use easyjsr::{EJR, JSArg, JSArgResult, JSArgType, JSMethod, OpaqueObject, cstr_to_string, derefernce_jsarg, jsarg_as_string, jsarg_bool, jsarg_carray, jsarg_exception, jsarg_list, jsarg_string};
 
 use crate::{repl::builtins::exceptions, rust_error_exception};
 
@@ -95,10 +95,28 @@ fn file_write(args: Vec<JSArg>, op: &OpaqueObject) -> JSArgResult {
     None
 }
 
+/// Dir.is_dir
+fn dir_is_dir(args: Vec<JSArg>, op: &OpaqueObject) -> JSArgResult {
+    if args.len() < 1 {
+        return exceptions::argument_count_exception(1, 0);
+    }
+
+    let path = jsarg_as_string(args[0]);
+    if path.is_none() { 
+        return exceptions::jsarg_parsing_exception("path", "string");
+    }
+
+    let binding = path.unwrap();
+    let p = Path::new(&binding);
+
+    Some(jsarg_bool(p.is_dir()))
+}
+
 pub fn include_io(ejr: &mut EJR) {
     ejr.register_callback("___ejr_file_read", Box::new(file_read), None);
     ejr.register_callback("___ejr_file_write", Box::new(file_write), None);
     ejr.register_callback("___ejr_dir_read", Box::new(dir_read), None);
+    ejr.register_callback("___ejr_dir_is_dir", Box::new(dir_is_dir), None);
 
     let script = include_str!("../../ej/io.ej");
 

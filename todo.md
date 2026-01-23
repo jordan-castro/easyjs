@@ -5,6 +5,9 @@
   - compilation (vs TypeScript, Dart, Nim, other to JS options)
   - wasm compilation (vs AssemblyScript, Dart, Rust, Go, C/C++)
   - ease of use (vs TypeScript, Dart, CoffeScript)
+- Safety
+  - multiplication and ints have same precedence.
+    - Wrap operations in () always
 - v0.5 type checker
   - basic types
     - int
@@ -51,6 +54,7 @@
 - v0.5.0 Add classes to namespace.
 - v0.5.0 Keep track of struct methods in Namespace
 - v0.5.0 Clean up emitter folder.
+- v0.5.0 Fix namespaces... (Script and Native)
 
 ## Runtime
 - Write Wasm Imp

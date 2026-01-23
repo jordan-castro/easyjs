@@ -1,4 +1,4 @@
-// EasyJS STD version 0.4.5
+// EasyJS STD version 0.4.6
 const AGENTS: &str = r##"// Property of easyjs 
  
 class Agent { 
@@ -58,123 +58,6 @@ macro elements(els) {
 } 
  
 "##;
-const IO: &str = r##"// File/Directory reading/writing 
- 
-import 'std' as _ 
- 
-@const(fs = require('node:fs')) 
-@const(fs_promises = require('node:fs/promises')) 
- 
-// Read a file 
-macro read_file(file_path, encoding, is_async) { 
-    fn { 
-        if #is_async == true { 
-            return ( 
-                async fn() {  
-                    return await fs_promises.readFile(#file_path, {encoding: #encoding})  
-                } 
-            )() 
-        } else { 
-            // Regular io 
-            file_data = null 
-            @try_catch(fn() { 
-                file_data = fs.readFileSync(#file_path, #encoding) 
-            }, fn(err) { 
-                @log_error(err) 
-            }) 
- 
-            return file_data 
-        } 
-    } 
-} 
- 
-// Write a file 
-macro write_file(file_path, data, is_async) { 
-    fn { 
-        if #is_async == true { 
-            return ( 
-                async fn() { 
-                    result = false 
-                    @try_catch(async fn(){ 
-                        await fs_promises.writeFile(#file_path, #data) 
-                        result = true 
-                    }, fn(err) { 
-                        @log_error(err) 
-                    }) 
-                    return result 
-                } 
-            )() 
-        } else { 
-            // Regular io 
-            result = false 
-            @try_catch(fn(){ 
-                fs.writeFileSync(#file_path, #data) 
-                result = true 
-            }, fn(err) { 
-                @log_error(err) 
-            }) 
-            return result 
-        } 
-    } 
-} 
- 
-// Check if a file exists (only synchronous) 
-macro file_exists(file_path) { 
-    fs.existsSync(#file_path) 
-} 
- 
-// Check directory exists (only synchronous) 
-macro dir_exists(dir_path) { 
-    @file_exists(#dir_path) 
-} 
- 
-// read files in a directory 
-macro read_dir(dir_path, is_async) { 
-    fn { 
-        if #is_async == true { 
-            return ( 
-                async fn() {  
-                    return await fs_promises.readdir(#dir_path)  
-                } 
-            )() 
-        } else { 
-            dir_contents = [] 
-            @try_catch(fn() { 
-                dir_contents = fs.readdirSync(#dir_path) 
-            }, fn(err) { 
-                @log_error(err) 
-            }) 
-            return dir_contents 
-        } 
-    }  
-} 
- 
-// Make a directory 
-macro make_dir(dir_path, is_async) { 
-    if #is_async == true { 
-        fs_promises.mkdir(#dir_path) 
-    } else { 
-        fs.mkdirSync(#dir_path) 
-    } 
-}"##;
-const MALLOC: &str = r##"native { 
-    pub fn malloc(size:int):int { 
-        var ptr : int = 0 
-        __set_local_to_global(0, 0) 
- 
-        // TODO: allow this! 
-        HEAP += ptr + 4 + size 
- 
-        __get_global(0) 
-        __get_local(0) 
-        __i32_const(4) 
-        __i32_add() 
-        __set_global(0) 
- 
-        return ptr 
-    } 
- 
-}"##;
 const MATH: &str = r##"macro radians(degrees) { 
     javascript{ 
         #degrees * (Math.PI / 180); 
@@ -186,6 +69,69 @@ macro calculate_percent(value,total) {
     Math.round((#value / #total) * 100) 
 } 
 "##;
+const NAT___MEM: &str = r##"native { 
+    /// Global heap 
+    pub heap:int = 1024 
+    /// Global Page size  
+    pub page_size:int = 65536 
+    /// Global nullptr 
+    pub nullptr:int = 0 
+ 
+    /// Int type 
+    pub IntType = 1 
+    /// Float type 
+    pub FloatType = 2 
+    /// String type 
+    pub StringType = 3 
+    /// Array type 
+    pub ArrayType = 4 
+    /// Dict type 
+    pub DictType = 5 
+    /// Struct type 
+    pub StructType = 6 
+ 
+    /// Set a PTR. I32 only 
+    pub fn __set_ptr__(position:int, value:int) { 
+        __i32_store__(position, value) 
+    } 
+ 
+    /// Get a PTR. I32 only 
+    pub fn __get_ptr__(position:int):int { 
+        return __i32_load__(position) 
+    } 
+ 
+    /// Allocate something on the heap. 
+    /// Simply grows the size of the heap by the requested amount. 
+    pub fn __malloc__(size:int):int { 
+        ptr = heap 
+        heap += size 
+        return ptr 
+    }  
+ 
+    /// Set variable type 
+    pub fn __set_type__(ptr:int, var_type:int) { 
+        __set_ptr__(ptr, var_type) 
+    } 
+ 
+    /// Get variable type 
+    pub fn __get_type__(ptr:int):int { 
+        if ptr == nullptr { 
+            return nullptr 
+        } 
+ 
+        return __get_ptr__(ptr) 
+    } 
+}"##;
+const NAT___STD: &str = r##"native { 
+    pub fn set_ptr(position:int, value:int) { 
+        __i32_store(value, position, 0) 
+    } 
+ 
+    pub fn get_ptr(position:int):int { 
+        __i32_load(position, 0) 
+    } 
+}"##;
+const NAT___STRINGS: &str = r##""##;
 const RANDOM: &str = r##"// EasyJS implementation of random.uniform from Python. 
 macro uniform(a,b) { 
     Math.random() * (#b - #a + 1) + #a 
@@ -369,17 +315,12 @@ macro freeze(object) {
     Object.freeze(#object) 
 } 
  
-// Check type 
-macro is_type(variable, type_name) { 
-    typeof(#variable) == #type_name 
-} 
- 
-// log error 
-macro log_error(err) { 
+// console.error macro 
+macro eprint(err) { 
     console.error(#err) 
 } 
  
-// JS comment 
+// Keep comment alive after compilation by wrapping it in a javascript block 
 macro jsc(comment) { 
     javascript{ 
         // #comment 
@@ -412,7 +353,57 @@ macro is_null_undefined(object) {
     javascript{ 
         (#object === null || #object === undefined) 
     } 
-}"##;
+} 
+ 
+// Import from a JS file without having to wrap in a javascript block. 
+macro jsimport(file, imports=[]) {{ 
+    fn { 
+        imports = #imports 
+ 
+        result = "import " 
+        has_brace = false 
+ 
+        if imports.length > 0 { 
+            has_brace = true 
+            result += "{ " 
+        } 
+ 
+        // Loop through imports... 
+        for imp in imports { 
+            // Check if is a object 
+            if imp is 'object' { 
+                // Get key:value 
+                key = keys!(imp)[0] 
+                value = imp[key] 
+ 
+                result += "$key as $value " 
+            } else { 
+                // No import if not a string... 
+                if not imp is 'string' { 
+                    return "" 
+                } 
+                // Must be a string 
+                result += "$imp " 
+            } 
+ 
+            if imp != last!(imports) { 
+                result += "," 
+            } 
+        } 
+ 
+        if has_brace { 
+            result += "} from " 
+        } 
+ 
+        result += "'${#file}'" 
+ 
+        // Wrap in javascript statement to not be compiled 
+        return "javascript{ 
+            $result 
+        }" 
+    } 
+}} 
+"##;
 const STRINGS: &str = r##"// String manipulations 
  
 // Capitalize a string 
@@ -461,15 +452,16 @@ macro exec(command) {
     })() 
 }"##;
 
-/// Load a STD library from EasyJS version 0.4.5, or an empty string if not found.
+/// Load a STD library from EasyJS version 0.4.6, or an empty string if not found.
 pub fn load_std(name: &str) -> String {
 	match name {
 		"agents" => AGENTS,
 		"date" => DATE,
 		"html" => HTML,
-		"io" => IO,
-		"malloc" => MALLOC,
 		"math" => MATH,
+		"nat/mem" => NAT___MEM,
+		"nat/std" => NAT___STD,
+		"nat/strings" => NAT___STRINGS,
 		"random" => RANDOM,
 		"std" => STD,
 		"strings" => STRINGS,

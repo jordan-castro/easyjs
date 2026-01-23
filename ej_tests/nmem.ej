@@ -1,0 +1,23 @@
+import 'nat/mem' as mem
+import 'std'
+
+native {
+    pub fn set_int(num:int):int {
+        // Save ptr
+        ptr = mem.__malloc__(1)
+        mem.__set_ptr__(ptr, num)
+
+        return ptr
+    }
+
+    pub fn get_int(ptr:int):int {
+        return mem.__get_ptr__(ptr)
+    }
+}
+
+num = 50
+ptr = set_int(num)
+print!(ptr)
+
+pnum = get_int(ptr)
+print!(pnum)

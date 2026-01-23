@@ -24,3 +24,20 @@ pub fn get_filename_without_extension(path: &str) -> String {
         None => last_segment.to_string(),
     }
 }
+
+/// Read a enviroment variable (works with wasm by returning "")
+#[cfg(not(target_arch = "wasm32"))]
+pub fn read_env(var: &str) -> String {
+    let res = std::env::var(var);
+    if res.is_err() {
+        String::from("")
+    } else {
+        res.unwrap()
+    }
+}
+
+/// Read a enviroment variable (works with wasm by returning "")
+#[cfg(target_arch = "wasm32")]
+pub fn read_env(var: &str) -> String {
+    String::from("")
+}

@@ -267,6 +267,13 @@ pub fn jsarg_uint32t(value: u32) -> *mut ejr::JSArg {
     }
 }
 
+/// Create a JSArg value of bool
+pub fn jsarg_bool(value: bool) -> *mut ejr::JSArg {
+    unsafe {
+        ejr::jsarg_bool(value)
+    }
+}
+
 /// Create JSArg value of C-Array
 /// 
 /// Must free if not being used in a callback.

@@ -18,7 +18,7 @@ pub struct EasyNativeFN {
 /// Context for a native variable.
 /// 
 /// The value is for global variables only.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct EasyNativeVar {
     /// Name of variable
     pub name: String,

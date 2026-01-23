@@ -11,9 +11,8 @@ pub enum Statement {
     VariableStatement(
         tk::Token,
         Box<Expression>,
-        Option<Box<Expression>>,
         Box<Expression>,
-        bool,
+        Box<Expression>,
     ), // variable = expression (bool = should_infer)
     ReturnStatement(tk::Token, Box<Expression>), // return expression
     ImportStatement(tk::Token, String, Option<Box<Expression>>), // import 'path.ej' (or) import 'path'
@@ -105,7 +104,7 @@ impl Statement {
                 // No token stored here, so panic or handle as needed
                 panic!("EmptyStatement has no token")
             }
-            Statement::VariableStatement(token, _, _, _, _) => token,
+            Statement::VariableStatement(token, _, _, _) => token,
             Statement::ReturnStatement(token, _) => token,
             Statement::ImportStatement(token, _, _) => token,
             Statement::ExpressionStatement(token, _) => token,
@@ -128,7 +127,7 @@ impl Statement {
     pub fn variant_type(&self) -> String {
         match self {
             Statement::EmptyStatement => "EmptyStatement",
-            Statement::VariableStatement(_, _, _, _, _) => "VariableStatement",
+            Statement::VariableStatement(_, _, _, _) => "VariableStatement",
             Statement::ReturnStatement(_, _) => "ReturnStatement",
             Statement::ExpressionStatement(_, _) => "ExpressionStatement",
             Statement::ImportStatement(_, _, _) => "ImportStatement",
@@ -370,6 +369,7 @@ impl Expression {
     }
 }
 
+#[derive(Clone)]
 pub struct Program {
     pub statements: Vec<Statement>,
 }

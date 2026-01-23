@@ -4,9 +4,6 @@
 // directory as strings. This will replace all current code in src/std/mod.rs
 
 import 'std'
-print!('test')
-
-File.write('test.js', '// Hello Jordan!')
 
 fn clean_file_contents(contents) {
     ncontents = contents.replaceAll('\t', ' ')
@@ -21,8 +18,15 @@ fn glob_files(dir_path, file_ending) {
     files = []
 
     for file in contents {
+        // Check if is a directory
+        if Dir.is_dir(file) {
+            // We need to get the files frmo this DIR.
+            internal_files = glob_files(file, file_ending)
+            files.push(...internal_files)
+            continue
+        }
         if file.endsWith(file_ending) {
-            files.push(dir_path + file)
+            files.push(file)
         }
     }
 
@@ -32,43 +36,44 @@ fn glob_files(dir_path, file_ending) {
 version = File.read('lib/version')
 
 lib_files = glob_files('lib/', '.ej')
-print!('Got this far')
-print!(lib_files)
 
 // content to write
-// content = "// EasyJS STD version $version\n"
-// 
-// name_to_source = {}
-// 
-// for file in lib_files {
-//     print!(file)
-//     // Load contents of file
-//     contents = clean_file_contents(File.read(file))
-//     
-//     // Get the file name
-//     file_name = file.replaceAll('\\', '/')
-//     file_name = file_name.split('/').at(-1).split('.')[0]
-//     
-//     // source object is a capital format of the file
-//     source = file_name.toUpperCase()
-//     name_to_source[file_name] = source
-//     
-//     // add contents
-//     content += 'const $source: &str = r##"$contents"##;\n'
-// }
-// 
-// content += "\n"
-// content += "/// Load a STD library from EasyJS version $version, or an empty string if not found.\n"
-// content += "pub fn load_std(name: &str) -> String {\n"
-// content += "\tmatch name {\n"
-// 
-// for key in keys!(name_to_source) {
-//     value = name_to_source[key]
-//     content += '\t\t"$key" => $value,\n'
-// }
-// content += '\t\t_ => "",\n'
-// content += "\t}.to_string()\n}"
-// 
-// // Write the contents to the file
-// File.write('easyjsc/src/std/mod.rs', content)
-// print!('Wrote to lib')
+content = "// EasyJS STD version $version\n"
+
+name_to_source = {}
+ 
+for file in lib_files {
+    // print!(file)
+    // Load contents of file
+    contents = clean_file_contents(File.read(file))
+    
+    // Get the file name
+    file_name = file.replaceAll('\\', '/')
+    // Only remove lib/ and final .ej
+    file_name = file_name.substring('lib/'.length, file_name.length - '.ej'.length)
+    print!(file_name)
+
+    // source object is a capital format of the file
+    source = file_name.toUpperCase().replaceAll('/', '___')
+    name_to_source[file_name] = source
+    
+    // add contents
+    content += 'const $source: &str = r##"$contents"##;\n'
+}
+
+content += "\n"
+content += "/// Load a STD library from EasyJS version $version, or an empty string if not found.\n"
+content += "pub fn load_std(name: &str) -> String {\n"
+content += "\tmatch name {\n"
+
+keys = keys!(name_to_source)
+for key in keys {
+    value = name_to_source[key]
+    content += '\t\t"$key" => $value,\n'
+}
+content += '\t\t_ => "",\n'
+content += "\t}.to_string()\n}"
+
+// Write the contents to the file
+File.write('easyjsc/src/std/mod.rs', content)
+print!('Wrote to lib')
