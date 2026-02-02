@@ -431,9 +431,9 @@ impl Lex {
                 } else {
                     self.create_new_token(token::QUESTION_MARK, &self.current_char_str())
                 }
-            }
+            },
             // '$' => self.create_new_token(token::MACRO_SYMBOL, &self.current_char_str()),
-            '@' => self.create_new_token(token::MACRO_SYMBOL, &self.current_char_str()),
+            // '@' => self.create_new_token(token::MACRO_SYMBOL, &self.current_char_str()),
             _ => {
                 // check for identifier
                 if self.current_char.is_alphabetic()

@@ -1,17 +1,17 @@
 import 'nat/mem' as mem
-import 'std'
+import 'std' as _
 
 native {
     pub fn set_int(num:int):int {
         // Save ptr
-        ptr = mem.__malloc__(1)
-        mem.__set_ptr__(ptr, num)
+        ptr = mem::__malloc__(1)
+        mem::__set_ptr__(ptr, num)
 
         return ptr
     }
 
     pub fn get_int(ptr:int):int {
-        return mem.__get_ptr__(ptr)
+        return mem::__get_ptr__(ptr)
     }
 }
 

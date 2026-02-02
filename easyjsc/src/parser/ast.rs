@@ -261,6 +261,8 @@ pub enum Expression {
     SpreadExpression(tk::Token, Box<Expression>),
     /// Doc comment '///'
     DocCommentExpression(tk::Token, Vec<String>),
+    /// Scope Coperator '::', namespace name/alias, whatever follows
+    ScopeExpression(tk::Token, String, Box<Expression>)
 }
 
 impl Expression {
@@ -310,7 +312,8 @@ impl Expression {
             Expression::Type(token, _) => token,
             Expression::IIFE(token, _) => token,
             Expression::SpreadExpression(token, _) => token,
-            Expression::DocCommentExpression(token, _) => token
+            Expression::DocCommentExpression(token, _) => token,
+            Expression::ScopeExpression(token, _, _) => token
         }
     }
 
@@ -356,7 +359,8 @@ impl Expression {
             Expression::Type(_, _) => "Type",
             Expression::IIFE(_, _) => "IIFE",
             Expression::SpreadExpression(_, _) => "SpreadExpression",
-            Expression::DocCommentExpression(_, _) => "DocCommentExpression"
+            Expression::DocCommentExpression(_, _) => "DocCommentExpression",
+            Expression::ScopeExpression(_, _, _) => "ScopeExpression"
         }
     }
 

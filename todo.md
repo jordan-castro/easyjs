@@ -55,14 +55,14 @@
 - v0.5.0 Keep track of struct methods in Namespace
 - v0.5.0 Clean up emitter folder.
 - v0.5.0 Fix namespaces... (Script and Native)
+  - Gonna just have a step before transpiling which will find all the namespaced variables,functions, and macros.
 
 ## Runtime
 - Write Wasm Imp
   - strings
     - https://www.w3schools.com/js/js_string_methods.asp
     - tests
-- ~~Fix io~~
-- Fix build script to build bindings JIT.
+- use PixelScript with JS backend instead.
 
 ## Commands
 - ~~v0.5.0 Remove the install command. Keep that with ezpkg.~~

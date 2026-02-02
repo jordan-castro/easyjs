@@ -1,29 +1,6 @@
-namespace ejr {
-    fn t() {
-        return 1
-    }
+import 'a.ej' as ABALL
+import 'utils.ej' as dog
 
-    native {
-        fn nt():int {
-            return 1
-        }
-    }
-}
+ABALL::name!() = "test"
 
-// ejr.ej
-fn t() {
-    return 1
-}
-
-native {
-    fn nt():int {
-        return 1
-    }
-}
-
-// io.ej
-import 'ejr' as ejr
-
-// red.ej
-import 'ejr' as nn
-
+new_value = dog::sub(2,1)

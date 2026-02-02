@@ -407,6 +407,7 @@ impl NativeContext {
     fn compile_variable_stmt(&mut self, name: &Expression, value: &Expression, is_mut: bool) {
         // get variable name as raw expression
         let var_name = self.compile_raw_expression(name);
+        let var_name = self.namespace.get_obj_name(&var_name);
         let strong_val_type = self.get_val_type_from_expression(&value);
 
         // check if variable already exists in scope
@@ -569,9 +570,6 @@ impl NativeContext {
             Expression::IntegerLiteral(_, val) => vec![Instruction::I32Const(*val as i32)],
             Expression::FloatLiteral(_, val) => vec![Instruction::F32Const(*val as f32)],
             Expression::InfixExpression(_, left, op, right) => {
-                println!("left: {:#?}", left);
-                println!("right: {:#?}", right);
-
                 let left = self.compile_expression(left.as_ref());
                 let right = self.compile_expression(right.as_ref());
 
@@ -766,29 +764,11 @@ impl NativeContext {
             Expression::DotExpression(tk, left, right) => {
                 let mut instructions = vec![];
 
-                // // Check if we have a namespace to the left
-                // let left_side_as_string = self.compile_raw_expression(left.as_ref());
-                // // clone namespaces to appease borrow checker
-                // let cloned_namespaces = self.imported_modules.clone();
-                // // Check if this is a namespace.
-                // for namespace in cloned_namespaces.iter() {
-                //     if namespace.has_name(&left_side_as_string) {
-                //         // We have a namespace, change the instruction to use the correct name
-                //         // There are only 3 possibilities for the right side:
-                //         // - A call expression
-                //         // - A identifier
-                //         // - A dot expression
-                //         let new_right = self.convert_namespaced_dot_expression(namespace, &right);
-                //         instructions.append(&mut self.compile_expression(&new_right));
-                //     }
-                // }
+                // compile left side
+                instructions.append(&mut self.compile_expression(left.as_ref()));
+                // compile right side.
+                instructions.append(&mut self.compile_expression(right.as_ref()));
 
-                // if instructions.len() == 0 {
-                //     // compile left side
-                //     instructions.append(&mut self.compile_expression(left.as_ref()));
-                //     // compile right side.
-                //     instructions.append(&mut self.compile_expression(right.as_ref()));
-                // }
                 instructions
             }
             Expression::StringLiteral(_, literal) => {
@@ -1037,6 +1017,11 @@ impl NativeContext {
                 // TODO: Add comments to Namespace for LSP and documentation IG.
                 vec![]
             }
+            Expression::ScopeExpression(tk, scope_name, right) => {
+                // Get module this scope belongs to
+                let expression = self.get_namespaced_expression(scope_name.clone(), right.as_ref());
+                self.compile_expression(&expression)
+            }
             _ => {
                 self.errors.push(native_unsupported_expression(expr));
                 vec![]
@@ -1056,6 +1041,7 @@ impl NativeContext {
     ) {
         // get name and params first...
         let name = self.compile_raw_expression(name);
+        let name = self.namespace.get_obj_name(&name);
 
         let param_names = params
             .iter()
@@ -1280,6 +1266,10 @@ impl NativeContext {
             Expression::CallExpression(_, method, _) => {
                 self.get_val_type_from_expression(method)
             }
+            Expression::ScopeExpression(_, scope_name, right) => {
+                let nexpr = self.get_namespaced_expression(scope_name.clone(), right.as_ref());
+                self.get_val_type_from_expression(&nexpr)
+            }
             _ => {
                 // add error
                 self.errors
@@ -1445,6 +1435,40 @@ impl NativeContext {
         instructions
     }
 
+    /// Get namespace manglement
+    fn get_namespaced_expression(&self, scope_name: String, expression: &Expression) -> Expression {
+        let mut module: Option<Namespace> = None;
+
+        for m in self.imported_modules.iter() {
+            if m.has_name(&scope_name) {
+                module = Some(m.clone());
+                break;
+            }
+        }
+
+        let res = if let Some(module) = module {
+                match expression {
+                    Expression::Identifier(tk, ident) => {
+                        Expression::Identifier(tk.to_owned(), module.get_obj_name(ident))
+                    },
+                    Expression::CallExpression(tk, ident, args) => {
+                        let name = match ident.as_ref() {
+                            Expression::Identifier(tk, name) => Expression::Identifier(tk.to_owned(), module.get_obj_name(name)),
+                            _ => unimplemented!()
+                        };
+
+                        Expression::CallExpression(tk.to_owned(), Box::new(name), args.to_owned())
+                    }
+                    _ => unimplemented!("Impossible to reach this. Except for macros which have yet to be implemented.")
+                }
+        } else {
+            Expression::EmptyExpression
+        };
+
+        println!("Res: {:#?}", res);
+
+        res
+    }
 }
 
 /// Convert a `function_name:String` into a Instruction for wasm core.

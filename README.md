@@ -9,7 +9,7 @@ This means that new features being added to ECMAScript will not be oficially sup
 using macros and the `javascript{}` statement.
 
 > [!WARNING]  
-> This language is still in development we are currently on v0.4.5
+> This language is still in development we are currently on v0.4.4
 
 ## Install
 To install you have a few options.
@@ -26,18 +26,18 @@ You have many different options to use.
 **Compile:**
 You can compile easyjs to a js file to run on the browser, server, etc.
 ```bash
-easyjs compile file.ej
+easyjs file.ej file.js
 ```
 
 **Script tag:**
 You can use a `<script type="easyjs">` tag in the browser to inline the easyjs. <-- This requires the easyjs wasm runtime.
 
-You can use a `<script src="source.min.js">` tag in the browser.
+You can use a `<script src="source.js">` tag in the browser.
 
 **REPL**
 easyjs provides a REPL. Use it by running `easyjs` in your terminal.
 ```bash
-easyjs repl
+easyjs
 > // your code goes here.
 ```
 
@@ -47,21 +47,26 @@ You can use any of the following runtimes
 - easyjsr (this is the default, but is currently lacking in some features)
 
 **Online:**
-You can also go to the (easyjs website)[https://jordanmcastro.com/easyjs]
+You can also go to the [easyjs website](https://jordanmcastro.com/easyjs)
 
 ### Examples
 Imagine you have a easyjs file like so:
-```rust
+```js
 fn foo() { // <-- functions use the fn keyword.  this will compile into a "function foo() {}"
-    console.log("foo") // <-- mostly all JS objects  transfer over. 
+    console.log("foo") // <-- All JS objects transfer over. 
 }
 
 bar = fn(x,y) {  // <-- This will compile into a "let bar = () => {};"
     ...
 }
+
+// Ideally though you will use the builtin std
+fn foo() {
+    print!('Foo')
+}
 ```
 You can compile this using
-`easyjs compile file.ej` --> this will create a file.js
+`easyjs file.ej` --> this will create a file.js
 
 Or you can inline the .ej file
 ```html
@@ -82,14 +87,15 @@ Or you can inline the .ej file
 In this approach our wasm runtime will take care of compiling it in REALTIME.
 
 **Fibonacci**
-```rust
-fn fibonacci(n):int { // <-- easyjs is optionally typed. 
+```js
+fn fibonacci(n):int { // <-- easyjs is optionally typed. If not typed as (dyn) is assumed
     if n == 0 {
-        return 0 // <-- no semicolons.
+        0 // <-- no semicolons or return needed
+        // Return is ONLY not needed when the function has a return type.
     } elif n == 1 {
-        return 1
+        1
     } else {
-        return fibonacci(n - 1) + fibonacci(n - 2) 
+        fibonacci(n - 1) + fibonacci(n - 2) 
     }
 }
 ```
@@ -116,7 +122,7 @@ async { // optionally wrap in a async block if you want to use await
 **Objects**
 
 Structs are data first objects.
-```rust
+```js
 // [name, age] are values that are passed into the constructor.
 struct Person[
     name:string, 
@@ -155,17 +161,17 @@ struct PersonData[
 ] {} // <--a struct that accepts name, age, and diary.
 
 // To instantiate a Person
-person = Person("Jordan", 22, ["Dear Diary", "I love Julia!", "I also love EasyJS!"])
+person = Person("Jordan", 24, ["Dear Diary", "I love Julia!", "I also love EasyJS!"])
 
 // To instantiate a PersonData
-person_data = PersonData("Evelyn", 19, ["Dear Diary", "I saw that Jordan loves a girl named Julia!", "Who is she???"])
+person_data = PersonData("Evelyn", 20, ["Dear Diary", "I saw that Jordan loves a girl named Julia!", "Who is she???"])
 ```
 Classes compile directly to JS classes. Also include multiple inheritance and private/public fields.
 ```js
 class A {
     // __new__ is for constructor
     fn __new__(self) {
-        super()
+        // Super is called automatically in every method.
         @print('A')
     }
 
@@ -189,7 +195,6 @@ class A {
 
 class B {
     fn __new__(self) {
-        super()
         @print('B')
     }
 }
@@ -197,19 +202,20 @@ class B {
 // easyjs classes support multiple inheritance
 class C : [A, B] {
     fn __new__(self) {
-        super() // Don't forget to call super!
         @print('C')
     }
 }
 ```
 
+Perfer `struct` over `class`.
+
+
 **Variables**
-```javascript
+```js
 hello = "Hello"
 
-// If we want to do a const we have to use the @const macro from 'std'
-import 'std' as _
-@const(world = "World")
+// If we want to do a const we have to use the const! macro from 'std'
+const! world = "World"
 
 // easyjs optional typing
 hello_typed : string = "hello"
@@ -217,9 +223,9 @@ hello_typed : string = "hello"
 
 **Macros**
 easyjs includes macro support allowing developers to build their own feature rich DSLs.
-```rust
+```js
 // for example the const macro in 'std'
-macro const(expr) {
+macro const(expr:block) {
     // All easyjs has access to the javascript statement.
     // This is a statement that allows you to place literal unparsed code into a context.
     // This should be used very carefuly.
@@ -236,17 +242,17 @@ macro print(...s) {
 
 **Native**
 easyjs supports a builtin wasm compiler named `easyjs native`. To use the wasm compiler wrap your code in a `native` block.
-```rust
+```js
 native {
-    // native functions need to be typed.
+    // native functions MUST be typed.
     pub fn add(n1:int, n2:int):int {
-        n1 + n2
+        n1 + n2 // once again return is optional in all native stmts due to typing.
     }
 }
 
 // then to call the built function
 result = add(1,2)
-@print(result)
+print!(result)
 ```
 Yes it is that easy!
 

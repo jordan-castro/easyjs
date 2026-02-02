@@ -26,7 +26,7 @@ const LOWEST: i64 = 1;
 const EQUALS: i64 = 2; // == !=
 
 const LESSGREATER: i64 = 3; // < > >= <=
-const SUM: i64 = 4; // + -
+const SUM: i64 = 4; // + - ::
 const PRODUCT: i64 = 5; // * /
 
 const DOT: i64 = 6; // .field or .method or ...spread
@@ -87,6 +87,7 @@ fn precedences(tk: &str) -> i64 {
         token::MINUS_EQUALS => ASSIGN,
         token::SLASH_EQUALS => ASSIGN,
         token::ASTERISK_EQUALS => ASSIGN,
+        token::SCOPE => DOT,
         _ => LOWEST,
     }
 }
@@ -220,6 +221,7 @@ impl Parser {
             token::SLASH_EQUALS => true,
             token::ASTERISK_EQUALS => true,
             token::IS => true,
+            token::SCOPE => true,
             _ => false,
         }
     }
@@ -254,6 +256,7 @@ impl Parser {
             token::SLASH_EQUALS => parse_infix_expression(self, left),
             token::ASTERISK_EQUALS => parse_infix_expression(self, left),
             token::IS => parse_is_expression(self, left),
+            token::SCOPE => parse_scope_expression(self, left),
             _ => ast::Expression::EmptyExpression,
         }
     }
@@ -1799,4 +1802,32 @@ fn parse_class_statement(p: &mut Parser) -> ast::Statement {
 /// Helper for a none type
 fn none_type(tk: token::Token) -> ast::Expression {
     ast::Expression::Type(tk, String::from("none"))
+}
+
+/// Parse a Scope expression. I'm not really sure what should go into this comment???
+/// But basically it will parse the scope name (which is LEFF) and add the right side expression.
+/// It is extremely similar to a regular infix expression.
+fn parse_scope_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression {
+    p.debug_print("parse_scope_expression");
+    let token = p.c_token.to_owned();
+    // let operator = p.c_token.to_owned().literal;
+
+    // Get the name, assume it's a identifier
+    let scope_name = match left {
+        Expression::Identifier(token, ident) => ident,
+        Expression::ScopeExpression(token, _, expression) => {
+            return parse_scope_expression(p, expression.as_ref().to_owned());
+        },
+        _ => {
+            p.add_error("Expected a Identifier or ScopeExpression");
+            return ast::empty_expression();
+        }
+    };
+
+    if !p.peek_token_is(token::IDENT) && !p.peek_token_is(token::SCOPE) {
+        p.add_error("Expected a Identifier or Scope next.");
+    }
+    p.next_token();
+
+    ast::Expression::ScopeExpression(token, scope_name.clone(), Box::new(parse_expression(p, LOWEST)))
 }

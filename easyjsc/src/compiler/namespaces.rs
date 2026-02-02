@@ -20,6 +20,8 @@
 
 use std::collections::HashMap;
 
+use easyjs_utils::utils::sanatize;
+
 use crate::typechecker::StrongValType;
 
 pub const NAMESPACE_PREFIX: &str = "_";
@@ -86,6 +88,8 @@ pub struct Namespace {
     pub macros: HashMap<String, crate::compiler::macros::Macro>,
     /// The native context of this namespace
     pub native_ctx: Native,
+    /// Random hash used to mangle the name at the JS level.
+    mangled_hash: String,
 }
 
 impl Namespace {
@@ -102,42 +106,52 @@ impl Namespace {
                 functions: vec![],
                 variables: vec![],
             },
+            mangled_hash: easyjs_utils::utils::h::random_hash(6),
         }
     }
 
-    fn var_exits(&self, name: String) -> bool {
+    pub fn var_exits(&self, name: String) -> bool {
         self.variables.iter().any(|var| var.name == name)
     }
 
-    fn fun_exists(&self, name: String) -> bool {
+    pub fn fun_exists(&self, name: String) -> bool {
         self.functions.iter().any(|fun| fun.name == name)
     }
 
-    fn struct_exists(&self, name: String) -> bool {
+    pub fn struct_exists(&self, name: String) -> bool {
         self.structs.iter().any(|s| s.name == name)
     }
 
-    fn macro_exists(&self, name: String) -> bool {
+    pub fn macro_exists(&self, name: String) -> bool {
         self.macros.contains_key(&name)
+    }
+
+    /// Get the correct alias.
+    fn get_prefix(&self) -> String {
+        let prefix = if self.alias.is_empty() {
+            sanatize::sanitize_path(&sanatize::get_filename_without_extension(&self.id)).to_string()
+        } else if self.alias == "_" {
+            "".to_string()
+        } else {
+            self.alias.clone()
+        };
+
+        prefix
     }
 
     /// Get the actual name of a object in this namespace.
     ///
     /// Works with variables, functions, structs, and macros.
     pub fn get_obj_name(&self, obj_name: &String) -> String {
-        if self.alias.is_empty() || self.alias == "_" {
+        if self.alias == "_" {
             obj_name.to_string()
         } else {
-            format!("{NAMESPACE_PREFIX}{}_{}", self.alias, obj_name)
+            format!("{NAMESPACE_PREFIX}{}_{}", self.mangled_hash, obj_name)
         }
     }
 
     /// Check if this namespace has said name
     pub fn has_name(&self, name: &String) -> bool {
-        if &self.alias == name {
-            true
-        } else {
-            false
-        }
+        name == &self.get_prefix()
     }
 }

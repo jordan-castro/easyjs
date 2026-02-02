@@ -1,0 +1,5 @@
+import 'utils.ej' as utils
+
+name = "B"
+
+num = utils::add(1,2)

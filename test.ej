@@ -2,4 +2,6 @@ import 'std' as std
 
 macro argv() process.argv
 
-std.print!(argv!())
+p = std::Person("Jordan")
+
+std::print!(argv!)

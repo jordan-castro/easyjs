@@ -79,6 +79,7 @@ pub const MINUS_EQUALS: &str = "-=";
 pub const SLASH_EQUALS: &str = "/=";
 pub const ASTERISK_EQUALS: &str = "*=";
 pub const SPREAD: &str = "...";
+pub const SCOPE: &str = "::";
 
 // Delimiters
 pub const COMMA: &str = ",";
@@ -193,6 +194,7 @@ pub fn lookup_ident(ident: &str) -> &'static str {
 pub fn lookup_colon_special(cs: &str) -> &'static str {
     match cs {
         ":=" => &TYPE_ASSIGNMENT,
+        "::" => &SCOPE,
         _ => &COLON,
     }
 }
