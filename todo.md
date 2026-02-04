@@ -54,8 +54,6 @@
 - v0.5.0 Add classes to namespace.
 - v0.5.0 Keep track of struct methods in Namespace
 - v0.5.0 Clean up emitter folder.
-- v0.5.0 Fix namespaces... (Script and Native)
-  - Gonna just have a step before transpiling which will find all the namespaced variables,functions, and macros.
 
 ## Runtime
 - Write Wasm Imp

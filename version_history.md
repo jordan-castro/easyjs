@@ -19,6 +19,8 @@ easyjs version history starts from v0.4.3 onward.
         - Ptr magic
         - All in easyjs
     - Expressions
+    - Macros
+        - Use ! instead of @
 
 - Runtime
     - Deprecated EJR, using PixelScript instead with JS backend
