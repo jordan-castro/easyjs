@@ -336,7 +336,7 @@ impl NativeContext {
             instructions: HashMap::new(),
             is_pub: false,
             block_scope: Vec::new(),
-            namespace: Namespace::new("".to_string(), "_".to_string()),
+            namespace: Namespace::new("".to_string()),
             imported_modules: vec![],
         }
     }
@@ -406,8 +406,7 @@ impl NativeContext {
     /// It is important to note whether or not the variable is in the global scope.
     fn compile_variable_stmt(&mut self, name: &Expression, value: &Expression, is_mut: bool) {
         // get variable name as raw expression
-        let var_name = self.compile_raw_expression(name);
-        let var_name = self.namespace.get_obj_name(&var_name);
+        let var_name = self.compile_raw_expression(name, None);
         let strong_val_type = self.get_val_type_from_expression(&value);
 
         // check if variable already exists in scope
@@ -467,6 +466,7 @@ impl NativeContext {
                 name: var_name.clone(),
                 is_mut: is_mut,
                 val_type: strong_val_type.clone(),
+                js_name: var_name.clone()
             });
         } else {
             // add to variable scope
@@ -531,39 +531,53 @@ impl NativeContext {
         }
     }
 
+    /// Compile a native expression with a prefix string. Useful for namespaces
+    fn compile_expression_with_prefix(&mut self, expr: &Expression, prefix: &str) -> EasyInstructions {
+        self._compile_expression(expr, Some(prefix))
+    }
+
+    fn compile_expression(&mut self, expr: &Expression) -> EasyInstructions {
+        self._compile_expression(expr, None)
+    }
+
     /// Compile a native expression (to be used only within NativeContext logic.)
     ///
     /// This returns a list of Instructions that are then used for compilation.
-    fn compile_expression(&mut self, expr: &Expression) -> EasyInstructions {
+    fn _compile_expression(&mut self, expr: &Expression, prefix: Option<&str>) -> EasyInstructions {
         match expr {
             Expression::Identifier(_, name) => {
+                let name = if let Some(prefix) = prefix {
+                    format!("{prefix}_{name}").to_string()
+                } else {
+                    name.to_string()
+                };
                 // Ok this one is a little interesting... we need to check if the variable is in the global scope or the local scope
                 // of if the name is a function i.e. call
 
                 // local
                 for var in self.variable_scope.get(1).unwrap() {
-                    if var.name == *name {
+                    if var.name == name {
                         return vec![Instruction::LocalGet(var.idx)];
                     }
                 }
                 // global
                 for var in self.variable_scope.get(0).unwrap() {
-                    if var.name == *name {
+                    if var.name == name {
                         return vec![Instruction::GlobalGet(var.idx)];
                     }
                 }
 
                 // check functions
-                if let Some(fun_idx) = self.get_fun_idx_from_name(name) {
+                if let Some(fun_idx) = self.get_fun_idx_from_name(&name) {
                     return vec![Instruction::Call(fun_idx)];
                 }
                 // some error
                 self.errors
-                    .push(native_error_compiling_identifier(expr.get_token(), name));
+                    .push(native_error_compiling_identifier(expr.get_token(), &name));
                 vec![]
             }
             Expression::FunctionLiteral(_, name, params, val_type, body) => {
-                self.compile_function_literal(name, params, val_type, body);
+                self.compile_function_literal(name, params, val_type, body, prefix);
                 vec![]
                 // self.instructions.iter().last().unwrap().1.clone()
             }
@@ -728,7 +742,7 @@ impl NativeContext {
                 instructions
             }
             Expression::CallExpression(_, name, arguments) => {
-                let name = self.compile_raw_expression(name);
+                let name = self.compile_raw_expression(name, prefix);
 
                 // Parse arguments first...
                 let mut parsed_arguments = vec![];
@@ -1017,10 +1031,11 @@ impl NativeContext {
                 // TODO: Add comments to Namespace for LSP and documentation IG.
                 vec![]
             }
-            Expression::ScopeExpression(tk, scope_name, right) => {
-                // Get module this scope belongs to
-                let expression = self.get_namespaced_expression(scope_name.clone(), right.as_ref());
-                self.compile_expression(&expression)
+            Expression::ScopeExpression(tk, left, right) => {
+                // Compile left side to a string
+                let left_raw = self.compile_raw_expression(left, prefix);
+                // Re Create right side with left_raw on name if possible
+                self.compile_expression_with_prefix(right, left_raw.as_str())
             }
             _ => {
                 self.errors.push(native_unsupported_expression(expr));
@@ -1038,14 +1053,14 @@ impl NativeContext {
         params: &Vec<Expression>,
         val_type: &Expression,
         body: &Statement,
+        prefix: Option<&str>
     ) {
         // get name and params first...
-        let name = self.compile_raw_expression(name);
-        let name = self.namespace.get_obj_name(&name);
+        let name = self.compile_raw_expression(name, prefix);
 
         let param_names = params
             .iter()
-            .map(|p| self.compile_raw_expression(p))
+            .map(|p| self.compile_raw_expression(p, prefix))
             .collect::<Vec<String>>();
         let param_types = params
             .iter()
@@ -1061,9 +1076,10 @@ impl NativeContext {
         let mut variables = vec![];
         for (param_n, param_t) in param_names.iter().zip(param_types.iter()) {
             variables.push(EJVariable {
-                name: param_n.to_owned(),
+                name: param_n.clone(),
                 is_mut: true,
                 val_type: param_t.to_owned(),
+                js_name: param_n.to_owned()
             });
         }
         // save function to namespace
@@ -1071,6 +1087,7 @@ impl NativeContext {
             name: name.clone(),
             params: variables,
             return_type: return_type.clone(),
+            js_name: name.clone()
         });
 
         // Get the block type
@@ -1177,15 +1194,36 @@ impl NativeContext {
     /// - string literals
     /// - function calls (the name)
     /// - function calls (the arguments)
-    fn compile_raw_expression(&mut self, expr: &Expression) -> String {
+    /// - scopes `::`
+    fn compile_raw_expression(&mut self, expr: &Expression, prefix: Option<&str>) -> String {
         match expr {
-            Expression::Identifier(_, name) => name.clone(),
+            Expression::Identifier(_, name) => {
+                if let Some(prefix) = prefix {
+                    format!("{prefix}_{name}")
+                } else {
+                    name.clone()
+                }
+            }
             Expression::IdentifierWithType(_, name, _) => name.clone(),
             Expression::StringLiteral(_, lit) => lit.clone(),
             Expression::FunctionLiteral(_, name, _, _, _) => {
-                self.compile_raw_expression(name.as_ref())
+                self.compile_raw_expression(name.as_ref(), prefix)
+            }
+            Expression::CallExpression(_, name, _) => {
+                self.compile_raw_expression(name.as_ref(), prefix)
             }
             Expression::StringLiteral(_, literal) => literal.to_owned(),
+            Expression::ScopeExpression(_, left, right) => {
+                let scope_name = self.compile_raw_expression(left, prefix);
+                let right_side = self.compile_raw_expression(expr, Some(&scope_name));
+
+                format!("{scope_name}_{right_side}")
+            }
+            // Expression::AssignExpression(_, left, right) => {
+            //     // Get left side type
+
+            //     // self.compile_raw_expression(left, prefix)
+            // }
             _ => {
                 // add error
                 self.errors
@@ -1265,10 +1303,6 @@ impl NativeContext {
             Expression::ArrayLiteral(_, _) => StrongValType::Array,
             Expression::CallExpression(_, method, _) => {
                 self.get_val_type_from_expression(method)
-            }
-            Expression::ScopeExpression(_, scope_name, right) => {
-                let nexpr = self.get_namespaced_expression(scope_name.clone(), right.as_ref());
-                self.get_val_type_from_expression(&nexpr)
             }
             _ => {
                 // add error
@@ -1435,40 +1469,6 @@ impl NativeContext {
         instructions
     }
 
-    /// Get namespace manglement
-    fn get_namespaced_expression(&self, scope_name: String, expression: &Expression) -> Expression {
-        let mut module: Option<Namespace> = None;
-
-        for m in self.imported_modules.iter() {
-            if m.has_name(&scope_name) {
-                module = Some(m.clone());
-                break;
-            }
-        }
-
-        let res = if let Some(module) = module {
-                match expression {
-                    Expression::Identifier(tk, ident) => {
-                        Expression::Identifier(tk.to_owned(), module.get_obj_name(ident))
-                    },
-                    Expression::CallExpression(tk, ident, args) => {
-                        let name = match ident.as_ref() {
-                            Expression::Identifier(tk, name) => Expression::Identifier(tk.to_owned(), module.get_obj_name(name)),
-                            _ => unimplemented!()
-                        };
-
-                        Expression::CallExpression(tk.to_owned(), Box::new(name), args.to_owned())
-                    }
-                    _ => unimplemented!("Impossible to reach this. Except for macros which have yet to be implemented.")
-                }
-        } else {
-            Expression::EmptyExpression
-        };
-
-        println!("Res: {:#?}", res);
-
-        res
-    }
 }
 
 /// Convert a `function_name:String` into a Instruction for wasm core.

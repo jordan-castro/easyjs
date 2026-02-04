@@ -20,5 +20,15 @@ pub fn hash_string(input: &str) -> String {
 
 /// Generate a random hash from a length
 pub fn random_hash(length: usize) -> String {
-    rand::distr::Alphanumeric.sample_string(&mut rand::rng(), length)
+    let r = rand::distr::Alphanumeric.sample_string(&mut rand::rng(), length);
+    format!("_{r}")
+}
+
+/// Get JS name if is_pub
+pub fn get_js_name(ej_name: String, is_pub: bool) -> String {
+    if is_pub {
+        ej_name
+    } else {
+        random_hash(4)
+    }
 }

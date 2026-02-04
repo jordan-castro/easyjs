@@ -24,7 +24,14 @@ use easyjs_utils::utils::sanatize;
 
 use crate::typechecker::StrongValType;
 
-pub const NAMESPACE_PREFIX: &str = "_";
+/// easyjs enums. Not native enums.
+#[derive(Debug, Clone)]
+pub struct EJEnum {
+    /// easyjs name
+    pub name: String,
+    /// JS mangled name
+    pub js_name: String
+}
 
 #[derive(Debug, Clone)]
 /// easyjs variables. Not native variables.
@@ -35,6 +42,8 @@ pub struct Variable {
     pub is_mut: bool,
     /// The variable type
     pub val_type: StrongValType,
+    /// The JS mangled name. This is the same as name if pubbed
+    pub js_name: String
 }
 
 #[derive(Debug, Clone)]
@@ -46,6 +55,8 @@ pub struct Function {
     pub params: Vec<Variable>,
     /// The function return type
     pub return_type: StrongValType,
+    /// JS mangled name
+    pub js_name: String
 }
 
 #[derive(Debug, Clone)]
@@ -61,6 +72,8 @@ pub struct Struct {
     pub methods: Vec<Function>,
     /// The static methods of the struct
     pub static_methods: Vec<Function>,
+    /// JS mangled name
+    pub js_name: String 
 }
 
 /// Used only in transpiler and type checker.
@@ -76,8 +89,6 @@ pub struct Native {
 pub struct Namespace {
     /// The id of the namespace. i.e. filename or libname for std lib
     pub id: String,
-    /// The alias of the namespace.
-    pub alias: String,
     /// The variables associated with the namespace. In order to access a variable you have to use id.variable
     pub variables: Vec<Variable>,
     /// The functions associated with the namespace. In order to access a function you have to use id.function
@@ -88,16 +99,15 @@ pub struct Namespace {
     pub macros: HashMap<String, crate::compiler::macros::Macro>,
     /// The native context of this namespace
     pub native_ctx: Native,
-    /// Random hash used to mangle the name at the JS level.
-    mangled_hash: String,
+    /// The easyjs enums
+    pub enums: Vec<EJEnum>
 }
 
 impl Namespace {
     /// Create a new namespace.
-    pub fn new(name: String, alias: String) -> Namespace {
+    pub fn new(name: String) -> Namespace {
         Namespace {
             id: name,
-            alias,
             variables: vec![],
             functions: vec![],
             structs: vec![],
@@ -106,8 +116,32 @@ impl Namespace {
                 functions: vec![],
                 variables: vec![],
             },
-            mangled_hash: easyjs_utils::utils::h::random_hash(6),
+            enums: vec![]
         }
+    }
+
+    pub fn get_var(&self, name:&str) -> Option<&Variable> {
+        self.variables.iter().find(|v| v.name == name) 
+    } 
+
+    pub fn get_enum(&self, name: &str) -> Option<&EJEnum> {
+        self.enums.iter().find(|e| e.name == name)
+    }
+
+    pub fn get_function(&self, name: &str) -> Option<&Function> {
+        self.functions.iter().find(|f| f.name == name)
+    }
+
+    pub fn get_struct(&self, name: &str) -> Option<&Struct> {
+        self.structs.iter().find(|s| s.name == name)
+    }
+
+    pub fn get_macro(&self, name: &str) -> Option<&crate::compiler::macros::Macro> {
+        self.macros.get(name)
+    }
+
+    pub fn enum_exists(&self, name: String) -> bool {
+        self.enums.iter().any(|e| e.name == name)
     }
 
     pub fn var_exits(&self, name: String) -> bool {
@@ -124,34 +158,5 @@ impl Namespace {
 
     pub fn macro_exists(&self, name: String) -> bool {
         self.macros.contains_key(&name)
-    }
-
-    /// Get the correct alias.
-    fn get_prefix(&self) -> String {
-        let prefix = if self.alias.is_empty() {
-            sanatize::sanitize_path(&sanatize::get_filename_without_extension(&self.id)).to_string()
-        } else if self.alias == "_" {
-            "".to_string()
-        } else {
-            self.alias.clone()
-        };
-
-        prefix
-    }
-
-    /// Get the actual name of a object in this namespace.
-    ///
-    /// Works with variables, functions, structs, and macros.
-    pub fn get_obj_name(&self, obj_name: &String) -> String {
-        if self.alias == "_" {
-            obj_name.to_string()
-        } else {
-            format!("{NAMESPACE_PREFIX}{}_{}", self.mangled_hash, obj_name)
-        }
-    }
-
-    /// Check if this namespace has said name
-    pub fn has_name(&self, name: &String) -> bool {
-        name == &self.get_prefix()
     }
 }

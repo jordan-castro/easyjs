@@ -1,8 +1,8 @@
 native {
     /// Global heap
-    pub heap:int = 1024
+    pub HEAP:int = 1024
     /// Global Page size 
-    pub page_size:int = 65536
+    pub PAGE_SIZE:int = 65536
     /// Global nullptr
     pub nullptr:int = 0
 
@@ -20,34 +20,34 @@ native {
     pub StructType = 6
 
     /// Set a PTR. I32 only
-    pub fn __set_ptr__(position:int, value:int) {
+    pub fn set_ptr(position:int, value:int) {
         __i32_store__(position, value)
     }
 
     /// Get a PTR. I32 only
-    pub fn __get_ptr__(position:int):int {
+    pub fn get_ptr(position:int):int {
         return __i32_load__(position)
     }
 
     /// Allocate something on the heap.
     /// Simply grows the size of the heap by the requested amount.
-    pub fn __malloc__(size:int):int {
-        ptr = heap
-        heap += size
+    pub fn malloc(size:int):int {
+        ptr = HEAP
+        HEAP += size
         return ptr
     } 
 
     /// Set variable type
-    pub fn __set_type__(ptr:int, var_type:int) {
-        __set_ptr__(ptr, var_type)
+    pub fn set_type(ptr:int, var_type:int) {
+        set_ptr(ptr, var_type)
     }
 
     /// Get variable type
-    pub fn __get_type__(ptr:int):int {
+    pub fn get_type(ptr:int):int {
         if ptr == nullptr {
             return nullptr
         }
 
-        return __get_ptr__(ptr)
+        return get_ptr(ptr)
     }
 }

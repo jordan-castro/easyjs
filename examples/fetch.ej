@@ -1,0 +1,20 @@
+import 'http'
+import 'json'
+
+const! URL = "place/json-url/here"
+
+struct Response[
+    name: string,
+    age: int
+] {} with json::ParseMixin
+
+// Way 2
+async {
+    res = await http::get(URL)
+    if is_error!(res) {
+        return
+    }
+
+    // Parse JSON
+    json = Response.from_json(res.json())
+}

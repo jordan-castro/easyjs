@@ -15,7 +15,7 @@ pub enum Statement {
         Box<Expression>,
     ), // variable = expression (bool = should_infer)
     ReturnStatement(tk::Token, Box<Expression>), // return expression
-    ImportStatement(tk::Token, String, Option<Box<Expression>>), // import 'path.ej' (or) import 'path'
+    ImportStatement(tk::Token, String), // import 'path.ej' (or) import 'path'
     ExpressionStatement(tk::Token, Box<Expression>), // token expression
     BlockStatement(tk::Token, Box<Vec<Statement>>), // { statements }
     // token identifier = value
@@ -106,7 +106,7 @@ impl Statement {
             }
             Statement::VariableStatement(token, _, _, _) => token,
             Statement::ReturnStatement(token, _) => token,
-            Statement::ImportStatement(token, _, _) => token,
+            Statement::ImportStatement(token, _) => token,
             Statement::ExpressionStatement(token, _) => token,
             Statement::BlockStatement(token, _) => token,
             Statement::ForStatement(token, _, _) => token,
@@ -130,7 +130,7 @@ impl Statement {
             Statement::VariableStatement(_, _, _, _) => "VariableStatement",
             Statement::ReturnStatement(_, _) => "ReturnStatement",
             Statement::ExpressionStatement(_, _) => "ExpressionStatement",
-            Statement::ImportStatement(_, _, _) => "ImportStatement",
+            Statement::ImportStatement(_, _) => "ImportStatement",
             Statement::BlockStatement(_, _) => "BlockStatement",
             Statement::ForStatement(_, _, _) => "ForStatement",
             Statement::JavaScriptStatement(_, _) => "JavaScriptStatement",
@@ -262,7 +262,7 @@ pub enum Expression {
     /// Doc comment '///'
     DocCommentExpression(tk::Token, Vec<String>),
     /// Scope Coperator '::', namespace name/alias, whatever follows
-    ScopeExpression(tk::Token, String, Box<Expression>)
+    ScopeExpression(tk::Token, Box<Expression>, Box<Expression>)
 }
 
 impl Expression {

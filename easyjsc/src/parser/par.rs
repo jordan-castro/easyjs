@@ -453,17 +453,7 @@ fn parse_import_statement(p: &mut Parser) -> ast::Statement {
 
     let import_object = p.c_token.clone().literal;
 
-    let mut alias = None;
-    // Parse the as part
-    if p.peek_token_is(token::AS) {
-        // parse as
-        p.next_token(); // take as
-        p.next_token(); // go to identifier
-
-        alias = Some(Box::new(parse_identifier(p, false)));
-    }
-
-    ast::Statement::ImportStatement(token, import_object, alias)
+    ast::Statement::ImportStatement(token, import_object)
 }
 
 fn parse_native_statement(p: &mut Parser) -> ast::Statement {
@@ -1812,22 +1802,15 @@ fn parse_scope_expression(p: &mut Parser, left: ast::Expression) -> ast::Express
     let token = p.c_token.to_owned();
     // let operator = p.c_token.to_owned().literal;
 
-    // Get the name, assume it's a identifier
-    let scope_name = match left {
-        Expression::Identifier(token, ident) => ident,
-        Expression::ScopeExpression(token, _, expression) => {
-            return parse_scope_expression(p, expression.as_ref().to_owned());
-        },
-        _ => {
-            p.add_error("Expected a Identifier or ScopeExpression");
-            return ast::empty_expression();
-        }
-    };
+    if left.variant_type() != "Identifier" && left.variant_type() != "ScopeExpression" {
+        p.add_error("Expected a Identifier or ScopeExpression");
+        return ast::empty_expression();
+    }
 
     if !p.peek_token_is(token::IDENT) && !p.peek_token_is(token::SCOPE) {
         p.add_error("Expected a Identifier or Scope next.");
     }
     p.next_token();
 
-    ast::Expression::ScopeExpression(token, scope_name.clone(), Box::new(parse_expression(p, LOWEST)))
+    ast::Expression::ScopeExpression(token, Box::new(left), Box::new(parse_expression(p, LOWEST)))
 }

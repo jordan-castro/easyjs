@@ -18,5 +18,9 @@ class ____EasyJSNativeInterop {
         str_bytes = @TextEncoderUTf8(str)
 
         ptr = instance.exports.__str_alloc(str_len)
+
+        for i in 0..str_bytes.len!() {
+            
+        }
     }
 }
