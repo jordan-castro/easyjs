@@ -1,7 +1,3 @@
-import 'std' as std
+import 'std'
 
-macro argv() process.argv
-
-p = std::Person("Jordan")
-
-std::print!(argv!)
+print!('test')
