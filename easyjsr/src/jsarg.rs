@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use anyhow::{Result, anyhow};
 
 /// JSArg enum container
@@ -9,7 +11,8 @@ pub enum JSArg {
     Bool(bool),
     Int64(i64),
     Uint32(u32),
-    Array(Box<Vec<JSArg>>),
+    Array(Vec<JSArg>),
+    Object(HashMap<String, JSArg>),
     Null,
     Undefined,
     Uint8Array(Vec<u8>),
