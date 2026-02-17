@@ -6,8 +6,7 @@
   - wasm compilation (vs AssemblyScript, Dart, Rust, Go, C/C++)
   - ease of use (vs TypeScript, Dart, CoffeScript)
 - Safety
-  - multiplication and ints have same precedence.
-    - Wrap operations in () always
+  - add custom error handling.
 - v0.5 type checker
   - basic types
     - int
@@ -54,13 +53,17 @@
 - v0.5.0 Add classes to namespace.
 - v0.5.0 Keep track of struct methods in Namespace
 - v0.5.0 Clean up emitter folder.
+- v0.5.0 Include 'std' always
 
 ## Runtime
 - Write Wasm Imp
   - strings
     - https://www.w3schools.com/js/js_string_methods.asp
     - tests
-- use PixelScript with JS backend instead.
+- ~~Make backend compile its own bindings at buildtime.~~
+- v0.5.0 Rewrite the easyjsr library to use rquickjs.
+  - Include needed features (wasm, text-encodings, etc)
+- v0.5.0 Move builtin library ej code to /easyjsr
 
 ## Commands
 - ~~v0.5.0 Remove the install command. Keep that with ezpkg.~~
