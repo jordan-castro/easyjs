@@ -1,7 +1,7 @@
 #![allow(warnings)]
 
 mod ejr {
-    include!("../bindings.rs");
+    include!(concat!(env!("OUT_DIR"),"/ejr_bindings.rs"));
 }
 use std::{any::Any, collections::{btree_map::Values, HashMap}, ffi::{CStr, CString}, os::raw::{c_char, c_void}, ptr::{slice_from_raw_parts, slice_from_raw_parts_mut, NonNull}, sync::{Arc, Mutex}};
 

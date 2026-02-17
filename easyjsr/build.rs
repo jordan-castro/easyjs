@@ -2,6 +2,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::env;
 
+use bindgen::CargoCallbacks;
+
 /// Collect all files with a given extension in a directory (non-recursive).
 fn collect_files(dir: &Path, ext: &str) -> Vec<PathBuf> {
     let mut files = Vec::new();
@@ -17,43 +19,25 @@ fn collect_files(dir: &Path, ext: &str) -> Vec<PathBuf> {
 }
 
 fn build_bindings() {
-    let include_dir = env::var("EJR_INCLUDE_DIR").unwrap_or_default();
-    // Gen rust bindings
-    let wrapper_header = "include/wrapper.h";
-    if !Path::new(wrapper_header).exists() {
-        panic!("wrapper.h not found in include/");
-    }
-    let out_path = "bindings.rs";
+    let bindings = bindgen::Builder::default()
+        .header("ejr_lib/include/ejr.h")
+        .parse_callbacks(Box::new(CargoCallbacks::new()))
+        .generate()
+        .expect("Could not generate bindings");
 
-    if !include_dir.is_empty() {
-        let bindings = bindgen::Builder::default()
-            .header(wrapper_header)
-            .parse_callbacks(Box::new(bindgen::CargoCallbacks))
-            .generate()
-            .expect("Unable to generate bindings with bindgen");
-        
-        bindings.write_to_file(&out_path).expect("Could not write bindings!");
-    } else {
-        let bindings = bindgen::Builder::default()
-            .header(wrapper_header)
-            .clang_arg(format!("-I{include_dir}"))
-            .parse_callbacks(Box::new(bindgen::CargoCallbacks))
-            .generate()
-            .expect("Unable to generate bindings with bindgen");
-        
-        bindings.write_to_file(&out_path).expect("Could not write bindings!");
-
-    }
+    let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
+    bindings.write_to_file(out_path.join("ejr_bindings.rs")).expect("Could not write bindings.");
 }
 
 fn main() {
-    // build_bindings();
+    build_bindings();
+    let manifest_dir = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap());
     
     // Paths under ejr_lib
-    let include_dir: PathBuf = PathBuf::from("ejr_lib/include");
-    let src_dir = PathBuf::from("ejr_lib/src");
-    let lib_dir = PathBuf::from("ejr_lib/lib");
-    let source_dir: PathBuf = PathBuf::from("ejr_lib/");
+    let ejr_root   = manifest_dir.join("ejr_lib");
+    let include_dir = ejr_root.join("include");
+    let src_dir     = ejr_root.join("src");
+    let lib_dir     = ejr_root.join("lib");
 
     // Collect source files
     let cpp_sources = collect_files(&src_dir, "cpp");
@@ -76,14 +60,9 @@ fn main() {
         }
     }
 
-    // Get the C/C++ compiler
-    let c_compiler = "gcc";
-    let cpp_compiler = "g++";
-
     // Compile C first
     if !c_sources.is_empty() {
         let mut c_build = cc::Build::new();
-        c_build.compiler(&c_compiler);
         c_build.warnings(false);
         c_build.files(&c_sources);
         c_build.include(&include_dir);
@@ -98,12 +77,11 @@ fn main() {
     if !cpp_sources.is_empty() {
         let mut cpp_build = cc::Build::new();
         cpp_build.cpp(true);
-        cpp_build.compiler(&cpp_compiler);
         cpp_build.files(&cpp_sources);
         cpp_build.include(&include_dir);
         cpp_build.include(&src_dir);
         cpp_build.include(&lib_dir);
-        cpp_build.include(&source_dir);
+        cpp_build.include(&ejr_root);
         cpp_build.flag_if_supported("-std=c++17");
         cpp_build.flag_if_supported("-O2");
         cpp_build.flag_if_supported("-Wall");
@@ -124,4 +102,5 @@ fn main() {
         println!("cargo:rustc-link-lib=pthread");
     }
 
+    println!("cargo:rerun-if-changed=src/lib.rs");
 }
