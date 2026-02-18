@@ -65,63 +65,63 @@ enum Commands {
 }
 
 fn easyjs(args: Args, cmd: Commands) {
-        match cmd {
-            Commands::Repl => {
-                start_repl(&args.runtime, false, args.debug);
-            }
-            Commands::Compile => {
-                let file = args.ej_file.unwrap();
-                // Get path.
-                let ej_code_bytes: Vec<u8> = std::fs::read(&file).expect("Failed to read file.");
-                let ej_code = str::from_utf8(&ej_code_bytes).expect("Unable to parse bytes.");
-                let mut js_code = compile_main(ej_code.to_string(), &file);
+    match cmd {
+        Commands::Repl => {
+            start_repl(&args.runtime, false, args.debug);
+        }
+        Commands::Compile => {
+            let file = args.ej_file.unwrap();
+            // Get path.
+            let ej_code_bytes: Vec<u8> = std::fs::read(&file).expect("Failed to read file.");
+            let ej_code = str::from_utf8(&ej_code_bytes).expect("Unable to parse bytes.");
+            let mut js_code = compile_main(ej_code.to_string(), &file);
 
-                let extension = {
-                    if args.minify {
-                        ".min.js"
-                    } else {
-                        ".js"
-                    }
-                };
-
+            let extension = {
                 if args.minify {
-                    js_code = js_minify(&js_code).to_string();
+                    ".min.js"
+                } else {
+                    ".js"
                 }
+            };
 
-                // Check if we are outputing to the terminal
-                if args.terminal {
-                    println!("{}", js_code);
+            if args.minify {
+                js_code = js_minify(&js_code).to_string();
+            }
 
-                    return;
+            // Check if we are outputing to the terminal
+            if args.terminal {
+                println!("{}", js_code);
+
+                return;
+            }
+
+            let out_file = {
+                if let Some(output) = args.js_file {
+                    output
+                } else {
+                    file.replace(".ej", &extension)
                 }
+            };
+            let out_file = out_file
+                .replace("\\", "/")
+                .split("/")
+                .collect::<Vec<_>>()
+                .last()
+                .unwrap()
+                .to_string();
 
-                let out_file = {
-                    if let Some(output) = args.js_file {
-                        output
-                    } else {
-                        file.replace(".ej", &extension)
-                    }
-                };
-                let out_file = out_file
-                    .replace("\\", "/")
-                    .split("/")
-                    .collect::<Vec<_>>()
-                    .last()
-                    .unwrap()
-                    .to_string();
-
-                // write to file
-                std::fs::write(out_file, js_code).expect("Filed to write file.");
-            }
-            Commands::Run => {
-                run_file(&args.runtime, &args.ej_file.unwrap(), args.args);
-            }
-            // Commands::Install {
-                // path_to_js_file,
-                // forced_dir,
-            // } => {
-                // install(path_to_js_file, forced_dir);
-            // }
+            // write to file
+            std::fs::write(out_file, js_code).expect("Filed to write file.");
+        }
+        Commands::Run => {
+            run_file(&args.runtime, &args.ej_file.unwrap(), args.args);
+        }
+        // Commands::Install {
+            // path_to_js_file,
+            // forced_dir,
+        // } => {
+            // install(path_to_js_file, forced_dir);
+        // }
     }
 
 }

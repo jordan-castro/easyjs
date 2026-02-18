@@ -31,6 +31,5 @@ pub fn include_console(ejr: &mut EJR) {
     ejr.register_callback("___console_log", Box::new(console_log), None);
 
     let script = include_str!("../../js/console.js");
-
     ejr.eval_script(&script, "<console>");
 }

@@ -520,6 +520,8 @@ impl EJR {
             ejr::ejr_set_file_loader(ejr.rt, Some(global_static_file_loader), ejr.get_ptr());
         }
 
+        drop(reg);
+
         // Include builtins
         include_console(&mut ejr);
         
