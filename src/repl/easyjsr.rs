@@ -15,10 +15,10 @@ impl EasyJSR {
             ejr: ejr
         };
 
-        include_console(&mut s.ejr);
-        include_text_encoder(&mut s.ejr);
-        include_text_decoder(&mut s.ejr);
-        include_io(&mut s.ejr);
+        // include_console(&mut s.ejr);
+        // include_text_encoder(&mut s.ejr);
+        // include_text_decoder(&mut s.ejr);
+        // include_io(&mut s.ejr);
 
         s
     }

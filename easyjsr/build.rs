@@ -18,9 +18,10 @@ fn collect_files(dir: &Path, ext: &str) -> Vec<PathBuf> {
     files
 }
 
-fn build_bindings() {
+fn build_bindings(ejr_root: &PathBuf) {
+    let header = ejr_root.join("include/ejr.h") ;
     let bindings = bindgen::Builder::default()
-        .header("ejr_lib/include/ejr.h")
+        .header(header.to_str().unwrap())
         .parse_callbacks(Box::new(CargoCallbacks::new()))
         .generate()
         .expect("Could not generate bindings");
@@ -30,7 +31,6 @@ fn build_bindings() {
 }
 
 fn main() {
-    build_bindings();
     let manifest_dir = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap());
     
     // Paths under ejr_lib
@@ -38,6 +38,7 @@ fn main() {
     let include_dir = ejr_root.join("include");
     let src_dir     = ejr_root.join("src");
     let lib_dir     = ejr_root.join("lib");
+    build_bindings(&ejr_root);
 
     // Collect source files
     let cpp_sources = collect_files(&src_dir, "cpp");

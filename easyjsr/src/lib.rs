@@ -5,6 +5,10 @@ mod ejr {
 }
 use std::{any::Any, collections::{btree_map::Values, HashMap}, ffi::{CStr, CString}, os::raw::{c_char, c_void}, ptr::{slice_from_raw_parts, slice_from_raw_parts_mut, NonNull}, sync::{Arc, Mutex}};
 
+use crate::core::console::include_console;
+
+mod core;
+
 lazy_static::lazy_static! {
     static ref RUNTIME_REGISTRY: Mutex<RTGlobalContext> = Mutex::new(RTGlobalContext::new());
 }
@@ -435,6 +439,19 @@ pub fn derefernce_jsarg(value: &JSArg) -> ejr::JSArg {
     }
 }
 
+/// Convert a JSArg into a Rust string
+pub fn jsarg_to_string(jsarg: JSArg) -> Option<String> {
+    unsafe {
+        let ptr = ejr::jsarg_to_string(jsarg);
+        if ptr.is_null() {
+            None
+        } else {
+            let r_string = cstr_to_string(ptr);
+            Some(r_string)
+        }
+    }
+}
+
 /// Global(Static) function for loading files.
 unsafe extern "C" fn global_static_file_loader(file_path: *const c_char, opaque: *mut c_void) -> *mut c_char {
     if file_path.is_null() || opaque.is_null() {
@@ -476,7 +493,7 @@ unsafe extern "C" fn global_static_callback_wrappper(args: *mut *mut ejr::JSArg,
     let result = (cb_fn)(args_rs.to_vec(), oo);
 
     if result.is_none() {
-        return jsarg_null();
+        return jsarg_undefined();
     }
 
     result.unwrap()
@@ -502,6 +519,10 @@ impl EJR {
         unsafe {
             ejr::ejr_set_file_loader(ejr.rt, Some(global_static_file_loader), ejr.get_ptr());
         }
+
+        // Include builtins
+        include_console(&mut ejr);
+        
         ejr
     }
 
