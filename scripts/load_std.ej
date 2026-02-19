@@ -1,9 +1,5 @@
-// using ejr
-
 // This script takes the .ej files from lib directory and places them in the rust std
 // directory as strings. This will replace all current code in src/std/mod.rs
-
-import 'std'
 
 fn clean_file_contents(contents) {
     ncontents = contents.replaceAll('\t', ' ')
@@ -33,6 +29,7 @@ fn glob_files(dir_path, file_ending) {
     return files
 }
 
+print!('starting')
 version = File.read('lib/version')
 
 lib_files = glob_files('lib/', '.ej')

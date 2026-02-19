@@ -1,0 +1,5 @@
+import 'a.ej' as file_a
+import 'b.ej' as file_b
+
+print! file_a::name
+print!(b::name)

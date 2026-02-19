@@ -1,5 +1,1 @@
-import 'b.ej'
-
-b::name = "A Now"
-
-macro name() b::name
+name = "a"

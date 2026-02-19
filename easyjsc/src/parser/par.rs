@@ -82,7 +82,6 @@ fn precedences(tk: &str) -> i64 {
         token::OR_SYMBOL => OR,
         token::DOUBLE_QUESTION_MARK => DOUBLE_QUESTION_MARK,
         token::MODULUS => PRODUCT,
-        token::NEW => NEW,
         token::PLUS_EQUALS => ASSIGN,
         token::MINUS_EQUALS => ASSIGN,
         token::SLASH_EQUALS => ASSIGN,
@@ -151,7 +150,6 @@ impl Parser {
             token::SPREAD => parse_spread_expression(self),
             token::DOC_COMMENT => parse_doc_comment_expression(self),
             // token::DECORATOR => parse_macro_expression(self),
-            token::NEW => parse_new_expression(self),
             token::BUILTIN => parse_builtin_expression(self),
             _ => ast::Expression::EmptyExpression,
         }
@@ -184,7 +182,6 @@ impl Parser {
             token::MACRO_SYMBOL => true,
             token::SPREAD => true,
             // token::DECORATOR => true,
-            token::NEW => true,
             token::BUILTIN => true,
             _ => false,
         }
@@ -391,7 +388,6 @@ fn parse_statement(parser: &mut Parser) -> ast::Statement {
         token::BREAK => parse_break_statement(parser),
         token::CONTINUE => parse_continue_statement(parser),
         token::MACRO => parse_macro_decleration(parser),
-        token::CLASS => parse_class_statement(parser),
         _ => parse_expression_statement(parser),
     };
 
@@ -451,9 +447,19 @@ fn parse_import_statement(p: &mut Parser) -> ast::Statement {
         return ast::empty_statement();
     }
 
-    let import_object = p.c_token.clone().literal;
+    let import_object = parse_string_literal(p);
 
-    ast::Statement::ImportStatement(token, import_object)
+    let mut alias = None;
+
+    if p.peek_token_is(token::AS) {
+        p.next_token(); // as
+        if !p.expect_peek(token::IDENT) {
+            return ast::empty_statement();
+        }
+        alias = Some(parse_identifier(p, false));
+    }
+
+    ast::Statement::ImportStatement(token, import_object.get_token().literal.clone(), alias)
 }
 
 fn parse_native_statement(p: &mut Parser) -> ast::Statement {
@@ -736,7 +742,10 @@ fn parse_identifier(parser: &mut Parser, try_parse_type: bool) -> ast::Expressio
 }
 
 /// Parse a identifier while ignoring the macro check
-fn parse_identifier_without_macro_check(parser: &mut Parser, try_parse_type: bool) -> ast::Expression {
+fn parse_identifier_without_macro_check(
+    parser: &mut Parser,
+    try_parse_type: bool,
+) -> ast::Expression {
     parser.debug_print("parse_identifier");
     let token = parser.c_token.clone();
 
@@ -876,7 +885,7 @@ fn parse_function_literal(p: &mut Parser) -> ast::Expression {
     }
 
     // ok lets make sure this is a function
-    if !(p.peek_token_is(token::IDENT) || p.peek_token_is(token::NEW)) {
+    if !(p.peek_token_is(token::IDENT)) {
         p.add_error(format!("Expected a IDENT or NEW, got {} instead", p.peek_token.typ).as_str());
         // not a function
         return ast::Expression::EmptyExpression;
@@ -966,7 +975,9 @@ fn parse_lambda_literal(p: &mut Parser) -> ast::Expression {
         p.next_token();
         let body = parse_expression(p, LOWEST);
         if body.is_empty() {
-            p.add_error("Could not parse One-Line lambda, next statement must be a Expression statement.");
+            p.add_error(
+                "Could not parse One-Line lambda, next statement must be a Expression statement.",
+            );
             return ast::Expression::EmptyExpression;
         }
 
@@ -1357,28 +1368,41 @@ fn parse_macro_expression(p: &mut Parser) -> ast::Expression {
         return ast::empty_expression();
     }
 
-    if !p.expect_peek(token::L_PAREN) {
-        return ast::empty_expression();
+    // We don't need a L_PAREN
+    let is_args = p.peek_token_is(token::L_PAREN);
+    if is_args {
+        p.next_token();
     }
+    // if !p.expect_peek(token::L_PAREN) {
+    //     return ast::empty_expression();
+    // }
 
     let args = {
         let mut args = Vec::new();
-        if p.peek_token_is(token::R_PAREN) {
-            args
+        if is_args {
+            if p.peek_token_is(token::R_PAREN) {
+                args
+            } else {
+                p.next_token();
+                args.push(parse_expression(p, LOWEST));
+                while p.peek_token_is(token::COMMA) {
+                    p.next_token(); // ,
+                    p.next_token(); // expr
+                    args.push(parse_expression(p, LOWEST));
+                }
+                args
+            }
         } else {
             p.next_token();
             args.push(parse_expression(p, LOWEST));
-            while p.peek_token_is(token::COMMA) {
-                p.next_token(); // ,
-                p.next_token(); // expr
-                args.push(parse_expression(p, LOWEST));
-            }
             args
         }
     };
 
-    if !p.expect_peek(token::R_PAREN) {
-        return ast::empty_expression();
+    if is_args {
+        if !p.expect_peek(token::R_PAREN) {
+            return ast::empty_expression();
+        }
     }
 
     // setup ident
@@ -1438,7 +1462,13 @@ fn parse_macro_decleration(p: &mut Parser) -> ast::Statement {
             return ast::Statement::EmptyStatement;
         }
 
-        return ast::Statement::MacroStatement(token, Box::new(name), Box::new(args), Box::new(expression), false);
+        return ast::Statement::MacroStatement(
+            token,
+            Box::new(name),
+            Box::new(args),
+            Box::new(expression),
+            false,
+        );
     }
     // Go to {
     p.next_token();
@@ -1454,12 +1484,18 @@ fn parse_macro_decleration(p: &mut Parser) -> ast::Statement {
     // Consume final } if hygenic
     if is_hygenic {
         if !p.cur_token_is(token::R_BRACE) {
-            p.add_error("Hygenic must end in double } like: }}");            
+            p.add_error("Hygenic must end in double } like: }}");
         }
         p.next_token();
     }
 
-    ast::Statement::MacroStatement(token, Box::new(name), Box::new(args), Box::new(body), is_hygenic)
+    ast::Statement::MacroStatement(
+        token,
+        Box::new(name),
+        Box::new(args),
+        Box::new(body),
+        is_hygenic,
+    )
 }
 
 fn parse_struct_statement(p: &mut Parser) -> ast::Statement {
@@ -1620,21 +1656,6 @@ fn parse_double_question_mark_expression(p: &mut Parser, left: ast::Expression) 
     ast::Expression::DefaultIfNullExpression(token, Box::new(left), Box::new(right))
 }
 
-fn parse_new_expression(p: &mut Parser) -> ast::Expression {
-    p.debug_print("parse_new_expression");
-    let token = p.c_token.to_owned(); // new
-
-    // expect a identifier
-    if !p.expect_peek(token::IDENT) {
-        p.next_token();
-        return ast::empty_expression();
-    }
-
-    let ident = parse_expression(p, LOWEST);
-
-    ast::Expression::NewClassExpression(token, Box::new(ident))
-}
-
 fn parse_float_literal(p: &mut Parser) -> ast::Expression {
     p.debug_print("parse_float_literal");
     let token = p.c_token.to_owned(); // 1.0
@@ -1720,73 +1741,6 @@ fn parse_null(p: &mut Parser) -> ast::Expression {
     let token = p.c_token.to_owned();
 
     ast::Expression::NullExpression(token)
-}
-
-fn parse_class_statement(p: &mut Parser) -> ast::Statement {
-    p.debug_print("parse_class_statement");
-    let token = p.c_token.to_owned();
-
-    // Make sure next is a identifier
-    if !p.expect_peek(token::IDENT) {
-        return ast::Statement::EmptyStatement;
-    }
-
-    // Parse class name
-    let class_name = parse_identifier(p, false);
-    // Check if next is a ":"
-    let mut extensions: Vec<ast::Expression> = vec![];
-    if p.peek_token_is(token::COLON) {
-        // We have to grab the extensions too..
-        p.next_token(); // Go to :
-        // Check if [] (most likely a)
-        if p.peek_token_is(token::L_BRACKET) {
-            p.next_token(); // Go to [
-
-            loop {
-                if !p.expect_peek(token::IDENT) {
-                    return ast::Statement::EmptyStatement;
-                } else {
-                    extensions.push(parse_expression(p, LOWEST));
-                }
-                if p.peek_token_is(token::COMMA) {
-                    p.next_token(); // Consume comma
-                }
-                if p.peek_token_is(token::R_BRACKET) {
-                    // We are done
-                    break;
-                }
-            }
-
-            p.next_token(); // Consume ]
-        } else {
-            // This must be be just a identifier
-            if !p.expect_peek(token::IDENT) {
-                return ast::Statement::EmptyStatement;
-            }
-            extensions.push(parse_expression(p, LOWEST));
-        }
-    }
-
-    if !p.expect_peek(token::L_BRACE) {
-        return ast::Statement::EmptyStatement;
-    }
-
-    // Get variables and functions
-    let mut stmts: Vec<ast::Statement> = vec![];
-    // We got stuff here...
-    while !p.peek_token_is(token::R_BRACE) {
-        p.next_token(); // Consume current token
-        stmts.push(parse_statement(p)); 
-        if p.cur_token_is(token::COMMA) {
-            p.next_token(); // Go to ,
-        }
-    }
-
-    if !p.expect_peek(token::R_BRACE) {
-        return ast::Statement::EmptyStatement;
-    }
-
-    ast::Statement::ClassStatement(token, Box::new(class_name), Box::new(extensions), Box::new(stmts))
 }
 
 /// Helper for a none type

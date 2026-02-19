@@ -1,6 +1,0 @@
-import 'a.ej' as ABALL
-import 'utils.ej' as dog
-
-ABALL::name!() = "test"
-
-new_value = dog::sub(2,1)

@@ -5,9 +5,11 @@ mod ejr {
 }
 use std::{any::Any, collections::{btree_map::Values, HashMap}, ffi::{CStr, CString}, os::raw::{c_char, c_void}, ptr::{slice_from_raw_parts, slice_from_raw_parts_mut, NonNull}, sync::{Arc, Mutex}};
 
-use crate::core::console::include_console;
+use crate::core::{console::include_console, io::include_io};
 
 mod core;
+pub mod utils;
+pub mod exceptions;
 
 lazy_static::lazy_static! {
     static ref RUNTIME_REGISTRY: Mutex<RTGlobalContext> = Mutex::new(RTGlobalContext::new());
@@ -502,7 +504,7 @@ unsafe extern "C" fn global_static_callback_wrappper(args: *mut *mut ejr::JSArg,
 impl EJR {
     /// Create a new EJR instance
     pub fn new() -> Self {
-        let instance = unsafe {
+        let instance: *mut ejr::EasyJSRHandle = unsafe {
             ejr::ejr_new()
         };
 
@@ -524,6 +526,7 @@ impl EJR {
 
         // Include builtins
         include_console(&mut ejr);
+        include_io(&mut ejr);
         
         ejr
     }

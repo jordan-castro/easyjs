@@ -20,7 +20,7 @@
 
 use std::collections::HashMap;
 
-use easyjs_utils::utils::sanatize;
+use easyjs_utils::utils::{h::random_hash, sanatize};
 
 use crate::typechecker::StrongValType;
 
@@ -29,8 +29,6 @@ use crate::typechecker::StrongValType;
 pub struct EJEnum {
     /// easyjs name
     pub name: String,
-    /// JS mangled name
-    pub js_name: String
 }
 
 #[derive(Debug, Clone)]
@@ -42,8 +40,6 @@ pub struct Variable {
     pub is_mut: bool,
     /// The variable type
     pub val_type: StrongValType,
-    /// The JS mangled name. This is the same as name if pubbed
-    pub js_name: String
 }
 
 #[derive(Debug, Clone)]
@@ -55,8 +51,6 @@ pub struct Function {
     pub params: Vec<Variable>,
     /// The function return type
     pub return_type: StrongValType,
-    /// JS mangled name
-    pub js_name: String
 }
 
 #[derive(Debug, Clone)]
@@ -72,8 +66,6 @@ pub struct Struct {
     pub methods: Vec<Function>,
     /// The static methods of the struct
     pub static_methods: Vec<Function>,
-    /// JS mangled name
-    pub js_name: String 
 }
 
 /// Used only in transpiler and type checker.
@@ -100,14 +92,18 @@ pub struct Namespace {
     /// The native context of this namespace
     pub native_ctx: Native,
     /// The easyjs enums
-    pub enums: Vec<EJEnum>
+    pub enums: Vec<EJEnum>,
+    /// The namespace hash
+    pub hash: String,
+    /// A alias associated
+    pub alias: String
 }
 
 impl Namespace {
     /// Create a new namespace.
-    pub fn new(name: String) -> Namespace {
+    pub fn new(id: String, alias: String) -> Namespace {
         Namespace {
-            id: name,
+            id: id,
             variables: vec![],
             functions: vec![],
             structs: vec![],
@@ -116,7 +112,9 @@ impl Namespace {
                 functions: vec![],
                 variables: vec![],
             },
-            enums: vec![]
+            enums: vec![],
+            hash: random_hash(4),
+            alias
         }
     }
 
@@ -158,5 +156,17 @@ impl Namespace {
 
     pub fn macro_exists(&self, name: String) -> bool {
         self.macros.contains_key(&name)
+    }
+
+    pub fn add_name(&self, name: &str) -> String {
+        format!("{}_{name}", self.hash)
+    }
+
+    pub fn get_alias(&self) -> String {
+        if !self.alias.is_empty() {
+            self.alias.clone()
+        } else {
+            self.id.split(".ej").collect::<Vec<&str>>().last().unwrap().to_string()
+        }
     }
 }

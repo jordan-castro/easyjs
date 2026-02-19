@@ -51,6 +51,9 @@ pub struct Transpiler {
 
     /// A EJR reference
     ejr: EJR,
+
+    /// Add STD?
+    add_std: bool,
 }
 
 /// Non Wasm specific (if running in non wasm enviroment, optionally save the wasm binary)
@@ -71,13 +74,14 @@ impl Transpiler {
         let mut t = Transpiler {
             scripts: vec![],
             // namespace: Namespace::new("".to_string()),
-            modules: vec![Namespace::new("".to_string())],
+            modules: vec![Namespace::new("".to_string(), "".to_string())],
             scopes: vec![],
             native_stmts: vec![],
             debug_mode: false,
             is_module: false,
             custom_libs: HashMap::new(),
             ejr: EJR::new(),
+            add_std: true,
         };
 
         // Check the EASYJS_DEBUG variable
@@ -87,6 +91,13 @@ impl Transpiler {
 
         // add the first scope. This scope will never be popped.
         t.add_scope();
+        t
+    }
+
+    /// Transpiler without std added automatically
+    pub fn without_std() -> Self {
+        let mut t = Transpiler::new();
+        t.add_std = false;
         t
     }
 
@@ -143,7 +154,6 @@ impl Transpiler {
                     name: transpiled_name.clone(),
                     is_mut: true,
                     val_type: val_type,
-                    js_name: transpiled_name
                 });
             }
             _ => {
@@ -211,12 +221,10 @@ impl Transpiler {
                             name: String::from(""),
                             is_mut: true,
                             val_type: get_param_type_by_string(v),
-                            js_name: String::from("")
                         })
                         .collect::<Vec<Variable>>(),
                     return_type: get_param_type_by_string(&return_types),
-                    js_name: fn_name 
-                })
+                });
             }
             _ => {
                 return;
@@ -229,8 +237,13 @@ impl Transpiler {
     }
 
     /// Transpile a module.
-    pub fn transpile_module(&mut self, file_name: &str, p: ast::Program) -> String {
-        let mut t = Transpiler::new();
+    pub fn transpile_module(
+        &mut self,
+        file_name: &str,
+        p: ast::Program,
+        alias: Option<String>,
+    ) -> String {
+        let mut t = Transpiler::without_std();
         t.is_module = true;
         t.namespace_mut().id = file_name.to_string();
 
@@ -239,6 +252,9 @@ impl Transpiler {
 
         // Transpile the code now.
         let js = t.transpile(p);
+        if let Some(alias) = alias {
+            t.namespace_mut().alias = alias;
+        }
 
         // Add the namespace to our modules
         self.modules.push(t.namespace().clone());
@@ -250,17 +266,6 @@ impl Transpiler {
                 self.modules.push(module.clone());
             }
         }
-
-        // // Add this module into the global namespace.
-        // self.namespace.variables.extend(t.namespace.variables);
-        // // also extend variable scope
-        // if let (Some(self_inner), Some(t_inner)) = (self.scopes.get_mut(0), t.scopes.get(0)) {
-        //     self_inner.extend(t_inner.iter().cloned());
-        // }
-
-        // self.namespace.functions.extend(t.namespace.functions);
-        // self.namespace.structs.extend(t.namespace.structs);
-        // self.namespace.macros.extend(t.namespace.macros);
 
         if t.native_stmts.len() > 0 {
             // extend native_stmts
@@ -357,7 +362,7 @@ impl Transpiler {
             .iter()
             .filter(|p| p.is_native())
             .collect::<Vec<_>>();
-        let statements = p
+        let mut statements = p
             .statements
             .iter()
             .filter(|p| !p.is_native())
@@ -387,6 +392,17 @@ impl Transpiler {
             }
         }
 
+        // if std
+        let import_token = token::new_token(token::IMPORT, "import", "", 1, 1);
+        let import_stmt = Statement::ImportStatement(import_token, String::from("std"), None);
+
+        if self.add_std {
+            statements.insert(0, &import_stmt);
+        } else {
+            // We won't need it, so just drop the memory.
+            drop(import_stmt);
+        }
+
         // transpile JS statements..
         for stmt in statements {
             if stmt.is_empty() {
@@ -404,14 +420,6 @@ impl Transpiler {
     }
 
     fn transpile_stmt(&mut self, stmt: ast::Statement) -> Option<String> {
-        self._transpile_stmt(stmt, false)
-    }
-
-    fn transpile_stmt_pub(&mut self, stmt: ast::Statement) -> Option<String> {
-        self._transpile_stmt(stmt, true)
-    }
-
-    fn _transpile_stmt(&mut self, stmt: ast::Statement, is_pub: bool) -> Option<String> {
         match stmt {
             ast::Statement::VariableStatement(token, name, ej_type, value) => {
                 Some(self.transpile_var_stmt(
@@ -419,17 +427,16 @@ impl Transpiler {
                     name.as_ref().to_owned(),
                     ej_type.as_ref().to_owned(),
                     value.as_ref().to_owned(),
-                    is_pub
                 ))
             }
             ast::Statement::ReturnStatement(token, expression) => {
                 Some(self.transpile_return_stmt(token, expression.as_ref().to_owned()))
             }
-            ast::Statement::ImportStatement(_token, file_path) => {
-                Some(self.transpile_import_stmt(&file_path))
+            ast::Statement::ImportStatement(_token, file_path, alias) => {
+                Some(self.transpile_import_stmt(&file_path, alias))
             }
             ast::Statement::ExpressionStatement(token, expression) => {
-                Some(self.transpile_expression_stmt(token, expression.as_ref().to_owned(), is_pub))
+                Some(self.transpile_expression_stmt(token, expression.as_ref().to_owned()))
             }
             ast::Statement::BlockStatement(token, stmts) => {
                 Some(self.transpile_block_stmt(token, stmts.as_ref().to_owned()))
@@ -455,11 +462,10 @@ impl Transpiler {
                 mixins,
                 vars.as_ref().to_owned(),
                 methods.as_ref().to_owned(),
-                is_pub
             )),
-            Statement::ExportStatement(token, stmt) => {
-                self.transpile_stmt_pub(stmt.as_ref().to_owned())
-            }
+            // Statement::ExportStatement(token, stmt) => {
+            //     self.transpile_stmt(stmt.as_ref().to_owned())
+            // }
             Statement::AsyncBlockStatement(tk, block) => {
                 Some(self.transpile_async_block_stmt(tk, block.as_ref().to_owned()))
             }
@@ -469,7 +475,7 @@ impl Transpiler {
                 conditions.as_ref().to_owned(),
             )),
             Statement::EnumStatement(tk, name, options) => {
-                Some(self.transpile_enum_stmt(&name, options.as_ref(), is_pub))
+                Some(self.transpile_enum_stmt(&name, options.as_ref()))
             }
             Statement::BreakStatement(tk) => Some("break".to_string()),
             Statement::ContinueStatement(tk) => Some("continue".to_string()),
@@ -481,231 +487,11 @@ impl Transpiler {
                 self.add_macro_function(macro_name, macro_params, macro_body, is_hygenic);
                 Some(String::from(""))
             }
-            // Statement::ClassStatement(tk, name, extends, stmts) => {
-            //     Some(self.transpile_class_stmt(&tk, name.as_ref(), extends.as_ref(), &stmts))
-            // }
             _ => None,
         }
     }
 
-    fn transpile_internal_class_stmt(
-        &mut self,
-        class_name: &String,
-        stmt: &Statement,
-        is_pub: bool,
-    ) -> String {
-        match stmt {
-            Statement::ExportStatement(_, stmt) => {
-                self.transpile_internal_class_stmt(class_name, stmt, true)
-            }
-            Statement::VariableStatement(tk, ident, type_, value) => {
-                let tag = { if is_pub { "" } else { "#" } };
-
-                let var_name = self.transpile_expression(ident.as_ref().to_owned());
-                let var_result: String = self.transpile_expression(value.as_ref().to_owned());
-
-                format!("{tag}{var_name}={var_result}\n\n")
-            }
-            Statement::ExpressionStatement(tk, expr) => {
-                let mut result = String::new();
-                match expr.as_ref() {
-                    Expression::FunctionLiteral(tk, fn_name, params, type_, block) => {
-                        // Check name of function
-                        let mut fn_name_parsed =
-                            self.transpile_expression(fn_name.as_ref().to_owned());
-                        let mut fn_is_pub = is_pub;
-                        match fn_name_parsed.as_str() {
-                            "__new__" => {
-                                fn_name_parsed = "constructor".to_string();
-                                fn_is_pub = true;
-                            }
-                            _ => {}
-                        }
-                        // Check if static or non static
-                        let mut is_static = true;
-                        let mut cleaned_params = vec![];
-                        for param in params.as_ref() {
-                            match param {
-                                Expression::Identifier(_, ident) => {
-                                    if ident == "self" {
-                                        is_static = false;
-                                    } else {
-                                        cleaned_params.push(param.to_owned());
-                                    }
-                                }
-                                Expression::IdentifierWithType(_, ident, _) => {
-                                    if ident == "self" {
-                                        is_static = false;
-                                    } else {
-                                        cleaned_params.push(param.to_owned());
-                                    }
-                                }
-                                _ => {
-                                    cleaned_params.push(param.to_owned());
-                                }
-                            }
-                        }
-                        let tag = { if fn_is_pub { "" } else { "#" } };
-
-                        // If this is the constructor, always assume super()
-                        // Otherwise if not the constructor, it's up to the developer to call super()
-                        let mut final_block = block.to_owned();
-                        if fn_name_parsed.as_str() == "constructor" {
-                            match final_block.as_ref() {
-                                Statement::BlockStatement(tk, stmts) => {
-                                    // Create super()
-                                    let new_stmt = Statement::ExpressionStatement(
-                                        tk.clone(),
-                                        Box::new(Expression::CallExpression(
-                                            tk.clone(),
-                                            Box::new(Expression::Identifier(
-                                                tk.clone(),
-                                                "super".to_string(),
-                                            )),
-                                            Box::new(Vec::new()),
-                                        )),
-                                    );
-                                    // Add super()
-                                    let mut stmts = stmts.as_ref().to_owned();
-                                    stmts.insert(0, new_stmt);
-
-                                    // Reset block
-                                    final_block = Box::new(Statement::BlockStatement(
-                                        tk.clone(),
-                                        Box::new(stmts.to_owned()),
-                                    ));
-                                }
-                                _ => {
-                                    unimplemented!()
-                                }
-                            }
-                        }
-
-                        let function = Expression::FunctionLiteral(
-                            tk.to_owned(),
-                            Box::new(Expression::Identifier(
-                                fn_name.get_token().to_owned(),
-                                format!("{tag}{fn_name_parsed}"),
-                            )),
-                            Box::new(cleaned_params),
-                            type_.to_owned(),
-                            final_block.to_owned(),
-                        );
-                        // Transpile the function but just removed the `function` keyword from the beginning
-                        let tf = self.transpile_expression(function);
-                        // Add static
-                        if is_static {
-                            result.push_str("static ");
-                        }
-                        // Remove 'function'
-                        // FUNCTION = 8 len
-                        result.push_str(&tf.trim()[8..]);
-                        result.push('\n');
-                        result
-                    }
-                    Expression::AsyncExpression(tk, expr) => {
-                        let response = self.transpile_internal_class_stmt(
-                            class_name,
-                            &Statement::ExpressionStatement(tk.to_owned(), expr.to_owned()),
-                            is_pub,
-                        );
-
-                        // Add async if expr was compiled
-                        if response.len() > 0 {
-                            format!("async {response}")
-                        } else {
-                            String::from("")
-                        }
-                    }
-                    _ => {
-                        return String::from("");
-                    }
-                }
-            }
-            // Statement::MacroStatement(_, _, _, _) => {
-            // }
-            _ => {
-                // Could not parse
-                // TODO: Error of some sort
-                return String::from("");
-            }
-        }
-    }
-
-    // fn transpile_class_stmt(
-    //     &mut self,
-    //     tk: &token::Token,
-    //     name: &Expression,
-    //     extends: &Vec<Expression>,
-    //     stmts: &Vec<Statement>,
-    //     is_pub: bool
-    // ) -> String {
-    //     let mut result = String::new();
-
-    //     let mut class_name: String;
-    //     let mut base_name: String;
-    //     match name {
-    //         Expression::Identifier(_, ident) => {
-    //             if !is_pub {
-
-    //             }
-    //             // base_name = self.namespace.get_obj_name(ident);
-    //             class_name = format!("__EASYJS_{}_INTERNAL", base_name);
-    //             result
-    //                 .push_str(format!("const {class_name} = Base => class extends Base ").as_str());
-    //         }
-    //         _ => {
-    //             return String::from("");
-    //         }
-    //     };
-    //     result.push('{');
-
-    //     // Variables, Expressions...
-    //     for stmt in stmts {
-    //         let sss = self.transpile_internal_class_stmt(&class_name, stmt, false);
-    //         result.push_str(sss.as_str());
-    //     }
-
-    //     result.push('}');
-
-    //     // Ok now let's actually create our class.
-    //     result.push_str(format!("\nclass {base_name} extends ").as_str());
-
-    //     // Extensions
-    //     let mut times_extended = 0;
-    //     if extends.len() > 0 {
-    //         for expr in extends {
-    //             times_extended += 1;
-    //             let mut real_class_name: String;
-    //             match expr {
-    //                 Expression::Identifier(_, ident) => {
-    //                     real_class_name = format!("__EASYJS_{ident}_INTERNAL");
-    //                 }
-    //                 Expression::DotExpression(_, _, _) => {
-    //                     real_class_name = format!(
-    //                         "__EASYJS_{}_INTERNAL",
-    //                         self.transpile_expression(expr.to_owned())
-    //                     );
-    //                 }
-    //                 _ => {
-    //                     return String::from("");
-    //                 }
-    //             }
-
-    //             // Add extension
-    //             result.push_str(format!("{real_class_name}(").as_str());
-    //         }
-    //     }
-    //     result.push_str(class_name.as_str());
-    //     result.push_str("(class{})");
-    //     for i in 0..times_extended {
-    //         result.push(')');
-    //     }
-    //     result.push_str("{}");
-    //     result
-    // }
-
-    fn transpile_enum_stmt(&mut self, name: &str, options: &Vec<Expression>, is_pub: bool) -> String {
+    fn transpile_enum_stmt(&mut self, name: &str, options: &Vec<Expression>) -> String {
         let mut result = String::new();
 
         if options.len() == 0 {
@@ -714,25 +500,13 @@ impl Transpiler {
 
         // TODO: save type...
         let ej_name = name.to_string();
-        let js_name = if is_pub {
-            ej_name.clone()
-        } else {
-            random_hash(6)
-        };
 
         // Save to namespace
         self.namespace_mut().enums.push(EJEnum {
             name: ej_name.clone(),
-            js_name: js_name.clone(),
         });
 
-        result.push_str(
-            format!(
-                "const {} = ",
-                js_name
-            )
-            .as_str(),
-        );
+        result.push_str(format!("const {} = ", ej_name).as_str());
         // result.push_str("enum ");
         result.push_str(" Object.freeze({");
 
@@ -749,7 +523,8 @@ impl Transpiler {
         result
     }
 
-    fn transpile_import_stmt(&mut self, file_path: &str) -> String {
+    fn transpile_import_stmt(&mut self, file_path: &str, alias: Option<Expression>) -> String {
+        println!("file_path: {file_path}, alias: {:#?}", alias);
         // Check if already imported
         for i in 0..self.modules.len() {
             let m = self.modules.get_mut(i).unwrap();
@@ -776,7 +551,16 @@ impl Transpiler {
             return "".to_string();
         }
 
-        self.transpile_module(file_path, program)
+        let alias = if let Some(alias) = alias {
+            match alias.clone() {
+                Expression::Identifier(_, n) => Some(n),
+                _ => None,
+            }
+        } else {
+            None
+        };
+
+        self.transpile_module(file_path, program, alias)
     }
 
     fn transpile_native_stmts(&mut self) -> String {
@@ -878,20 +662,23 @@ impl Transpiler {
     //     format!("export {};\n", self.transpile_stmt(stmt).unwrap())
     // }
 
+    fn mutate_name(&mut self, expr: &Expression) -> String {
+        let t = self.transpile_expression(expr.to_owned());
+        if self.is_module && self.scopes.len() == 1 {
+            self.namespace().add_name(&t)
+        } else {
+            t
+        }
+    }
+
     fn transpile_var_stmt(
         &mut self,
         token: token::Token,
         name: ast::Expression,
         ej_type: ast::Expression,
         value: ast::Expression,
-        is_pub: bool
     ) -> String {
-        let transpiled_name = self.transpile_expression(name.clone());
-        let mut name_string = if is_pub {
-            transpiled_name.clone()
-        } else {
-            random_hash(4)
-        };
+        let name_string = self.mutate_name(&name);
 
         // check if this already exists in scope
         let mut found = false;
@@ -910,8 +697,8 @@ impl Transpiler {
         // Check modules too
         if !found {
             for module in self.modules.iter() {
-                // Check 
-                if module.var_exits(transpiled_name.clone()) {
+                // Check
+                if module.var_exits(name_string.clone()) {
                     found = true;
                     break;
                 }
@@ -927,19 +714,17 @@ impl Transpiler {
 
             // Add to scope
             self.scopes.last_mut().unwrap().push(Variable {
-                name: transpiled_name.clone(),
+                name: name_string.clone(),
                 is_mut: true,
                 val_type: val_type.clone(),
-                js_name: name_string.clone()
             });
             // Add to namespace if there is only one scope i.e. global scope.
             if self.scopes.len() == 1 {
                 // Add to namespace
                 self.namespace_mut().variables.push(Variable {
-                    name: transpiled_name.clone(),
+                    name: name_string.clone(),
                     is_mut: true,
                     val_type: val_type,
-                    js_name: name_string.clone()
                 });
             }
             format!(
@@ -1070,7 +855,6 @@ impl Transpiler {
         &mut self,
         token: token::Token,
         expression: ast::Expression,
-        is_pub: bool
     ) -> String {
         let has_semicolon = match expression {
             Expression::FunctionLiteral(_, _, _, _, _) => false,
@@ -1078,11 +862,7 @@ impl Transpiler {
             Expression::MacroExpression(_, _, _) => false,
             _ => true,
         };
-        let res = if is_pub {
-            self.transpile_expression_pub(expression)
-        } else {
-            self.transpile_expression(expression)
-        };
+        let res = self.transpile_expression(expression);
         let semi = if has_semicolon { ";\n" } else { "" };
         format!("{}{}", res, semi)
     }
@@ -1094,7 +874,6 @@ impl Transpiler {
         mixins: Option<Box<Vec<ast::Expression>>>,
         variables: Vec<ast::Statement>,
         methods: Vec<ast::Expression>,
-        is_pub: bool,
     ) -> String {
         let mut res = String::new();
         let mut parsed_mixins = vec![];
@@ -1112,16 +891,10 @@ impl Transpiler {
         }
 
         res.push_str("function ");
-        let name_transpiled = self.transpile_expression(name);
-        let js_name = if is_pub {
-            name_transpiled.clone()
-        } else {
-            random_hash(4)
-        }; 
-        // let struct_name = self.namespace.get_obj_name(&name_transpiled);
+        let name_transpiled = self.mutate_name(&name);
 
         // Compile the actual namespaced version.
-        res.push_str(&js_name);
+        res.push_str(&name_transpiled);
         // res.push_str(&struct_name);
         res.push_str("(");
 
@@ -1142,12 +915,10 @@ impl Transpiler {
                 }
 
                 // Add to namespace struct params
-                // TODO: allow for name mangling struct vars
                 struct_params.push(Variable {
                     name: var_name.clone(),
                     is_mut: true,
                     val_type,
-                    js_name: var_name.clone()
                 });
             }
         }
@@ -1189,7 +960,6 @@ impl Transpiler {
                         name: name.clone(),
                         is_mut: false,
                         val_type,
-                        js_name: name.clone()
                     });
                 }
                 _ => {}
@@ -1209,7 +979,7 @@ impl Transpiler {
                 }
                 Expression::FunctionLiteral(_, name, params, return_val_type, body) => {
                     result = (self.transpile_struct_method(
-                        &js_name,
+                        &name_transpiled,
                         cleaned_method_is_static.0,
                         false,
                         cleaned_method_is_static.1,
@@ -1217,7 +987,7 @@ impl Transpiler {
 
                     let fn_name = &self.transpile_expression(name.as_ref().to_owned());
                     // Add to struct methods
-                    let function = self.create_namespace_function(fn_name, params, return_val_type, is_pub);
+                    let function = self.create_namespace_function(fn_name, params, return_val_type);
 
                     if cleaned_method_is_static.1 {
                         struct_static_methods.push(function);
@@ -1227,7 +997,7 @@ impl Transpiler {
                 }
                 Expression::AsyncExpression(_, function) => {
                     result = (self.transpile_struct_method(
-                        &js_name,
+                        &name_transpiled,
                         function.as_ref().to_owned(),
                         true,
                         cleaned_method_is_static.1,
@@ -1241,7 +1011,6 @@ impl Transpiler {
                                 fn_name,
                                 params.to_owned(),
                                 return_type.to_owned(),
-                                is_pub
                             );
                             if cleaned_method_is_static.1 {
                                 struct_static_methods.push(namespace_function);
@@ -1308,22 +1077,13 @@ impl Transpiler {
             variables: struct_variables,
             methods: struct_methods,
             static_methods: struct_static_methods,
-            js_name: js_name
         });
 
         res
     }
 
-    fn transpile_expression(&mut self, expression: Expression) -> String {
-        self._transpile_expression(expression, false)
-    }
-
-    fn transpile_expression_pub(&mut self, expression: Expression) -> String {
-        self._transpile_expression(expression, true)
-    }
-
-    fn _transpile_expression(&mut self, expression: ast::Expression, is_pub: bool) -> String {
-        match expression {
+    fn transpile_expression(&mut self, expression: ast::Expression) -> String {
+        let res = match expression.clone() {
             ast::Expression::IntegerLiteral(token, value) => value.to_string(),
             Expression::StringLiteral(token, value) => {
                 let quote_type =
@@ -1423,16 +1183,15 @@ impl Transpiler {
                 let mut res = String::new();
 
                 // add to namespace
-                let fn_name = self.transpile_expression(name.as_ref().to_owned());
+                let fn_name = self.mutate_name(&name);
+
                 let namespace_function =
-                    self.create_namespace_function(&fn_name, paramters.clone(), return_type, is_pub);
-                self.namespace_mut().functions.push(namespace_function.clone());
+                    self.create_namespace_function(&fn_name, paramters.clone(), return_type);
+                self.namespace_mut()
+                    .functions
+                    .push(namespace_function.clone());
 
-                let js_name = namespace_function.js_name.clone();
-
-                res.push_str(
-                    format!("function {}(", js_name).as_str(),
-                );
+                res.push_str(format!("function {}(", fn_name).as_str());
 
                 let ps = paramters.as_ref().to_owned();
                 let joined_params = ps
@@ -1471,15 +1230,7 @@ impl Transpiler {
                         arguments.as_ref().to_owned(),
                     ));
                 } else {
-                    let mut n = name_exp.clone();
-                    // Find the name in the namespace or modules
-                    for m in self.modules.iter() {
-                        if let Some(var) = m.get_var(&name_exp) {
-                            n = var.js_name.clone();
-                        } else if let Some(func) = m.get_function(&name_exp) {
-                            n = func.js_name.clone();
-                        }
-                    }
+                    let n = name_exp.clone();
                     res.push_str(&n);
                     res.push_str("(");
                 }
@@ -1501,18 +1252,6 @@ impl Transpiler {
                 if is_javascript_keyword(&name) {
                     hash_string(&name)
                 } else {
-                    // Check in the namespaces for this name.
-                    // If found, we must always use the js_name. Otherwise just use the raw name already
-                    for m in self.modules.iter() {
-                        if let Some(v) = m.get_var(&name) {
-                            return v.js_name.clone();
-                        } else if let Some(f) = m.get_function(&name) {
-                            return f.js_name.clone();
-                        } else if let Some(s) = m.get_struct(&name) {
-                            return s.js_name.clone();
-                        }
-                    }
-
                     name
                 }
             }
@@ -1527,8 +1266,8 @@ impl Transpiler {
             Expression::DotExpression(token, left, right) => {
                 let mut res = String::new();
 
-                // Check if the left side transpiled is actually a namespace.
                 let left_side = self.transpile_expression(left.as_ref().to_owned());
+
                 if res.len() == 0 {
                     let right_side = self.transpile_expression(right.as_ref().to_owned());
                     res.push_str(&left_side);
@@ -1806,7 +1545,15 @@ impl Transpiler {
             }
             Expression::ScopeExpression(tk, scope_name, right) => {
                 // All it does is takes scope_name and place it before right with '_' in between.
-                let scope_name = self.transpile_expression(scope_name.as_ref().to_owned());
+                let mut scope_name = self.transpile_expression(scope_name.as_ref().to_owned());
+                // Find the namespace
+                let mut found = false;
+                for nmsp in self.modules.iter() {
+                    if nmsp.get_alias() == scope_name {
+                        found = true;
+                        scope_name = nmsp.hash.clone();
+                    }
+                }
 
                 match right.as_ref() {
                     // If a macro expression, we need to update the AST to have to correct mangled name.
@@ -1836,7 +1583,9 @@ impl Transpiler {
                 self.transpile_stmt(stmt.to_owned()).unwrap()
             }
             _ => String::from(""),
-        }
+        };
+
+        res
     }
 
     fn join_expressions(&mut self, expressions: Vec<Expression>) -> String {
@@ -2054,17 +1803,15 @@ impl Transpiler {
         name: &String,
         params: Box<Vec<Expression>>,
         return_type: Box<Expression>,
-        is_pub: bool
     ) -> Function {
         let function_type = get_param_type_by_string_ej(
             &self.transpile_expression(return_type.as_ref().to_owned()),
         );
 
         let fn_name: String = name.to_owned();
-        let js_name = get_js_name(fn_name.clone(), is_pub);
 
         Function {
-            name: fn_name.clone(),
+            name: fn_name,
             params: params
                 .as_ref()
                 .to_owned()
@@ -2074,13 +1821,11 @@ impl Transpiler {
                     Variable {
                         is_mut: true,
                         val_type: result.1,
-                        name: result.0.clone(),
-                        js_name: result.0
+                        name: result.0,
                     }
                 })
                 .collect(),
             return_type: function_type,
-            js_name: js_name
         }
     }
 

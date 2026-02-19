@@ -53,7 +53,8 @@
 - v0.5.0 Add classes to namespace.
 - v0.5.0 Keep track of struct methods in Namespace
 - v0.5.0 Clean up emitter folder.
-- v0.5.0 Include 'std' always
+- ~~v0.5.0 Include 'std' always~~
+- v0.5.0 Remove classes
 
 ## Runtime
 - Write Wasm Imp
@@ -61,8 +62,7 @@
     - https://www.w3schools.com/js/js_string_methods.asp
     - tests
 - ~~Make backend compile its own bindings at buildtime.~~
-- v0.5.0 Rewrite the easyjsr library to use rquickjs.
-  - Include needed features (wasm, text-encodings, etc)
+- v0.5.0 Include needed features (wasm, text-encodings, etc) into library by default.
 - v0.5.0 Move builtin library ej code to /easyjsr
 
 ## Commands
@@ -167,10 +167,14 @@
 - v0.6.0 Try to use as much native as possible (if possible)
 - v0.6.0 Backend with ejr (rust based)
 - v0.6.0 For config files:
-  - JSON (Is the easiest and most well-known...)
-  - TOML (Is smaller, easier once learned...)
-  - easyjs (Write code? Just in a VERY sandboxed enviroment) YUH!
+  - easyjs (Write code? Just in a VERY sandboxed enviroment with pixelscript) YUH!
 - v0.6.0 Option to compile directly to a .wasm file and skip the .js file
 
 ## Tests
-- add tests.
+- v0.6.0 Get test coverage to 80%.
+
+## Repl
+- v0.5.0 Fix weird new line outputs.
+
+## LSP
+- v0.6.0 Add LSP

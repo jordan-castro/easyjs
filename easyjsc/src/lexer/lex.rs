@@ -139,7 +139,6 @@ impl Lex {
             if (self.current_char != '\\' && self.peek_char() == '$') || (run == 0 && self.current_char == '$') {
                 if run > 0 {
                     result.push(self.current_char); // consume whatever this char is
-                    println!("{}", self.current_char);
                     self.read_char();
                 }
                 result.push(self.current_char); // consume $

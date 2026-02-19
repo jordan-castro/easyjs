@@ -51,11 +51,11 @@ macro decouple(idents, values) {
 }
 
 // declare a constant variable 
-macro const(expr) {
-    javascript {
+macro const(expr) {{
+    "javascript {
         const #expr;
-    }
-}
+    }"
+}}
 
 macro run_function(fun) {
     #fun()

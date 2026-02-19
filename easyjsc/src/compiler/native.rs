@@ -336,7 +336,7 @@ impl NativeContext {
             instructions: HashMap::new(),
             is_pub: false,
             block_scope: Vec::new(),
-            namespace: Namespace::new("".to_string()),
+            namespace: Namespace::new("".to_string(), "".to_string()),
             imported_modules: vec![],
         }
     }
@@ -466,7 +466,6 @@ impl NativeContext {
                 name: var_name.clone(),
                 is_mut: is_mut,
                 val_type: strong_val_type.clone(),
-                js_name: var_name.clone()
             });
         } else {
             // add to variable scope
@@ -1079,7 +1078,6 @@ impl NativeContext {
                 name: param_n.clone(),
                 is_mut: true,
                 val_type: param_t.to_owned(),
-                js_name: param_n.to_owned()
             });
         }
         // save function to namespace
@@ -1087,7 +1085,6 @@ impl NativeContext {
             name: name.clone(),
             params: variables,
             return_type: return_type.clone(),
-            js_name: name.clone()
         });
 
         // Get the block type

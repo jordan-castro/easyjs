@@ -134,7 +134,6 @@ pub const NOT: &str = "NOT";
 pub const SELF: &str = "SELF";
 pub const NATIVE: &str = "NATIVE";
 pub const MACRO: &str = "MACRO";
-pub const NEW: &str = "NEW";
 pub const IS: &str = "IS";
 // pub const VAR: &str = "VAR";
 pub const PUB: &str = "PUB";
@@ -145,7 +144,6 @@ pub const ENUM: &str = "ENUM";
 pub const BREAK: &str = "BREAK";
 pub const CONTINUE: &str = "CONTINUE";
 pub const NULL: &str = "NULL";
-pub const CLASS: &str = "CLASS";
 
 // Builtin methods
 pub const BUILTIN: &str = "BUILTIN";
@@ -176,7 +174,6 @@ pub fn lookup_ident(ident: &str) -> &'static str {
         "macro" => MACRO,
         "and" => AND_SYMBOL,
         "or" => OR_SYMBOL,
-        "new" => NEW,
         "pub" => PUB,
         "is" => IS,
         "import" => IMPORT,
@@ -185,7 +182,6 @@ pub fn lookup_ident(ident: &str) -> &'static str {
         "break" => BREAK,
         "continue" => CONTINUE,
         "null" => NULL,
-        "class" => CLASS,
         _ => IDENT, // Default case for unknown identifiers
     }
 }

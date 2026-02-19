@@ -1,7 +1,0 @@
-fn add(n1,n2) {
-    return n1 + n2
-}
-
-fn sub(n1, n2) {
-    return n2 - n2
-}
