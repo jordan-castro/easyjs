@@ -73,7 +73,6 @@ impl Transpiler {
     pub fn new() -> Self {
         let mut t = Transpiler {
             scripts: vec![],
-            // namespace: Namespace::new("".to_string()),
             modules: vec![Namespace::new("".to_string(), "".to_string())],
             scopes: vec![],
             native_stmts: vec![],
@@ -246,26 +245,29 @@ impl Transpiler {
         let mut t = Transpiler::without_std();
         t.is_module = true;
         t.namespace_mut().id = file_name.to_string();
-
-        // Add the current modules that exist.
-        t.modules = self.modules.clone();
-
-        // Transpile the code now.
-        let js = t.transpile(p);
         if let Some(alias) = alias {
             t.namespace_mut().alias = alias;
         }
 
+        let nmsp = t.namespace().clone();
+
+        // Add the current modules that exist.
+        t.modules = self.modules.clone();
+        t.modules.insert(0, nmsp);
+
+        // Transpile the code now.
+        let js = t.transpile(p);
+
         // Add the namespace to our modules
         self.modules.push(t.namespace().clone());
-        // Add internal modules too
-        for module in t.modules.iter() {
-            if self.modules.iter_mut().any(|m| m.id == module.id) {
-                continue;
-            } else {
-                self.modules.push(module.clone());
-            }
-        }
+        // // Add internal modules too
+        // for module in t.modules.iter() {
+        //     if self.modules.iter_mut().any(|m| m.id == module.id) {
+        //         continue;
+        //     } else {
+        //         self.modules.push(module.clone());
+        //     }
+        // }
 
         if t.native_stmts.len() > 0 {
             // extend native_stmts
@@ -394,7 +396,14 @@ impl Transpiler {
 
         // if std
         let import_token = token::new_token(token::IMPORT, "import", "", 1, 1);
-        let import_stmt = Statement::ImportStatement(import_token, String::from("std"), None);
+        let import_stmt = Statement::ImportStatement(
+            import_token,
+            String::from("std"),
+            Some(Expression::Identifier(
+                token::EMPTY_TOKEN,
+                String::from("_"),
+            )),
+        );
 
         if self.add_std {
             statements.insert(0, &import_stmt);
@@ -524,10 +533,10 @@ impl Transpiler {
     }
 
     fn transpile_import_stmt(&mut self, file_path: &str, alias: Option<Expression>) -> String {
-        println!("file_path: {file_path}, alias: {:#?}", alias);
         // Check if already imported
         for i in 0..self.modules.len() {
-            let m = self.modules.get_mut(i).unwrap();
+            let m = self.modules.get(i).unwrap();
+            // m.pretty_print();
             if m.id == file_path {
                 return "".to_string();
             }
@@ -658,13 +667,11 @@ impl Transpiler {
         res
     }
 
-    // fn transpile_export_stmt(&mut self, token: token::Token, stmt: ast::Statement) -> String {
-    //     format!("export {};\n", self.transpile_stmt(stmt).unwrap())
-    // }
-
     fn mutate_name(&mut self, expr: &Expression) -> String {
         let t = self.transpile_expression(expr.to_owned());
-        if self.is_module && self.scopes.len() == 1 {
+        if self.is_module && self.namespace().get_alias() != "_" && self.scopes.len() == 1 {
+            // println!("Should mutate: {t}");
+            // self.namespace().pretty_print();
             self.namespace().add_name(&t)
         } else {
             t
@@ -691,17 +698,6 @@ impl Transpiler {
             }
             if found {
                 break;
-            }
-        }
-
-        // Check modules too
-        if !found {
-            for module in self.modules.iter() {
-                // Check
-                if module.var_exits(name_string.clone()) {
-                    found = true;
-                    break;
-                }
             }
         }
 
@@ -860,6 +856,7 @@ impl Transpiler {
             Expression::FunctionLiteral(_, _, _, _, _) => false,
             Expression::DocCommentExpression(_, _) => false,
             Expression::MacroExpression(_, _, _) => false,
+            Expression::ScopeExpression(_, _, _) => false,
             _ => true,
         };
         let res = self.transpile_expression(expression);
@@ -1571,16 +1568,16 @@ impl Transpiler {
                     _ => {}
                 }
                 let right_side = self.transpile_expression(right.as_ref().to_owned());
-                let raw = format!("{scope_name}_{right_side}");
+                format!("{scope_name}_{right_side}")
 
-                // Lex it and Program it
-                let l = lex::Lex::new(raw);
-                let mut p = par::Parser::new(l);
-                let program = p.parse_program();
+                // // Lex it and Program it
+                // let l = lex::Lex::new(raw);
+                // let mut p = par::Parser::new(l);
+                // let program = p.parse_program();
 
-                let stmt = program.statements.get(0).unwrap();
+                // let stmt = program.statements.get(0).unwrap();
 
-                self.transpile_stmt(stmt.to_owned()).unwrap()
+                // self.transpile_stmt(stmt.to_owned()).unwrap()
             }
             _ => String::from(""),
         };

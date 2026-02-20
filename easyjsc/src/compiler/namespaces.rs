@@ -19,6 +19,7 @@
 // And all variables/functions/structs/classes exist in their corresponding paramaters within the NativeContext, not the Namespace.
 
 use std::collections::HashMap;
+use std::path::Path;
 
 use easyjs_utils::utils::{h::random_hash, sanatize};
 
@@ -96,7 +97,7 @@ pub struct Namespace {
     /// The namespace hash
     pub hash: String,
     /// A alias associated
-    pub alias: String
+    pub alias: String,
 }
 
 impl Namespace {
@@ -114,13 +115,13 @@ impl Namespace {
             },
             enums: vec![],
             hash: random_hash(4),
-            alias
+            alias,
         }
     }
 
-    pub fn get_var(&self, name:&str) -> Option<&Variable> {
-        self.variables.iter().find(|v| v.name == name) 
-    } 
+    pub fn get_var(&self, name: &str) -> Option<&Variable> {
+        self.variables.iter().find(|v| v.name == name)
+    }
 
     pub fn get_enum(&self, name: &str) -> Option<&EJEnum> {
         self.enums.iter().find(|e| e.name == name)
@@ -166,7 +167,21 @@ impl Namespace {
         if !self.alias.is_empty() {
             self.alias.clone()
         } else {
-            self.id.split(".ej").collect::<Vec<&str>>().last().unwrap().to_string()
+            Path::new(&self.id)
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .unwrap_or_default()
+                .to_string()
         }
+    }
+
+    pub fn pretty_print(&self) {
+        println!(
+            "===============\nid: '{}'\nalias: '{}'\nhash: '{}'\n==================",
+            self.id,
+            self.get_alias(),
+            self.hash
+        );
+        // println!("|\t{}|\t{}|\t{}|", self.id, self.get_alias(), self.hash);
     }
 }

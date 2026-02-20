@@ -1,5 +1,7 @@
 import 'a.ej' as file_a
-import 'b.ej' as file_b
+import 'b.ej'
+import 'd.ej' as _
 
-print! file_a::name
+print!(file_a::name)
 print!(b::name)
+print!(name)
