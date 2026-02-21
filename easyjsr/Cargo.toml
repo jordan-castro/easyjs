@@ -11,8 +11,6 @@ readme = "README.md"
 
 [dependencies]
 lazy_static = "1.5.0"
-rquickjs = "0.11.0"
-anyhow = "1.0.101"
 
 [build-dependencies]
 bindgen = "0.71.0"

@@ -36,7 +36,6 @@ const BRACKET: i64 = 10; // [
 const BRACE: i64 = 11; // {
 const DOTDOT: i64 = 12; // ..
 const IN: i64 = 13; // in
-const OF: i64 = 14; // of
 const AWAIT: i64 = 15; // await
 
 const ASSIGN: i64 = 16;
@@ -70,14 +69,14 @@ fn precedences(tk: &str) -> i64 {
         token::L_BRACE => BRACE,
         token::DOTDOT => DOTDOT,
         token::IN => IN,
-        token::OF => OF,
         token::IS => IN,
         token::AWAIT => AWAIT,
         token::ASSIGN => ASSIGN,
         token::AS => AS,
         token::MACRO_SYMBOL => MACRO_SYMBOL,
         token::DOC_COMMENT => DOC_COMMENT,
-        // token::DECORATOR => DECORATOR,
+        token::BITWISE_OR => OR,
+        token::BITWISE_AND => AND,
         token::AND_SYMBOL => AND,
         token::OR_SYMBOL => OR,
         token::DOUBLE_QUESTION_MARK => DOUBLE_QUESTION_MARK,
@@ -206,7 +205,6 @@ impl Parser {
             token::L_BRACKET => true,
             token::DOTDOT => true,
             token::IN => true,
-            token::OF => true,
             token::ASSIGN => true,
             token::AND_SYMBOL => true,
             token::OR_SYMBOL => true,
@@ -219,6 +217,8 @@ impl Parser {
             token::ASTERISK_EQUALS => true,
             token::IS => true,
             token::SCOPE => true,
+            token::BITWISE_AND => true,
+            token::BITWISE_OR => true,
             _ => false,
         }
     }
@@ -242,9 +242,10 @@ impl Parser {
             token::L_BRACKET => parse_index_expression(self, left),
             token::DOTDOT => parse_range_expression(self, left),
             token::IN => parse_in_expression(self, left),
-            token::OF => parse_of_expression(self, left),
             token::ASSIGN => parse_assign_expression(self, left),
             token::AND_SYMBOL => parse_and_expression(self, left),
+            token::BITWISE_AND => parse_infix_expression(self, left),
+            token::BITWISE_OR => parse_infix_expression(self, left),
             token::OR_SYMBOL => parse_or_expression(self, left),
             token::DOUBLE_QUESTION_MARK => parse_double_question_mark_expression(self, left),
             token::MODULUS => parse_infix_expression(self, left),
@@ -1291,18 +1292,6 @@ fn parse_in_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression
     }
 
     ast::Expression::InExpression(token, Box::new(left), Box::new(right))
-}
-
-fn parse_of_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression {
-    p.debug_print("parse_of_expression");
-    let token = p.c_token.to_owned();
-    p.next_token();
-    let right = parse_expression(p, LOWEST);
-    if right.is_empty() {
-        return ast::Expression::EmptyExpression;
-    }
-
-    ast::Expression::OfExpression(token, Box::new(left), Box::new(right))
 }
 
 fn parse_assign_expression(p: &mut Parser, left: ast::Expression) -> ast::Expression {

@@ -792,16 +792,6 @@ impl Transpiler {
                     .as_str(),
                 );
             }
-            ast::Expression::OfExpression(token, left, right) => {
-                res.push_str(
-                    format!(
-                        "for (let {} of {}) ",
-                        self.transpile_expression(left.as_ref().to_owned()),
-                        self.transpile_expression(right.as_ref().to_owned())
-                    )
-                    .as_str(),
-                );
-            }
             Expression::InExpression(token, left, right) => match right.as_ref().to_owned() {
                 Expression::RangeExpression(token, start, end) => {
                     // TODO: error for if end is empty
@@ -1409,13 +1399,6 @@ impl Transpiler {
                 res.push_str(")");
 
                 res
-            }
-            Expression::OfExpression(token, left, right) => {
-                format!(
-                    "{} of {}",
-                    self.transpile_expression(left.as_ref().to_owned()),
-                    self.transpile_expression(right.as_ref().to_owned())
-                )
             }
             // Expression::RangeExpression(token, start, end) => {
             //     format!(

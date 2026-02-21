@@ -38,6 +38,11 @@ pub fn new_token(
     }
 }
 
+/// For tests only. Create a token of type and literal only
+pub fn default_token(typ: &str, literal: &str) -> Token {
+    new_token(typ, literal, "", 0, 0)
+}
+
 // Types below
 
 pub const ILLEGAL: &str = "ILLEGAL";
@@ -126,7 +131,6 @@ pub const AS: &str = "AS";
 pub const JAVASCRIPT: &str = "JAVASCRIPT";
 pub const FOR: &str = "FOR";
 pub const IN: &str = "IN";
-pub const OF: &str = "OF";
 pub const ASYNC: &str = "ASYNC";
 pub const AWAIT: &str = "AWAIT";
 pub const NOT: &str = "NOT";
@@ -163,7 +167,6 @@ pub fn lookup_ident(ident: &str) -> &'static str {
         "javascript" => JAVASCRIPT,
         "in" => IN,
         "for" => FOR,
-        "of" => OF,
         "async" => ASYNC,
         "await" => AWAIT,
         "not" => NOT,

@@ -58,6 +58,7 @@
 - Allow key word arguments (similar to Python).
 - v0.5.0 Stop changing `self` into `this`. Rather for structs make `self` a known variable.
 - v0.5.0 Remove `async{}` and use `async fn{}` instead
+- v0.5.0 Add back RangeExpression support via std::range
 
 ## Runtime
 - Write Wasm Imp

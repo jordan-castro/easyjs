@@ -209,8 +209,6 @@ pub enum Expression {
     CallExpression(tk::Token, Box<Expression>, Box<Vec<Expression>>),
     // left in right
     InExpression(tk::Token, Box<Expression>, Box<Expression>),
-    // left of right
-    OfExpression(tk::Token, Box<Expression>, Box<Expression>),
     // i64(left)..i64(right)
     RangeExpression(tk::Token, Box<Expression>, Box<Expression>),
     // left.right
@@ -288,7 +286,6 @@ impl Expression {
             Expression::LambdaLiteral(token, _, _) => token,
             Expression::CallExpression(token, _, _) => token,
             Expression::InExpression(token, _, _) => token,
-            Expression::OfExpression(token, _, _) => token,
             Expression::RangeExpression(token, _, _) => token,
             Expression::DotExpression(token, _, _) => token,
             Expression::DotIfExpression(token, _, _) => token,
@@ -335,7 +332,6 @@ impl Expression {
             Expression::LambdaLiteral(_, _, _) => "LambdaLiteral",
             Expression::CallExpression(_, _, _) => "CallExpression",
             Expression::InExpression(_, _, _) => "InExpression",
-            Expression::OfExpression(_, _, _) => "OfExpression",
             Expression::RangeExpression(_, _, _) => "RangeExpression",
             Expression::DotExpression(_, _, _) => "DotExpression",
             Expression::DotIfExpression(_, _, _) => "DotIfExpression",
