@@ -1,6 +1,6 @@
 # TODO
 
-## Compiler
+## Compiler (2js)
 - v0.6 Add benchmarks for:
   - compilation (vs TypeScript, Dart, Nim, other to JS options)
   - wasm compilation (vs AssemblyScript, Dart, Rust, Go, C/C++)
@@ -49,12 +49,15 @@
 - ~~v0.5.0 Remove kwargs support. JS alrady supports it~~
 - v0.5.0 Fix to call super() always in classes
 - v0.5.0 Add Doc comments to Namespace (i.e. save them for each variable, function, and class) (In NATIVE too)
-- v0.5.0 Keep track of class methods in Namespace
-- v0.5.0 Add classes to namespace.
 - v0.5.0 Keep track of struct methods in Namespace
 - v0.5.0 Clean up emitter folder.
 - ~~v0.5.0 Include 'std' always~~
-- v0.5.0 Remove classes
+- ~~v0.5.0 Remove classes~~
+- v0.5.0 Add `none` type to mean null or undefined.
+  - `null` and `undefined` should only be used by the compiler. Never the user or runtime.
+- Allow key word arguments (similar to Python).
+- v0.5.0 Stop changing `self` into `this`. Rather for structs make `self` a known variable.
+- v0.5.0 Remove `async{}` and use `async fn{}` instead
 
 ## Runtime
 - Write Wasm Imp
@@ -73,7 +76,7 @@
 - ~~v0.5.0 When calling easyjs file.ej (assume running)~~
 - ~~v0.4.6 When calling easyjs file.ej file.js (assume compiling)~~
 
-## Native (WASM)
+## Native (2wasm)
 - v0.4.6 WASM runtime in native.
 - v0.4.x Additions
   - instruction generator

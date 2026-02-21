@@ -51,11 +51,11 @@ macro decouple(idents, values) {
 }
 
 // declare a constant variable 
-macro const(expr) {{
-    "javascript {
-        const #expr;
-    }"
-}}
+macro const(expr) {
+    javascript {
+        const ${#expr};
+    }
+}
 
 macro run_function(fun) {
     #fun()
@@ -64,24 +64,11 @@ macro run_function(fun) {
 macro sleep(ms) {
     const!(func = fn(ms) {
         javascript{
-            return new Promise(resolve => setTimeout(resolve, ms))
+            return new Promise(resolve => setTimeout(resolve, ms));
         }
     })
 
     await func(#ms)
-}
-
-// Creates a range
-macro range(kwargs) {
-    run_function!(fn() {
-        start = #kwargs.start
-        end = #kwargs.end
-        step = #kwargs.step ?? 1
-
-        javascript{
-            return Array(Math.ceil((end - start) / step)).fill(start).map((x,y) => x + y * step)
-        }
-    })
 }
 
 // Flatten a list in JS.
@@ -122,22 +109,6 @@ macro easyjs_ascii() {
    \\/__/     \\/__/     \\/__/                              \\/__/  "
 }
 
-// add a to_string method for a enum
-macro add_to_string_to_enum(enum_name) {
-    /// Convert #enum_name to a String representation.
-    fn #enum_name_to_string(val) {
-        keys = Object.keys(#enum_name)
-        for key in keys {
-            if #enum_name[key] == val {
-                return key
-            }
-        }
-
-        // Was not found
-        return null
-    }
-}
-
 // Call Object.keys on a object
 macro keys(object) {
     Object.keys(#object)
@@ -160,79 +131,18 @@ macro jsc(comment) {
     }
 }
 
-// Null Dot operation
-macro null_dot(object, field_or_method) {
+// JS eq `===`
+macro jseq(object, value) {
     javascript{
-        #object?.#field_or_method
+        (#object === #value)
     }
 }
 
-// Is null
-macro is_null(object) {
-    javascript{
-        (#object === null)
-    }
+// Is none (null or undefined)
+macro is_none(object) {
+    jseq!(#object, null) or jseq!(#object, undefined)
 }
 
-// Is undefined
-macro is_undefined(object) {
-    javascript{
-        (#object === undefined)
-    }
+macro len(obj) {
+    #obj.length
 }
-
-// Is null or undefined
-macro is_null_undefined(object) {
-    javascript{
-        (#object === null || #object === undefined)
-    }
-}
-
-// Import from a JS file without having to wrap in a javascript block.
-macro jsimport(file, imports=[]) {{
-    fn {
-        imports = #imports
-
-        result = "import "
-        has_brace = false
-
-        if imports.length > 0 {
-            has_brace = true
-            result += "{ "
-        }
-
-        // Loop through imports...
-        for imp in imports {
-            // Check if is a object
-            if imp is 'object' {
-                // Get key:value
-                key = keys!(imp)[0]
-                value = imp[key]
-
-                result += "$key as $value "
-            } else {
-                // No import if not a string...
-                if not imp is 'string' {
-                    return ""
-                }
-                // Must be a string
-                result += "$imp "
-            }
-
-            if imp != last!(imports) {
-                result += ","
-            }
-        }
-
-        if has_brace {
-            result += "} from "
-        }
-
-        result += "'${#file}'"
-
-        // Wrap in javascript statement to not be compiled
-        return "javascript{
-            $result
-        }"
-    }
-}}

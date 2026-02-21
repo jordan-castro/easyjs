@@ -489,7 +489,7 @@ impl Transpiler {
             Statement::BreakStatement(tk) => Some("break".to_string()),
             Statement::ContinueStatement(tk) => Some("continue".to_string()),
             Statement::MacroStatement(_, name, paramaters, body, is_hygenic) => {
-                let macro_name: String = self.transpile_expression(name.as_ref().to_owned());
+                let macro_name = self.mutate_name(name.as_ref());
                 let macro_params = paramaters.as_ref().to_owned();
                 let macro_body = body.as_ref().to_owned();
 
@@ -670,7 +670,6 @@ impl Transpiler {
     fn mutate_name(&mut self, expr: &Expression) -> String {
         let t = self.transpile_expression(expr.to_owned());
         if self.is_module && self.namespace().get_alias() != "_" && self.scopes.len() == 1 {
-            // println!("Should mutate: {t}");
             // self.namespace().pretty_print();
             self.namespace().add_name(&t)
         } else {
@@ -1318,7 +1317,7 @@ impl Transpiler {
 
                 res.push_str("[");
                 let els = elements.as_ref().to_owned();
-                res.push_str(&self.join_expressions(elements.as_ref().to_owned()));
+                res.push_str(&self.join_expressions(els));
                 res.push_str("]");
 
                 res
@@ -1543,12 +1542,16 @@ impl Transpiler {
             Expression::ScopeExpression(tk, scope_name, right) => {
                 // All it does is takes scope_name and place it before right with '_' in between.
                 let mut scope_name = self.transpile_expression(scope_name.as_ref().to_owned());
-                // Find the namespace
-                let mut found = false;
-                for nmsp in self.modules.iter() {
-                    if nmsp.get_alias() == scope_name {
-                        found = true;
-                        scope_name = nmsp.hash.clone();
+                // Get current hash for macros.
+                if scope_name == "this" {
+                    scope_name = self.namespace().hash.clone();
+                } else {
+                    // Find the namespace
+                    for nmsp in self.modules.iter() {
+                        if nmsp.get_alias() == scope_name {
+                            scope_name = nmsp.hash.clone();
+                            break;
+                        }
                     }
                 }
 
