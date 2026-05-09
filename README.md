@@ -3,11 +3,6 @@ easyjs is a general purpose programming language that compiles to JS and WASM.
 JavaScript has a huge ecosystem and runs natively in the browser.
 JS alongside with WASM, macros, and types becomes really powerful.
 
-## ECMAScript version
-easyjs uses the ECMAScript 2020 version (ES11). 
-This means that new features being added to ECMAScript will not be officially supported. But a smart person could include them in their project 
-using macros and the `javascript{}` statement.
-
 > [!WARNING]  
 > This language is still in development we are currently on v0.5.0
 
@@ -50,7 +45,7 @@ You can use any of the following runtimes
 You can also go to the [easyjs website](https://jordanmcastro.com/easyjs)
 
 ### easyjs runtime
-easyjs has it's own custom runtime [ejr](https://github.com/jordan-castro/ejr). It's a low level implementation largely inspired by [quickjs](https://bellard.org/quickjs/) with focus on top notch wasm integration. It is currently lacking features and targets [ECMAScript 2020 (ES11)](https://tc39.es/ecma262/2020/).
+easyjs has it's own custom runtime [ejr](https://github.com/jordan-castro/ejr). It's a low level implementation largely inspired by [quickjs](https://bellard.org/quickjs/) with focus on top notch wasm integration. It targets [ECMAScript 2027](https://tc39.es/ecma262/). Some features are still lacking.
 
 Run a file directly with:
 `easyjs file.ej`
