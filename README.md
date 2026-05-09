@@ -1,15 +1,15 @@
 # easyjs
 easyjs is a general purpose programming language that compiles to JS and WASM.
 JavaScript has a huge ecosystem and runs natively in the browser.
-JS algondside with WASM, Macros, and types becomes really powerful.
+JS alongside with WASM, macros, and types becomes really powerful.
 
 ## ECMAScript version
-Easyjs uses the ECMAScript 2020 version (ES11). 
-This means that new features being added to ECMAScript will not be oficially supported. But a smart person could include them in their project 
+easyjs uses the ECMAScript 2020 version (ES11). 
+This means that new features being added to ECMAScript will not be officially supported. But a smart person could include them in their project 
 using macros and the `javascript{}` statement.
 
 > [!WARNING]  
-> This language is still in development we are currently on v0.4.4
+> This language is still in development we are currently on v0.5.0
 
 ## Install
 To install you have a few options.
@@ -23,18 +23,18 @@ Clone this Git repo and run `cargo build --release` to build the binary.
 ## How to use
 You have many different options to use. 
 
-**Compile:**
+### Compile
 You can compile easyjs to a js file to run on the browser, server, etc.
 ```bash
 easyjs file.ej file.js
 ```
 
-**Script tag:**
+### Script tag
 You can use a `<script type="easyjs">` tag in the browser to inline the easyjs. <-- This requires the easyjs wasm runtime.
 
 You can use a `<script src="source.js">` tag in the browser.
 
-**REPL**
+### Repl
 easyjs provides a REPL. Use it by running `easyjs` in your terminal.
 ```bash
 easyjs
@@ -44,225 +44,91 @@ easyjs
 You can use any of the following runtimes
 - node
 - deno
-- easyjsr (this is the default, but is currently lacking in some features)
+- ejr (this is the default, but is currently lacking in some features)
 
-**Online:**
+### Online
 You can also go to the [easyjs website](https://jordanmcastro.com/easyjs)
 
-### Examples
+### easyjs runtime
+easyjs has it's own custom runtime [ejr](https://github.com/jordan-castro/ejr). It's a low level implementation largely inspired by [quickjs](https://bellard.org/quickjs/) with focus on top notch wasm integration. It is currently lacking features and targets [ECMAScript 2020 (ES11)](https://tc39.es/ecma262/2020/).
+
+Run a file directly with:
+`easyjs file.ej`
+
+## Key features
+- Modern syntax.
+- Optional typing.
+- Wasm compilation targets.
+- Hygienic/text injection macros.
+
+## Example
 Imagine you have a easyjs file like so:
+
 ```js
-fn foo() { // <-- functions use the fn keyword.  this will compile into a "function foo() {}"
-    console.log("foo") // <-- All JS objects transfer over. 
+// ================ Variables ================
+// To declare immutable variables
+hello := "World"
+
+// To declare mutable variables
+world = "Hello"
+
+// Type variable
+number : int = 0
+decimal : float = 0.5
+
+// ================ Functions ================
+fn sum_numbers(numbers: []int):int {
+    return (numbers / 2) * ((numbers / 2) + 1);
 }
 
-bar = fn(x,y) {  // <-- This will compile into a "let bar = () => {};"
-    ...
+print!(sum_numbers([1,2,3])); // 6
+
+// ================ Objects ================
+// Defines a Prototype
+struct Person {
+    name: string,
+    age: int,
 }
 
-// Ideally though you will use the builtin std
-fn foo() {
-    print!('Foo')
-}
-```
-You can compile this using
-`easyjs file.ej` --> this will create a file.js
-
-Or you can inline the .ej file
-```html
-<head>
-    <script src="file.ej" type="easyjs"></script>
-    <!-- OR -->
-    <script type="easyjs">
-        fn foo() {
-            console.log("foo")
-        }
-
-        fn bar() {
-            console.log("bar")
-        }
-    </script>
-</head>
-```
-In this approach our wasm runtime will take care of compiling it in REALTIME.
-
-**Fibonacci**
-```js
-fn fibonacci(n):int { // <-- easyjs is optionally typed. If not typed as (dyn) is assumed
-    if n == 0 {
-        0 // <-- no semicolons or return needed
-        // Return is ONLY not needed when the function has a return type.
-    } elif n == 1 {
-        1
-    } else {
-        fibonacci(n - 1) + fibonacci(n - 2) 
-    }
-}
-```
-
-**Making a GET request**
-```js
-
-async { // optionally wrap in a async block if you want to use await
-    get_response = await fetch("https://jsonplaceholder.typicode.com/posts/1")
-    if get_response.status_code == 200 {
-        @print(get_response.json()) // a builtin macro
-    } else {
-        // a javascript inliner
-        // this is useful because easyjs lacks error handling and exception throwing.
-        javascript {
-            throw new Error("Network response was not ok");
-        }
-        // But ideally you would not throw an error but instead log
-        console.error("Network resposne was not ok");
-    }
-}
-```
-
-**Objects**
-
-Structs are data first objects.
-```js
-// [name, age] are values that are passed into the constructor.
-struct Person[
-    name:string, 
-    age:int
-] with GreetMixin {
-    // Static
-    has_job = true
-    species = "HomoSapien"
-
-    fn set_name(self, new_name) {
-        self.name = new_name
-    }
-
-    /// gets the name. // <-- doc comments with '///'
-    fn get_name(self) {
-        return self.name
-    }
-
-    // this is a static method because it does not have self as a paramater.
-    fn static_method() {
-        console.log("This is a static method")
+// Defines object constructor 
+fn Person.new(name:String, age:int): Person {
+    return Self {
+        name,
+        age
     }
 }
 
-// A mixin is just another struct
-struct GreetMixin {
-    fn say_hi(self) {
-        console.log("Hello, my name is ${self.name}")
-    }
-}
-// Structs can be with dedicated methods or just simple data containers
-struct PersonData[
-    name,
-    age,
-    diary
-] {} // <--a struct that accepts name, age, and diary.
+// Instantiate the prototype into a object
+person := Person.new("Jordan", 24)
+// macro expands to `console.log(...args)` 
+print!(person.name)
+print!(person.age)
 
-// To instantiate a Person
-person = Person("Jordan", 24, ["Dear Diary", "I love Julia!", "I also love EasyJS!"])
-
-// To instantiate a PersonData
-person_data = PersonData("Evelyn", 20, ["Dear Diary", "I saw that Jordan loves a girl named Julia!", "Who is she???"])
-```
-Classes compile directly to JS classes. Also include multiple inheritance and private/public fields.
-```js
-class A {
-    // __new__ is for constructor
-    fn __new__(self) {
-        // Super is called automatically in every method.
-        @print('A')
-    }
-
-    // Public method
-    pub fn foo(self) {
-        @print('Foo in A')
-    }
-
-    // Private method
-    fn bar(self) {
-        @print('Private foo in A')
-    }
-
-    // Calling a private method
-    pub fn call_priv(self) {
-        self.bar()
-        // Automatically converts to:
-        // this.#bar()
-    }
+// ================ Wasm ================
+// compiles to WASM bytecode.
+#wasm fn add(n1:int, n2:int):int {
+    return n1 + n2
 }
 
-class B {
-    fn __new__(self) {
-        @print('B')
-    }
+// Call wasm function
+print!(#wasm.add(1,2)) // 3
+
+// ================ Macros ================
+#hmacro fn write_function(name) {
+    // Hygenic
+    return "fn $name() "
 }
 
-// easyjs classes support multiple inheritance
-class C : [A, B] {
-    fn __new__(self) {
-        @print('C')
-    }
+#macro fn eprint(...args) {
+    // Text injection
+    console.error(...args)
 }
+
+write_function("eprint_hello_world") {
+    eprint!("Hello World!")
+}
+
+print_hello_world!()
 ```
 
-Perfer `struct` over `class`.
-
-
-**Variables**
-```js
-hello = "Hello"
-
-// If we want to do a const we have to use the const! macro from 'std'
-const! world = "World"
-
-// easyjs optional typing
-hello_typed : string = "hello"
-```
-
-**Macros**
-easyjs includes macro support allowing developers to build their own feature rich DSLs.
-```js
-// for example the const macro in 'std'
-macro const(expr:block) {
-    // All easyjs has access to the javascript statement.
-    // This is a statement that allows you to place literal unparsed code into a context.
-    // This should be used very carefuly.
-    javascript{
-        const #expr; // notice we need to use '#' symbol to access macro paramaters
-    }
-}
-
-// print macro in 'std'
-macro print(...s) {
-    console.log(s)
-}
-```
-
-**Native**
-easyjs supports a builtin wasm compiler named `easyjs native`. To use the wasm compiler wrap your code in a `native` block.
-```js
-native {
-    // native functions MUST be typed.
-    pub fn add(n1:int, n2:int):int {
-        n1 + n2 // once again return is optional in all native stmts due to typing.
-    }
-}
-
-// then to call the built function
-result = add(1,2)
-print!(result)
-```
 Yes it is that easy!
-
-## Features
-easyjs contains features that are important in a programming language (to me atleast!).
-1. Easy to read and write.
-2. Optional typing, sometimes you don't want types.
-3. Fast scripting language with high performance support.
-
-<!-- ## Built with easyjs
-Here is a list of projects using easyjs.
-
-- The Pixel Game Engine: a game engine optomized for mobile builds that uses easyjs as it's scripting language. -->
