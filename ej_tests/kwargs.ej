@@ -1,4 +1,0 @@
-fn function_with_kwargs(name, age, has_job=true) {
-}
-
-function_with_kwargs("Jordan", 23, false)

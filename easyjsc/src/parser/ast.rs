@@ -15,7 +15,7 @@ pub enum Statement {
         Box<Expression>,
     ), // variable = expression (bool = should_infer)
     ReturnStatement(tk::Token, Box<Expression>), // return expression
-    ImportStatement(tk::Token, String, Option<Expression>), // import 'path.ej' as alias (or) import 'path' as alias
+    // ImportStatement(tk::Token, String, Option<Expression>), // import 'path.ej' as alias (or) import 'path' as alias
     ExpressionStatement(tk::Token, Box<Expression>), // token expression
     BlockStatement(tk::Token, Box<Vec<Statement>>), // { statements }
     // token identifier = value
@@ -24,25 +24,25 @@ pub enum Statement {
     ForStatement(tk::Token, Box<Expression>, Box<Statement>),
     // javascript{}
     JavaScriptStatement(tk::Token, String),
-    /// ```easyjs
-    /// struct Person[name,age] with GreetMixin, FarewellMixin {
-    ///     MAX_AGE = 150 // static variables
-    ///
-    ///     fn greet(self) { // methods
-    ///     }
-    ///
-    ///     fn ask_question(question) { // static methods
-    ///     }
-    /// }
-    /// ```
-    StructStatement(
-        tk::Token,
-        Box<Expression>,
-        Option<Box<Vec<Expression>>>,
-        Option<Box<Vec<Expression>>>,
-        Box<Vec<Statement>>,
-        Box<Vec<Expression>>,
-    ),
+    // /// ```easyjs
+    // /// struct Person[name,age] with GreetMixin, FarewellMixin {
+    // ///     MAX_AGE = 150 // static variables
+    // ///
+    // ///     fn greet(self) { // methods
+    // ///     }
+    // ///
+    // ///     fn ask_question(question) { // static methods
+    // ///     }
+    // /// }
+    // /// ```
+    // StructStatement(
+    //     tk::Token,
+    //     Box<Expression>,
+    //     Option<Box<Vec<Expression>>>,
+    //     Option<Box<Vec<Expression>>>,
+    //     Box<Vec<Statement>>,
+    //     Box<Vec<Expression>>,
+    // ),
 
     /// pub fn
     /// pub struct
@@ -66,11 +66,11 @@ pub enum Statement {
         Box<Vec<(Expression, Statement)>>,
     ),
 
-    /// A native statement
-    NativeStatement(tk::Token, Box<Vec<Statement>>),
+    // /// A native statement
+    // NativeStatement(tk::Token, Box<Vec<Statement>>),
 
-    /// A enum statement
-    EnumStatement(tk::Token, String, Box<Vec<Expression>>),
+    // /// A enum statement
+    // EnumStatement(tk::Token, String, Box<Vec<Expression>>),
 
     /// A break statement
     BreakStatement(tk::Token),
@@ -78,22 +78,22 @@ pub enum Statement {
     /// A continue statement
     ContinueStatement(tk::Token),
 
-    /// Declaring the macro (macro, ident, arguments, body as BlockStatment) (bool is for hygenic or not)
-    MacroStatement(
-        tk::Token,
-        Box<Expression>,
-        Box<Vec<Expression>>,
-        Box<Statement>,
-        bool
-    ),
+    // /// Declaring the macro (macro, ident, arguments, body as BlockStatment) (bool is for hygenic or not)
+    // MacroStatement(
+    //     tk::Token,
+    //     Box<Expression>,
+    //     Box<Vec<Expression>>,
+    //     Box<Statement>,
+    //     bool
+    // ),
 
-    /// A class statement. (Identifier, Extensions, variables and methods [static and non-static])
-    ClassStatement(
-        tk::Token,
-        Box<Expression>, // Name
-        Box<Vec<Expression>>, // Extensions
-        Box<Vec<Statement>>, // Variables, Methods (static and non-static)
-    )
+    // /// A class statement. (Identifier, Extensions, variables and methods [static and non-static])
+    // ClassStatement(
+    //     tk::Token,
+    //     Box<Expression>, // Name
+    //     Box<Vec<Expression>>, // Extensions
+    //     Box<Vec<Statement>>, // Variables, Methods (static and non-static)
+    // )
 }
 
 impl Statement {
@@ -106,21 +106,21 @@ impl Statement {
             }
             Statement::VariableStatement(token, _, _, _) => token,
             Statement::ReturnStatement(token, _) => token,
-            Statement::ImportStatement(token, _, _) => token,
+            // Statement::ImportStatement(token, _, _) => token,
             Statement::ExpressionStatement(token, _) => token,
             Statement::BlockStatement(token, _) => token,
             Statement::ForStatement(token, _, _) => token,
             Statement::JavaScriptStatement(token, _) => token,
-            Statement::StructStatement(token, _, _, _, _, _) => token,
+            // Statement::StructStatement(token, _, _, _, _, _) => token,
             Statement::ExportStatement(token, _) => token,
             Statement::AsyncBlockStatement(token, _) => token,
             Statement::MatchStatement(token, _, _) => token,
-            Statement::NativeStatement(token, _) => token,
-            Statement::EnumStatement(token, _, _) => token,
+            // Statement::NativeStatement(token, _) => token,
+            // Statement::EnumStatement(token, _, _) => token,
             Statement::BreakStatement(token) => token,
             Statement::ContinueStatement(token) => token,
-            Statement::MacroStatement(token, _, _, _, _) => token,
-            Statement::ClassStatement(token, _, _, _) => token,
+            // Statement::MacroStatement(token, _, _, _, _) => token,
+            // Statement::ClassStatement(token, _, _, _) => token,
         }
     }
 
@@ -130,20 +130,20 @@ impl Statement {
             Statement::VariableStatement(_, _, _, _) => "VariableStatement",
             Statement::ReturnStatement(_, _) => "ReturnStatement",
             Statement::ExpressionStatement(_, _) => "ExpressionStatement",
-            Statement::ImportStatement(_, _, _) => "ImportStatement",
+            // Statement::ImportStatement(_, _, _) => "ImportStatement",
             Statement::BlockStatement(_, _) => "BlockStatement",
             Statement::ForStatement(_, _, _) => "ForStatement",
             Statement::JavaScriptStatement(_, _) => "JavaScriptStatement",
-            Statement::StructStatement(_, _, _, _, _, _) => "StructStatement",
+            // Statement::StructStatement(_, _, _, _, _, _) => "StructStatement",
             Statement::ExportStatement(_, _) => "ExportStatement",
             Statement::AsyncBlockStatement(_, _) => "AsyncBlockStatement",
             Statement::MatchStatement(_, _, _) => "MatchStatement",
-            Statement::NativeStatement(_, _) => "NativeStatement",
-            Statement::EnumStatement(_, _, _) => "EnumStatement",
+            // Statement::NativeStatement(_, _) => "NativeStatement",
+            // Statement::EnumStatement(_, _, _) => "EnumStatement",
             Statement::BreakStatement(_) => "BreakStatement",
             Statement::ContinueStatement(_) => "ContinueStatement",
-            Statement::MacroStatement(_, _, _, _, _) => "MacroStatement",
-            Statement::ClassStatement(_, _, _, _) => "ClassStatement"
+            // Statement::MacroStatement(_, _, _, _, _) => "MacroStatement",
+            // Statement::ClassStatement(_, _, _, _) => "ClassStatement"
         }
         .to_string()
     }
@@ -156,9 +156,9 @@ impl Statement {
         self.eq(Statement::EmptyStatement)
     }
 
-    pub fn is_native(&self) -> bool {
-        self.variant_type() == "NativeStatement"
-    }
+    // pub fn is_native(&self) -> bool {
+        // self.variant_type() == "NativeStatement"
+    // }
 
     /// Get the final stmt of a Block.
     ///
@@ -195,17 +195,18 @@ pub enum Expression {
     AsyncExpression(tk::Token, Box<Expression>),
     // await expression
     AwaitExpression(tk::Token, Box<Expression>),
-    // fn function_name paramaters {}
-    FunctionLiteral(
+    /// Function expression (toke)
+    Function(
+        /// Main token
         tk::Token,
-        Box<Expression>,
+        /// The paramaters
         Box<Vec<Expression>>,
-        Box<Expression>,
-        Box<Statement>,
+        /// The return type (None means dynamic)
+        Option<Box<Expression>>,
+        /// The body
+        Statement
     ),
-    // fn(params) {statement} OR fn(params) stmt
-    LambdaLiteral(tk::Token, Box<Vec<Expression>>, Box<Statement>),
-    // ( caller params
+    // name()params
     CallExpression(tk::Token, Box<Expression>, Box<Vec<Expression>>),
     // left in right
     InExpression(tk::Token, Box<Expression>, Box<Expression>),
@@ -213,22 +214,22 @@ pub enum Expression {
     RangeExpression(tk::Token, Box<Expression>, Box<Expression>),
     // left.right
     DotExpression(tk::Token, Box<Expression>, Box<Expression>),
-    // left.if {}
-    DotIfExpression(tk::Token, Box<Expression>, Box<Statement>),
+    // // left.if {}
+    // DotIfExpression(tk::Token, Box<Expression>, Box<Statement>),
     // []
     ArrayLiteral(tk::Token, Box<Vec<Expression>>),
     // [i]
     IndexExpression(tk::Token, Box<Expression>, Box<Expression>),
-    // {}
-    ObjectLiteral(tk::Token, Vec<Vec<Box<Expression>>>),
+    // // {}
+    // ObjectLiteral(tk::Token, Vec<Vec<Box<Expression>>>),
     /// = something else
     AssignExpression(tk::Token, Box<Expression>, Box<Expression>),
     /// not expression
     NotExpression(tk::Token, Box<Expression>),
     /// left as right
     AsExpression(tk::Token, Box<Expression>),
-    /// Macro (tk, ident, arguments, body)
-    MacroExpression(tk::Token, Box<Expression>, Box<Vec<Expression>>),
+    /// macro(params) {body} :: it is the same as a Function.
+    MacroExpression(tk::Token, Box<Expression>),
     /// And expression
     AndExpression(tk::Token, Box<Expression>, Box<Expression>),
     /// Or expression
@@ -237,30 +238,30 @@ pub enum Expression {
     NullExpression(tk::Token),
     /// Default if null exp ??
     DefaultIfNullExpression(tk::Token, Box<Expression>, Box<Expression>),
-    /// new Class
-    NewClassExpression(tk::Token, Box<Expression>),
+    // /// new Class
+    // NewClassExpression(tk::Token, Box<Expression>),
     /// Float literal 0.0
     FloatLiteral(tk::Token, f64),
     /// Grouped Expression ()
     GroupedExpression(tk::Token, Box<Expression>),
     /// left is right (typeof(left) == right)
     IsExpression(tk::Token, Box<Expression>, Box<Expression>),
-    /// Builtin function call
-    BuiltinCall(tk::Token, Box<Vec<Expression>>),
+    // /// Builtin function call
+    // BuiltinCall(tk::Token, Box<Vec<Expression>>),
     /// Identifier with type
     IdentifierWithType(tk::Token, String, Box<Expression>),
     /// Type expression
     Type(tk::Token, String),
     /// IIFE
     ///
-    /// var a = fn { return 1 } // a = 1
+    /// a = fn { return 1 } // a = 1
     IIFE(tk::Token, Box<Statement>),
     /// ...variable
     SpreadExpression(tk::Token, Box<Expression>),
     /// Doc comment '///'
     DocCommentExpression(tk::Token, Vec<String>),
-    /// Scope Coperator '::', namespace name/alias, whatever follows
-    ScopeExpression(tk::Token, Box<Expression>, Box<Expression>)
+    /// a = clas {stmts go here}
+    Class(tk::Token, Vec<Statement>)
 }
 
 impl Expression {
@@ -282,35 +283,30 @@ impl Expression {
             Expression::IfExpression(token, _, _, _, _) => token,
             Expression::AsyncExpression(token, _) => token,
             Expression::AwaitExpression(token, _) => token,
-            Expression::FunctionLiteral(token, _, _, _, _) => token,
-            Expression::LambdaLiteral(token, _, _) => token,
             Expression::CallExpression(token, _, _) => token,
             Expression::InExpression(token, _, _) => token,
             Expression::RangeExpression(token, _, _) => token,
             Expression::DotExpression(token, _, _) => token,
-            Expression::DotIfExpression(token, _, _) => token,
             Expression::ArrayLiteral(token, _) => token,
             Expression::IndexExpression(token, _, _) => token,
-            Expression::ObjectLiteral(token, _) => token,
             Expression::AssignExpression(token, _, _) => token,
             Expression::NotExpression(token, _) => token,
             Expression::AsExpression(token, _) => token,
-            Expression::MacroExpression(token, _, _) => token,
+            Expression::MacroExpression(token, _) => token,
             Expression::AndExpression(token, _, _) => token,
             Expression::OrExpression(token, _, _) => token,
             Expression::NullExpression(token) => token,
             Expression::DefaultIfNullExpression(token, _, _) => token,
-            Expression::NewClassExpression(token, _) => token,
             Expression::FloatLiteral(token, _) => token,
             Expression::GroupedExpression(token, _) => token,
             Expression::IsExpression(token, _, _) => token,
-            Expression::BuiltinCall(token, _) => token,
             Expression::IdentifierWithType(token, _, _) => token,
             Expression::Type(token, _) => token,
             Expression::IIFE(token, _) => token,
             Expression::SpreadExpression(token, _) => token,
             Expression::DocCommentExpression(token, _) => token,
-            Expression::ScopeExpression(token, _, _) => token
+            Expression::Function(token, _, _, _) => token,
+            Expression::Class(token, _) => token
         }
     }
 
@@ -328,35 +324,30 @@ impl Expression {
             Expression::IfExpression(_, _, _, _, _) => "IfExpression",
             Expression::AsyncExpression(_, _) => "AsyncExpression",
             Expression::AwaitExpression(_, _) => "AwaitExpression",
-            Expression::FunctionLiteral(_, _, _, _, _) => "FunctionLiteral",
-            Expression::LambdaLiteral(_, _, _) => "LambdaLiteral",
             Expression::CallExpression(_, _, _) => "CallExpression",
             Expression::InExpression(_, _, _) => "InExpression",
             Expression::RangeExpression(_, _, _) => "RangeExpression",
             Expression::DotExpression(_, _, _) => "DotExpression",
-            Expression::DotIfExpression(_, _, _) => "DotIfExpression",
             Expression::ArrayLiteral(_, _) => "ArrayLiteral",
             Expression::IndexExpression(_, _, _) => "IndexExpression",
-            Expression::ObjectLiteral(_, _) => "ObjectLiteral",
             Expression::AssignExpression(_, _, _) => "AssignExpression",
             Expression::NotExpression(_, _) => "NotExpression",
             Expression::AsExpression(_, _) => "AsExpression",
-            Expression::MacroExpression(_, _, _) => "MacroExpression",
+            Expression::MacroExpression(_, _) => "MacroExpression",
             Expression::AndExpression(_, _, _) => "AndExpression",
             Expression::OrExpression(_, _, _) => "OrExpression",
             Expression::NullExpression(_) => "NullExpression",
             Expression::DefaultIfNullExpression(_, _, _) => "DefaultIfNullExpression",
-            Expression::NewClassExpression(_, _) => "NewClassExpression",
             Expression::FloatLiteral(_, _) => "FloatLiteral",
             Expression::GroupedExpression(_, _) => "GroupedExpression",
             Expression::IsExpression(_, _, _) => "IsExpression",
-            Expression::BuiltinCall(_, _) => "BuiltinCall",
             Expression::IdentifierWithType(_, _, _) => "IdentifierWithType",
             Expression::Type(_, _) => "Type",
             Expression::IIFE(_, _) => "IIFE",
             Expression::SpreadExpression(_, _) => "SpreadExpression",
             Expression::DocCommentExpression(_, _) => "DocCommentExpression",
-            Expression::ScopeExpression(_, _, _) => "ScopeExpression"
+            Expression::Function(_, _, _, _) => "Function",
+            Expression::Class(_, _) => "Class"
         }
     }
 

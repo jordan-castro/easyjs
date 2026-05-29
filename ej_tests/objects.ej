@@ -1,7 +1,0 @@
-import "std" as _
-
-object1 = {
-    test: 1
-}
-
-@print(object1)

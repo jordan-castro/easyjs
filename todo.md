@@ -1,13 +1,13 @@
 # TODO
 
 ## v0.5.0
-- Remove ejr (all easyjs code will run in a seperate runtime [node, deno, bun, browser, yoyo])
+- Remove ejr (all easyjs code will run in a seperate runtime [node, deno, bun, browser, pxs])
 - Remove comptime macros and make them text based. Weigh heavily on `fn{}` blocks within.
 - Update syntax to 0.5.0 version.
 - Rewrite core library into core rather than `std`.
 - Add operator macros.
 - Typing
-- 
+- easyjsc tests
 
 ## Compiler (2js)
 - v0.6 Add benchmarks for:

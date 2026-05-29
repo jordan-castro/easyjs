@@ -1,8 +1,0 @@
-import 'std'
-print!('test')
-
-import 'sandbox.ej'
-import 'ej_tests/import.ej'
-
-print!(x)
-print!(y)

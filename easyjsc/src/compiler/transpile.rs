@@ -20,9 +20,6 @@ use crate::typechecker::{
     get_param_type_by_string_ej, get_string_rep_of_type,
 };
 use easyjs_utils::utils::{h::hash_string, js_helpers::is_javascript_keyword};
-use easyjsr::{
-    EJR, JSArg, JSArgResult, OpaqueObject, jsarg_as_string, jsarg_exception, jsarg_string,
-};
 
 use super::import::import_file;
 
@@ -48,9 +45,6 @@ pub struct Transpiler {
 
     /// Custom libraries
     custom_libs: HashMap<String, String>,
-
-    /// A EJR reference
-    ejr: EJR,
 
     /// Add STD?
     add_std: bool,
@@ -79,7 +73,6 @@ impl Transpiler {
             debug_mode: false,
             is_module: false,
             custom_libs: HashMap::new(),
-            ejr: EJR::new(),
             add_std: true,
         };
 
@@ -493,7 +486,7 @@ impl Transpiler {
                 let macro_params = paramaters.as_ref().to_owned();
                 let macro_body = body.as_ref().to_owned();
 
-                self.add_macro_function(macro_name, macro_params, macro_body, is_hygenic);
+                self.add_macro_function(macro_name, macro_params, macro_body);
                 Some(String::from(""))
             }
             _ => None,
@@ -1502,15 +1495,9 @@ impl Transpiler {
                 let macro_arguments =
                     self.lineup_macro_args(macro_arguments, macro_object.paramaters.clone());
 
-                let result = macro_object.compile(macro_arguments, transpiled_body, &mut self.ejr);
+                let result = macro_object.compile(macro_arguments, transpiled_body);
 
-                // Compile hygenic macros...
-                if macro_object.is_hygenic {
-                    let mut t = Transpiler::new();
-                    t.transpile_from_string(result)
-                } else {
-                    result
-                }
+                result
             }
             Expression::SpreadExpression(tk, expression) => {
                 format!(
@@ -1584,8 +1571,7 @@ impl Transpiler {
         &mut self,
         name: String,
         params: Vec<Expression>,
-        body: Statement,
-        is_hygenic: bool,
+        body: Statement
     ) {
         let pms = self.join_expressions(params.to_owned());
         let mut parsed_args = vec![];
@@ -1595,7 +1581,7 @@ impl Transpiler {
             parsed_args.push(a.to_string());
         }
 
-        let ej_macro = Macro::new(macro_name.clone(), parsed_args, body, is_hygenic);
+        let ej_macro = Macro::new(macro_name.clone(), parsed_args, body);
         // add to namespace
         self.namespace_mut().macros.insert(macro_name, ej_macro);
     }

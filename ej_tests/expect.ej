@@ -1,8 +1,0 @@
-import "expect"
-import "print"
-
-$expect(fn() {
-   return "yeyo"
-}, "Did not work", value)
-
-$print(value)

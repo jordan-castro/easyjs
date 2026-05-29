@@ -364,7 +364,7 @@ fn parse_statement(parser: &mut Parser) -> ast::Statement {
         token::IDENT => {
             if parser.peek_token_is(token::ASSIGN)
                 || parser.peek_token_is(token::COLON)
-                || parser.peek_token_is(token::TYPE_ASSIGNMENT)
+                || parser.peek_token_is(token::CONSTANT_ASSIGNMENT)
             {
                 parse_var_statement(parser)
                 // parse_const_var_statement(parser)
@@ -580,19 +580,19 @@ fn parse_var_statement(p: &mut Parser) -> ast::Statement {
         var_type = Box::new(none_type(token.clone()));
     }
 
-    if !p.peek_token_is(token::ASSIGN) && !p.peek_token_is(token::TYPE_ASSIGNMENT) {
+    if !p.peek_token_is(token::ASSIGN) && !p.peek_token_is(token::CONSTANT_ASSIGNMENT) {
         p.add_error(
             format!(
                 "Expected {} or {} but got {} instead.",
                 token::ASSIGN,
-                token::TYPE_ASSIGNMENT,
+                token::CONSTANT_ASSIGNMENT,
                 p.peek_token.literal
             )
             .as_str(),
         );
         return ast::Statement::EmptyStatement;
     }
-    let infer_type = p.peek_token_is(token::TYPE_ASSIGNMENT);
+    let infer_type = p.peek_token_is(token::CONSTANT_ASSIGNMENT);
     p.next_token();
     p.next_token();
 

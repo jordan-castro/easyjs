@@ -39,9 +39,9 @@ easyjs
 You can use any of the following runtimes
 - node
 - deno
-- yoyo
+- pxs
 
-Yoyo is the default runtime. To learn more about [yoyo](https::/github.com/jordan-castro/yoyo).
+`pxs` is the default runtime. To learn more about [pxs](https://github.com/jordan-castro/pixelscript).
 
 ### Online
 You can also go to the [easyjs website](https://jordanmcastro.com/easyjs)
@@ -173,4 +173,5 @@ Yes it is that easy!
 > [!WARNING]  
 > native compilation won't work in browser targets.
 > native FFI is only supported for nodejs, bun, deno, and yoyo.
+> currently only supporting function callbacks.
 > for other runtimes see [How to implement easyjs ffi in custom runtime](https://) 

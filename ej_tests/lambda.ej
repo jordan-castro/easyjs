@@ -1,3 +1,0 @@
-log = fn(...args) console.log(args)
-
-log('test')

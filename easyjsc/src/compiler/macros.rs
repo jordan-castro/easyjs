@@ -1,5 +1,4 @@
 use crate::parser::ast;
-use easyjsr::EJR;
 
 #[derive(Debug, Clone)]
 pub struct Macro {
@@ -8,23 +7,20 @@ pub struct Macro {
     /// The paramaters to be passed to said macro.
     pub paramaters: Vec<String>,
     /// The macro body statement.
-    pub body: ast::Statement,
-    /// Is this macro hygenic?
-    pub is_hygenic: bool
+    pub body: ast::Statement
 }
 
 impl Macro {
-    pub fn new(name: String, paramaters: Vec<String>, body: ast::Statement, is_hygenic: bool) -> Macro {
+    pub fn new(name: String, paramaters: Vec<String>, body: ast::Statement) -> Macro {
         Macro {
             name,
             paramaters,
-            body,
-            is_hygenic
+            body
         }
     }
 
     /// Compile a macro.
-    pub fn compile(&self, arguments: Vec<String>, transpiled_body: String, ejr_ref: &mut EJR) -> String {
+    pub fn compile(&self, arguments: Vec<String>, transpiled_body: String) -> String {
         let mut body = transpiled_body.clone();
 
         if arguments.len() == 0 {
@@ -59,15 +55,6 @@ impl Macro {
 
             // Replace all occurrences of "#param"
             body = body.replace(&needle, &replacement);
-        }
-
-        if self.is_hygenic {
-            let val = ejr_ref.eval_script(&body, format!("<{}>", self.name).as_str());
-            if val == -1 {
-                return String::from("");
-            }
-
-            return ejr_ref.val_to_string(val).unwrap();
         }
 
         body
