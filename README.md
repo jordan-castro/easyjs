@@ -1,5 +1,5 @@
 # easyjs
-easyjs is a general purpose programming language that compiles to JS and WASM.
+easyjs is a general purpose programming language that compiles to JS, WASM, and Native targets. All within the same program.
 JavaScript has a huge ecosystem and runs natively in the browser.
 JS alongside with WASM, macros, and types becomes really powerful.
 
@@ -39,22 +39,22 @@ easyjs
 You can use any of the following runtimes
 - node
 - deno
-- ejr (this is the default, but is currently lacking in some features)
+- yoyo
+
+Yoyo is the default runtime. To learn more about [yoyo](https::/github.com/jordan-castro/yoyo).
 
 ### Online
 You can also go to the [easyjs website](https://jordanmcastro.com/easyjs)
 
-### easyjs runtime
-easyjs has it's own custom runtime [ejr](https://github.com/jordan-castro/ejr). It's a low level implementation largely inspired by [quickjs](https://bellard.org/quickjs/) with focus on top notch wasm integration. It targets [ECMAScript 2027](https://tc39.es/ecma262/). Some features are still lacking.
-
+### Run file
 Run a file directly with:
 `easyjs file.ej`
 
 ## Key features
 - Modern syntax.
 - Optional typing.
-- Wasm compilation targets.
-- Hygienic/text injection macros.
+- Wasm/native compilation targets.
+- Text injection macros.
 
 ## Example
 Imagine you have a easyjs file like so:
@@ -67,63 +67,110 @@ hello := "World"
 // To declare mutable variables
 world = "Hello"
 
-// Type variable
+// Type variable mutable
 number : int = 0
 decimal : float = 0.5
 
+// Immutable variables are typed by default.
+// If compiler can not deref type use `as`
+unkown_type_var := some_func() as int
+
 // ================ Functions ================
-fn sum_numbers(numbers: []int):int {
-    return (numbers / 2) * ((numbers / 2) + 1);
+sum_numbers := fn(numbers: []int):int {
+    sum = 0
+    for n in numbers {
+        sum += n
+    }
+    sum
 }
 
-print!(sum_numbers([1,2,3])); // 6
+print(sum_numbers([1,2,3])); // 6
 
 // ================ Objects ================
 // Defines a Prototype
-struct Person {
+Person := class {
     name: string,
     age: int,
-}
 
-// Defines object constructor 
-fn Person.new(name:String, age:int): Person {
-    return Self {
-        name,
-        age
+    // Constructor
+    new := fn(name:string, age:int) {
+        this.name = name
+        this.age = age
+    }
+
+    // Magic '+' overloader
+    __add__ := fn(this, other:Person) -> Person {
+        Person.new(this.name + other.name, this.age + other.age)
     }
 }
 
-// Instantiate the prototype into a object
+// Make a new instace of the class
 person := Person.new("Jordan", 24)
-// macro expands to `console.log(...args)` 
-print!(person.name)
-print!(person.age)
-
-// ================ Wasm ================
-// compiles to WASM bytecode.
-#wasm fn add(n1:int, n2:int):int {
-    return n1 + n2
-}
-
-// Call wasm function
-print!(#wasm.add(1,2)) // 3
+print(person.name)
+print(person.age)
 
 // ================ Macros ================
-#hmacro fn write_function(name) {
-    // Hygenic
-    return "fn $name() "
+println := macro(name) {
+    print(name, "\n")
 }
 
-#macro fn eprint(...args) {
-    // Text injection
-    console.error(...args)
+println(person)
+
+// =============== WASM ===============
+@wasm
+wasm_sum := fn(nums: []int):int {
+    sum = 0
+    for n in nums {
+        sum += n
+    }
+    sum
 }
 
-write_function("eprint_hello_world") {
-    eprint!("Hello World!")
+print(wasm_sum([10, 12, 13]))
+
+@wasm
+wasm_Person := class {
+    name: string,
+    age: int,
+
+    new := fn(name: string, age: int) {
+        p = wasm_Person(name, age)
+        p
+    }
+
+    // Magic '-' overloader
+    __sub__ := fn(this, other:wasm_Person) -> wasm_Person {
+        wasm_Person.new(this.name + other.name, this.age + other.age)
+    }
 }
 
-print_hello_world!()
+// Create wasm class
+wperson := wasm_Person.new("Evelyn", 21)
+print(wperson.name)
+print(wperson.age)
+
+// wasm supports (int, float, string, list, class)
+@wasm
+w_float := 1.0
+@wasm
+w_string := "hello"
+@wasm
+w_list := [0,1,2]
+
+// =============== Native ===============
+@native
+native_sum := fn(nums: []int):int {
+    sum = 0
+    for n in nums {
+        sum += n
+    }
+    sum
+}
 ```
 
 Yes it is that easy!
+
+> [!WARNING]  
+> native compilation won't work in browser targets.
+> native FFI is only supported for nodejs, bun, deno, and yoyo.
+> for other runtimes see [How to implement easyjs ffi in custom runtime](https://) 

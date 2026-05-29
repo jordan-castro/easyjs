@@ -1,5 +1,14 @@
 # TODO
 
+## v0.5.0
+- Remove ejr (all easyjs code will run in a seperate runtime [node, deno, bun, browser, yoyo])
+- Remove comptime macros and make them text based. Weigh heavily on `fn{}` blocks within.
+- Update syntax to 0.5.0 version.
+- Rewrite core library into core rather than `std`.
+- Add operator macros.
+- Typing
+- 
+
 ## Compiler (2js)
 - v0.6 Add benchmarks for:
   - compilation (vs TypeScript, Dart, Nim, other to JS options)
@@ -59,15 +68,6 @@
 - v0.5.0 Stop changing `self` into `this`. Rather for structs make `self` a known variable.
 - v0.5.0 Remove `async{}` and use `async fn{}` instead
 - v0.5.0 Add back RangeExpression support via std::range
-
-## Runtime
-- Write Wasm Imp
-  - strings
-    - https://www.w3schools.com/js/js_string_methods.asp
-    - tests
-- ~~Make backend compile its own bindings at buildtime.~~
-- v0.5.0 Include needed features (wasm, text-encodings, etc) into library by default.
-- v0.5.0 Move builtin library ej code to /easyjsr
 
 ## Commands
 - ~~v0.5.0 Remove the install command. Keep that with ezpkg.~~
