@@ -1,0 +1,64 @@
+// Imagine this is a module `person.ej`
+// And we have a class Person
+
+Person := class {
+    name: String
+    age: int
+
+    new := fn(name, age) :: Person {
+        Person(name, age)
+    }
+
+    greet := fn(this, other: Person) {
+        print("Hello ${other.name}! My name is $name and I am $age years old.")
+    }
+}
+
+// And lets say also a function called meet that takes 2 people
+meet := fn(p1: Person, p2: Person) {
+    p1.greet(p2)
+}
+
+// NOW we have file `main.ej`
+// And we want to import the `person.ej` code.
+person := import('person.ej')
+// Now we have Person and meet behind person. This is done with `{}` objects. Essentially the import function does:
+person := class { 
+    Person := class {
+        name: String
+        age: int
+    }
+
+    new := fn(name, age) :: Person {
+        Person(name, age)
+    }
+}
+
+// You get the idea. 
+// But what if multiple files import person.ej? Won't that clash? 
+// No they wont clash actually since they are scoped behind `:= class`. And the naming also wont clash since its scoped.
+// But what about global state? If we wanted a variable/method/class to be global and edited in any file regardless of scope?
+// Well JS already comes with a neat trick for this baked into the language. Because JS was NOT originally made with modules in mind.
+// There is a `globalThis` object in JS runtimes. In easyjs you can hoist onto it via the `global` macro.
+
+// Lets define a global variable for me, Jordan.
+Jordan := Person.new('Jordan', 24)
+global(Jordan)
+// Or with a custom name
+global(Jordan, "some_custom_name")
+
+// The global macro is as follows:
+@macro
+global := fn(ident, custom_key) {
+    fn {
+        k = #ident.to_string()
+        if #custom_key {
+            k = #custom_key
+        }
+        javascript{
+            globalThis[k] = #ident
+        }
+    }
+}
+
+// But then again... easyjs is smart enough to cache the first person := import(). So all good.

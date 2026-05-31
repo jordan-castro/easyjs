@@ -84,7 +84,8 @@ pub const MINUS_EQUALS: &str = "-=";
 pub const SLASH_EQUALS: &str = "/=";
 pub const ASTERISK_EQUALS: &str = "*=";
 pub const SPREAD: &str = "...";
-pub const SCOPE: &str = "::";
+pub const RETURN_TYPE: &str = "::";
+pub const ANNOTATOR: &str = "@";
 
 // Delimiters
 pub const COMMA: &str = ",";
@@ -114,18 +115,13 @@ pub const R_BRACE: &str = "}";
 pub const L_BRACKET: &str = "[";
 pub const R_BRACKET: &str = "]";
 
-pub const MACRO_SYMBOL: &str = "MACRO_SYMBOL";
-// pub const DECORATOR: &str = "DECORATOR";
-
 // Keywords
 pub const FUNCTION: &str = "FUNCTION";
 // pub const USE: &str = "USE";
-pub const STRUCT: &str = "STRUCT";
 pub const TRUE: &str = "TRUE";
 pub const FALSE: &str = "FALSE";
 pub const IF: &str = "IF";
 pub const ELSE: &str = "ELSE";
-pub const ELIF: &str = "ELIF";
 pub const RETURN: &str = "RETURN";
 pub const AS: &str = "AS";
 pub const JAVASCRIPT: &str = "JAVASCRIPT";
@@ -134,34 +130,33 @@ pub const IN: &str = "IN";
 pub const ASYNC: &str = "ASYNC";
 pub const AWAIT: &str = "AWAIT";
 pub const NOT: &str = "NOT";
-// pub const FROM: &str = "FROM";
-pub const SELF: &str = "SELF";
-pub const NATIVE: &str = "NATIVE";
-pub const MACRO: &str = "MACRO";
 pub const IS: &str = "IS";
-// pub const VAR: &str = "VAR";
 pub const PUB: &str = "PUB";
 pub const MATCH: &str = "MATCH";
-pub const WITH: &str = "WITH";
 pub const IMPORT: &str = "IMPORT";
-pub const ENUM: &str = "ENUM";
 pub const BREAK: &str = "BREAK";
 pub const CONTINUE: &str = "CONTINUE";
 pub const NULL: &str = "NULL";
+pub const CLASS: &str = "CLASS";
+pub const THIS: &str = "THIS";
 
-// Builtin methods
-pub const BUILTIN: &str = "BUILTIN";
+// Types
+pub const INT_TYPE: &str = "INT_TYPE";
+pub const FLOAT_TYPE: &str = "FLOAT_TYPE";
+pub const STRING_TYPE: &str = "STRING_TYPE";
+pub const BOOL_TYPE: &str = "BOOL_TYPE";
+pub const NONE_TYPE: &str = "NONE_TYPE";
+pub const ARRAY_TYPE: &str = "ARRAY_TYPE";
+pub const DYNAMIC_TYPE: &str = "DYNAMIC_TYPE";
 
 /// Lookup the ident based on a string
 pub fn lookup_ident(ident: &str) -> &'static str {
     match ident {
         "fn" => FUNCTION,
-        "struct" => STRUCT,
         "true" => TRUE,
         "false" => FALSE,
         "if" => IF,
         "else" => ELSE,
-        "elif" => ELIF,
         "return" => RETURN,
         "as" => AS,
         "javascript" => JAVASCRIPT,
@@ -170,21 +165,24 @@ pub fn lookup_ident(ident: &str) -> &'static str {
         "async" => ASYNC,
         "await" => AWAIT,
         "not" => NOT,
-        "enum" => ENUM,
-        // "from" => FROM,
-        "self" => SELF,
-        "native" => NATIVE,
-        "macro" => MACRO,
         "and" => AND_SYMBOL,
         "or" => OR_SYMBOL,
         "pub" => PUB,
         "is" => IS,
         "import" => IMPORT,
         "match" => MATCH,
-        "with" => WITH,
         "break" => BREAK,
         "continue" => CONTINUE,
         "null" => NULL,
+        "class" => CLASS,
+        "int" => INT_TYPE,
+        "float" => FLOAT_TYPE,
+        "string" => STRING_TYPE,
+        "bool" => BOOL_TYPE,
+        "array" => ARRAY_TYPE,
+        "dyn" => DYNAMIC_TYPE,
+        "none" => NONE_TYPE,
+        "this" => THIS,
         _ => IDENT, // Default case for unknown identifiers
     }
 }
@@ -193,7 +191,7 @@ pub fn lookup_ident(ident: &str) -> &'static str {
 pub fn lookup_colon_special(cs: &str) -> &'static str {
     match cs {
         ":=" => &CONSTANT_ASSIGNMENT,
-        "::" => &SCOPE,
+        "::" => &RETURN_TYPE,
         _ => &COLON,
     }
 }

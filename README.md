@@ -70,13 +70,10 @@ world = "Hello"
 // Type variable mutable
 number : int = 0
 decimal : float = 0.5
-
 // Immutable variables are typed by default.
-// If compiler can not deref type use `as`
-unkown_type_var := some_func() as int
 
 // ================ Functions ================
-sum_numbers := fn(numbers: []int):int {
+sum_numbers := fn(numbers: []int) :: int {
     sum = 0
     for n in numbers {
         sum += n
@@ -86,22 +83,53 @@ sum_numbers := fn(numbers: []int):int {
 
 print(sum_numbers([1,2,3])); // 6
 
+// Import types
+types := import("std.types")
+js := import("std.js")
+
+@macro
+enum := fn(...idents: []types.Ident) :: js.Object {
+    fn {
+        object : js.Object = js.object()
+        for i in idents {
+            object[i.to_string()] = i.to_string()
+        }
+        object
+    }
+}
+
+javascript{
+    let Results = (function() {
+        let object = {};
+        for (let i of [__ej_Ident("Name"), __ej_Ident("Age"), __ej_Ident("Date")]) {
+            object[i.to_string()] = i.to_string();
+        }
+        return object;
+    })();
+}
+
 // ================ Objects ================
 // Defines a Prototype
 Person := class {
-    name: string,
-    age: int,
+    name: string
+    age: int
 
-    // Constructor
-    new := fn(name:string, age:int) {
-        this.name = name
-        this.age = age
+    // Custom constructor
+    new := fn(name:string, age:int) :: Person {
+        Person(name, age + 1)
     }
 
     // Magic '+' overloader
-    __add__ := fn(this, other:Person) -> Person {
+    __add__ := fn(this, other:Person) :: Person {
         Person.new(this.name + other.name, this.age + other.age)
     }
+
+    // You can have enums within a class too. Access it via `Person.job_types.*`
+    job_types := enum(Programmer, Engineer, Deveoper)
+
+    // Assign it to a variable.
+    // Within the class you don't need to add `Person`.
+    job_type : job_types = job_types.Programmer
 }
 
 // Make a new instace of the class
@@ -110,7 +138,8 @@ print(person.name)
 print(person.age)
 
 // ================ Macros ================
-println := macro(name) {
+@macro
+println := fn(name) {
     print(name, "\n")
 }
 
@@ -118,7 +147,7 @@ println(person)
 
 // =============== WASM ===============
 @wasm
-wasm_sum := fn(nums: []int):int {
+wasm_sum := fn(nums: []int) :: int {
     sum = 0
     for n in nums {
         sum += n
@@ -133,13 +162,13 @@ wasm_Person := class {
     name: string,
     age: int,
 
-    new := fn(name: string, age: int) {
+    new := fn(name: string, age: int) :: wasm_Person {
         p = wasm_Person(name, age)
         p
     }
 
     // Magic '-' overloader
-    __sub__ := fn(this, other:wasm_Person) -> wasm_Person {
+    __sub__ := fn(this, other:wasm_Person) :: wasm_Person {
         wasm_Person.new(this.name + other.name, this.age + other.age)
     }
 }
@@ -159,7 +188,7 @@ w_list := [0,1,2]
 
 // =============== Native ===============
 @native
-native_sum := fn(nums: []int):int {
+native_sum := fn(nums: []int) :: int {
     sum = 0
     for n in nums {
         sum += n
@@ -171,7 +200,7 @@ native_sum := fn(nums: []int):int {
 Yes it is that easy!
 
 > [!WARNING]  
-> native compilation won't work in browser targets.
-> native FFI is only supported for nodejs, bun, deno, and yoyo.
-> currently only supporting function callbacks.
-> for other runtimes see [How to implement easyjs ffi in custom runtime](https://) 
+> Native compilation won't work in browser targets.
+> Native FFI is only supported for nodejs, bun, deno, and yoyo.
+> Currently only supporting function callbacks.
+> For other runtimes see [How to implement easyjs ffi in custom runtime](https://) 

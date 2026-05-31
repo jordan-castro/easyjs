@@ -24,8 +24,8 @@ use easyjs_utils::utils::{h::hash_string, js_helpers::is_javascript_keyword};
 use super::import::import_file;
 
 pub struct Transpiler {
-    /// Stmt by Stmt
-    scripts: Vec<String>,
+    /// The generated code
+    code: String,
 
     /// All internal modules/namespaces.
     /// First module is current module.
@@ -34,8 +34,11 @@ pub struct Transpiler {
     /// Keep a list of all scopes the EasyJS code has.
     scopes: Vec<Vec<Variable>>,
 
-    /// Track all native statements
-    native_stmts: Vec<Statement>,
+    /// Track all wasm statements
+    wasm_stmts: Vec<Statement>,
+
+    // TODO: /// Track all native statements
+    // native_stmts: Vec<Statement>,
 
     /// Are we in debug mode?
     pub debug_mode: bool,

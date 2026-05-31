@@ -8,6 +8,13 @@
 - Add operator macros.
 - Typing
 - easyjsc tests
+- remove `self` keep it as `this`
+- remove raw objects. `{}`. All objects must be created via class instances.
+- remove `enum` keyword. Make it a macro.
+- add compiler annotations via `@`
+
+## v.0.6.0
+- Add compiletime logic for iife blocks. The idea is to try and inline as much as possible.
 
 ## Compiler (2js)
 - v0.6 Add benchmarks for:

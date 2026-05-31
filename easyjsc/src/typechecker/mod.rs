@@ -1,6 +1,6 @@
 use wasm_encoder::ValType;
 
-use crate::parser::ast::Expression;
+use crate::{lexer::token::Token, parser::ast::{self, Expression}};
 
 /// = Native::i32
 pub const I32_TYPE_IDX: i32 = 0;
@@ -14,21 +14,23 @@ pub const ARRAY_TYPE_IDX: i32 = 3;
 /// A Type Value.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum StrongValType {
-    /// any/unknown/void
+    /// void
     None, 
-    /// js: Number, native: i32
+    /// js: Number, wasm: i32
     Int,
-    /// js: Number, native: f32
+    /// js: Number, wasm: f32
     Float,
-    /// js: bool, native: i32
+    /// js: bool, wasm: i32
     Bool,
     /// Custom schema type. TODO
     Custom,
     NotSupported, // i.e. THROW AN ERROR
-    /// js: string, native: i32 (pointer to string in memory)
+    /// js: string, wasm: i32 (pointer to string in memory)
     String,
-    /// js: Array, native: i32 (pointer to array in memory)
+    /// js: Array, wasm: i32 (pointer to array in memory)
     Array,
+    /// js: dynamic, wasm: i32. This is also the default type.
+    Dynamic
 }
 
 /// String representation of type
