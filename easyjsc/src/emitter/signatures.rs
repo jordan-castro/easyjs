@@ -3,7 +3,7 @@ use wasm_encoder::{
     CodeSection, ConstExpr, Function, FunctionSection, Instruction, Module, TypeSection, ValType
 };
 
-use crate::typechecker::StrongValType;
+use crate::typechecker::EJType;
 
 /// A function that is represented only via instructions (not via easyjs code.)
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -29,7 +29,7 @@ pub struct EasyNativeVar {
     /// The value of the variable (this is only used for global variables)
     pub value: ConstExpr, 
     /// The type of the variable
-    pub val_type: StrongValType,
+    pub val_type: EJType,
     /// Is the variable mutable?
     pub is_mut: bool
 }
@@ -41,7 +41,7 @@ pub struct EasyNativeBlock {
     /// The block type as a `ValType`
     pub block_type: Option<ValType>,
     /// The `StrongValType` equivalent of block_type
-    pub strong_block_type: StrongValType
+    pub strong_block_type: EJType
 }
 
 /// A signature for a function.
@@ -53,8 +53,8 @@ pub struct EasyNativeBlock {
 pub struct FunctionSignature {
     pub params: Vec<ValType>,
     pub results: Vec<ValType>,
-    pub param_strong: Vec<StrongValType>, 
-    pub results_strong: Vec<StrongValType>,
+    pub param_strong: Vec<EJType>, 
+    pub results_strong: Vec<EJType>,
 }
 
 /// Used to create the registry for functions.
@@ -66,7 +66,7 @@ struct TypeRegistry {
     lookup: HashMap<FunctionSignature, u32>,
     name_lookup: HashMap<String, u32>,
     type_lookup: HashMap<u32, Option<ValType>>,
-    strong_type_lookup: HashMap<u32, StrongValType>,
+    strong_type_lookup: HashMap<u32, EJType>,
 }
 
 /// Create the type section of our wasm module.
@@ -123,7 +123,7 @@ impl TypeRegistry {
     }
 
     /// Get the strong return type of a function.
-    fn get_strong_return_type_of(&self, name: String) -> Option<StrongValType> {
+    fn get_strong_return_type_of(&self, name: String) -> Option<EJType> {
         let idx = self.name_lookup.get(&name);
         if let Some(idx) = idx {
             Some(self.strong_type_lookup.get(idx).unwrap().clone())

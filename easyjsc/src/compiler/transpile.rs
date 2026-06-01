@@ -10,13 +10,13 @@ use super::native::compile_native;
 use crate::builtins;
 use crate::compiler::namespaces::{EJEnum, Function, Namespace, Struct, Variable};
 use crate::compiler::runes::RuneParser;
-// use crate::interpreter::{interpret_js, is_javascript_var_defined};
+// use crate :: interpreter:: {interpret_js, is_javascript_var_defined} ;
 use crate::lexer::lex::{self, ALLOWED_IN_IDENT};
 use crate::lexer::token;
 use crate::parser::ast::{Expression, Statement};
 use crate::parser::{ast, par};
 use crate::typechecker::{
-    StrongValType, get_param_type_by_named_expression, get_param_type_by_string,
+    EJType, get_param_type_by_named_expression, get_param_type_by_string,
     get_param_type_by_string_ej, get_string_rep_of_type,
 };
 use easyjs_utils::utils::{h::hash_string, js_helpers::is_javascript_keyword};
@@ -26,10 +26,6 @@ use super::import::import_file;
 pub struct Transpiler {
     /// The generated code
     code: String,
-
-    /// All internal modules/namespaces.
-    /// First module is current module.
-    pub modules: Vec<Namespace>,
 
     /// Keep a list of all scopes the EasyJS code has.
     scopes: Vec<Vec<Variable>>,
@@ -46,7 +42,7 @@ pub struct Transpiler {
     /// Is this being compiled as a module
     is_module: bool,
 
-    /// Custom libraries
+    /// Custom libraries that will be compiled together as STD.
     custom_libs: HashMap<String, String>,
 
     /// Add STD?
@@ -69,14 +65,13 @@ fn save_wasm_bin(wasm_bin: &Vec<u8>) {
 impl Transpiler {
     pub fn new() -> Self {
         let mut t = Transpiler {
-            scripts: vec![],
-            modules: vec![Namespace::new("".to_string(), "".to_string())],
             scopes: vec![],
-            native_stmts: vec![],
             debug_mode: false,
             is_module: false,
             custom_libs: HashMap::new(),
             add_std: true,
+            code: String::new(),
+            wasm_stmts: vec![],
         };
 
         // Check the EASYJS_DEBUG variable
@@ -94,16 +89,6 @@ impl Transpiler {
         let mut t = Transpiler::new();
         t.add_std = false;
         t
-    }
-
-    /// Get current namespace
-    fn namespace(&self) -> &Namespace {
-        self.modules.get(0).unwrap()
-    }
-
-    /// Get current namespace but mutable
-    fn namespace_mut(&mut self) -> &mut Namespace {
-        self.modules.get_mut(0).unwrap()
     }
 
     /// Create a transpiler with custom libs
@@ -227,66 +212,61 @@ impl Transpiler {
         }
     }
 
-    pub fn reset(&mut self) {
-        self.scripts = vec![];
-    }
+    // /// Transpile a module.
+    // pub fn transpile_module(
+    //     &mut self,
+    //     file_name: &str,
+    //     p: ast::Program,
+    // ) -> String {
+    //     let mut t = Transpiler::without_std();
+    //     t.is_module = true;
+    //     t.namespace_mut().id = file_name.to_string();
+    //     if let Some(alias) = alias {
+    //         t.namespace_mut().alias = alias;
+    //     }
 
-    /// Transpile a module.
-    pub fn transpile_module(
-        &mut self,
-        file_name: &str,
-        p: ast::Program,
-        alias: Option<String>,
-    ) -> String {
-        let mut t = Transpiler::without_std();
-        t.is_module = true;
-        t.namespace_mut().id = file_name.to_string();
-        if let Some(alias) = alias {
-            t.namespace_mut().alias = alias;
-        }
+    //     let nmsp = t.namespace().clone();
 
-        let nmsp = t.namespace().clone();
+    //     // Add the current modules that exist.
+    //     t.modules = self.modules.clone();
+    //     t.modules.insert(0, nmsp);
 
-        // Add the current modules that exist.
-        t.modules = self.modules.clone();
-        t.modules.insert(0, nmsp);
+    //     // Transpile the code now.
+    //     let js = t.transpile(p);
 
-        // Transpile the code now.
-        let js = t.transpile(p);
+    //     // Add the namespace to our modules
+    //     self.modules.push(t.namespace().clone());
+    //     // // Add internal modules too
+    //     // for module in t.modules.iter() {
+    //     //     if self.modules.iter_mut().any(|m| m.id == module.id) {
+    //     //         continue;
+    //     //     } else {
+    //     //         self.modules.push(module.clone());
+    //     //     }
+    //     // }
 
-        // Add the namespace to our modules
-        self.modules.push(t.namespace().clone());
-        // // Add internal modules too
-        // for module in t.modules.iter() {
-        //     if self.modules.iter_mut().any(|m| m.id == module.id) {
-        //         continue;
-        //     } else {
-        //         self.modules.push(module.clone());
-        //     }
-        // }
+    //     if t.native_stmts.len() > 0 {
+    //         // extend native_stmts
+    //         let mut new_native_stmts = t.native_stmts.clone();
+    //         new_native_stmts.extend(self.native_stmts.clone());
+    //         self.native_stmts = new_native_stmts;
 
-        if t.native_stmts.len() > 0 {
-            // extend native_stmts
-            let mut new_native_stmts = t.native_stmts.clone();
-            new_native_stmts.extend(self.native_stmts.clone());
-            self.native_stmts = new_native_stmts;
+    //         // also extend native_ctx
+    //         let n = t.namespace().clone();
+    //         // This will always go to the global scope ma G.
+    //         self.namespace_mut()
+    //             .native_ctx
+    //             .functions
+    //             .extend(n.native_ctx.functions);
+    //         self.namespace_mut()
+    //             .native_ctx
+    //             .variables
+    //             .extend(n.native_ctx.variables);
+    //     }
 
-            // also extend native_ctx
-            let n = t.namespace().clone();
-            // This will always go to the global scope ma G.
-            self.namespace_mut()
-                .native_ctx
-                .functions
-                .extend(n.native_ctx.functions);
-            self.namespace_mut()
-                .native_ctx
-                .variables
-                .extend(n.native_ctx.variables);
-        }
-
-        // return JS code
-        js
-    }
+    //     // return JS code
+    //     js
+    // }
 
     /// Add a new scope
     fn add_scope(&mut self) {
@@ -298,22 +278,22 @@ impl Transpiler {
         self.scopes.pop();
     }
 
-    /// Convert transpiled JS into a string.
-    fn to_string(&mut self) -> String {
-        let mut res = String::new();
+    // /// Convert transpiled JS into a string.
+    // fn to_string(&mut self) -> String {
+    //     let mut res = String::new();
 
-        // Only compile the native statments if we are not in a module and there are any.
-        if !self.is_module && self.native_stmts.len() > 0 {
-            // compiile native
-            res.push_str(&self.transpile_native_stmts());
-        }
+    //     // Only compile the native statments if we are not in a module and there are any.
+    //     if !self.is_module && self.native_stmts.len() > 0 {
+    //         // compiile native
+    //         res.push_str(&self.transpile_native_stmts());
+    //     }
 
-        for script in self.scripts.iter() {
-            res.push_str(&script);
-        }
+    //     for script in self.scripts.iter() {
+    //         res.push_str(&script);
+    //     }
 
-        res
-    }
+    //     res
+    // }
 
     /// Transpile easyjs code into JS from a string input.
     pub fn transpile_from_string(&mut self, p: String) -> String {
@@ -332,96 +312,118 @@ impl Transpiler {
 
     /// Transpile easyjs code into JS from a ast program.
     fn transpile_from(&mut self, p: ast::Program) -> String {
-        // // Add native import stmts...
-        // // import nat/mem.ej
-        // // import nat/strings.ej
-        // // import nat/arrays.ej
-        // let mut p = p.clone();
+        // TODO: 1st pass (define types and names)
+        if !self.first_pass(&p.statements) {
+            return "".to_string();
+        }
 
-        // let imports_to_add = [
-        //     "nat/mem"
-        // ];
-        // for i in 0..imports_to_add.len() {
-        //     let element = Statement::ImportStatement(
-        //         token::new_token(
-        //             token::IMPORT,
-        //             "import",
-        //             "",
-        //             i as i32,
-        //             -1),
-        //         String::from(imports_to_add[i]),
-        //         None);
-        //     p.statements.insert(i, element);
+        // 2nd pass
+        // transpile JS statements..
+        for stmt in p.statements.iter() {
+            let script = self.transpile_stmt(stmt);
+            if let Some(script) = script {
+                self.code.push_str(&script);
+            }
+        }
+
+        // 3: If any `wasm` code, add it to the top
+        // let wasm_code = self.transpile_wasm();
+
+        // 4: If any `native` code, add it to the top.
+
+        // for stmt in p.statements {
+            // if stmt.is_empty() {
+                // return "".to_string();
+            // }
+
+            // self.
+            // if let Some(result) =  self.transpile_stmt(stmt) {
+                // self.code.push_str(&result);
+            // }
+        // }
+        // // seperate stmt types
+        // let mut native_stmts = p
+        //     .statements
+        //     .iter()
+        //     .filter(|p| p.is_native())
+        //     .collect::<Vec<_>>();
+        // let mut statements = p
+        //     .statements
+        //     .iter()
+        //     .filter(|p| !p.is_native())
+        //     .collect::<Vec<_>>();
+
+        // // compile native stmts first
+        // for stmt in native_stmts {
+        //     if stmt.is_empty() {
+        //         continue;
+        //     }
+
+        //     // get the stmts inside of Native
+        //     match stmt {
+        //         Statement::NativeStatement(_, stmts) => {
+        //             // loop through body
+        //             for stmt in stmts.as_ref() {
+        //                 // add to native_stmts
+        //                 self.native_stmts.push(stmt.clone());
+
+        //                 // add to context
+        //                 self.add_stmt_to_native_ctx(&stmt.clone(), false);
+        //             }
+        //         }
+        //         _ => {
+        //             unimplemented!("TODO: error for not being a NativeStatement");
+        //         }
+        //     }
         // }
 
-        // seperate stmt types
-        let mut native_stmts = p
-            .statements
-            .iter()
-            .filter(|p| p.is_native())
-            .collect::<Vec<_>>();
-        let mut statements = p
-            .statements
-            .iter()
-            .filter(|p| !p.is_native())
-            .collect::<Vec<_>>();
+        // // if std
+        // let import_token = token::new_token(token::IMPORT, "import", "", 1, 1);
+        // let import_stmt = Statement::ImportStatement(
+        //     import_token,
+        //     String::from("std"),
+        //     Some(Expression::Identifier(
+        //         token::EMPTY_TOKEN,
+        //         String::from("_"),
+        //     )),
+        // );
 
-        // compile native stmts first
-        for stmt in native_stmts {
+        // if self.add_std {
+        //     statements.insert(0, &import_stmt);
+        // } else {
+        //     // We won't need it, so just drop the memory.
+        //     drop(import_stmt);
+        // }
+
+        self.code
+    }
+    
+    /// Handle the first pass. Define types basically.
+    fn first_pass(&mut self, stmts: &Vec<ast::Statement>) -> bool {
+        for stmt in stmts {
             if stmt.is_empty() {
-                continue;
+                return false;
             }
 
-            // get the stmts inside of Native
             match stmt {
-                Statement::NativeStatement(_, stmts) => {
-                    // loop through body
-                    for stmt in stmts.as_ref() {
-                        // add to native_stmts
-                        self.native_stmts.push(stmt.clone());
-
-                        // add to context
-                        self.add_stmt_to_native_ctx(&stmt.clone(), false);
-                    }
-                }
-                _ => {
-                    unimplemented!("TODO: error for not being a NativeStatement");
-                }
+                Statement::VariableStatement(token, expression, expression1, expression2) => todo!(),
+                Statement::ConstVariableStatement(token, expression, expression1, expression2) => todo!(),
+                Statement::BlockStatement(token, statements) => {
+                    self.first_pass(statements);
+                },
+                Statement::ForStatement(token, expression, statement) => {
+                    self.first_pass(&vec![statement.as_ref().clone()]);
+                },
+                Statement::AsyncBlockStatement(token, statement) => {
+                    self.first_pass(&vec![statement.as_ref().clone()]);
+                },
+                Statement::AnnotationStatement(token, _, statement) => {
+                    self.first_pass(&vec![statement.as_ref().clone()]);
+                },
+                _ => {},
             }
         }
-
-        // if std
-        let import_token = token::new_token(token::IMPORT, "import", "", 1, 1);
-        let import_stmt = Statement::ImportStatement(
-            import_token,
-            String::from("std"),
-            Some(Expression::Identifier(
-                token::EMPTY_TOKEN,
-                String::from("_"),
-            )),
-        );
-
-        if self.add_std {
-            statements.insert(0, &import_stmt);
-        } else {
-            // We won't need it, so just drop the memory.
-            drop(import_stmt);
-        }
-
-        // transpile JS statements..
-        for stmt in statements {
-            if stmt.is_empty() {
-                continue;
-            }
-
-            let script = self.transpile_stmt(stmt.to_owned());
-            if let Some(script) = script {
-                // add to context
-                // let _ = interpret_js(&script, &mut self.context);
-                self.scripts.push(script);
-            }
-        }
-        self.to_string()
+        true
     }
 
     fn transpile_stmt(&mut self, stmt: ast::Statement) -> Option<String> {
@@ -437,9 +439,6 @@ impl Transpiler {
             ast::Statement::ReturnStatement(token, expression) => {
                 Some(self.transpile_return_stmt(token, expression.as_ref().to_owned()))
             }
-            ast::Statement::ImportStatement(_token, file_path, alias) => {
-                Some(self.transpile_import_stmt(&file_path, alias))
-            }
             ast::Statement::ExpressionStatement(token, expression) => {
                 Some(self.transpile_expression_stmt(token, expression.as_ref().to_owned()))
             }
@@ -454,23 +453,6 @@ impl Transpiler {
             ast::Statement::JavaScriptStatement(token, js) => {
                 Some(self.transpile_javascript_stmt(token, js))
             }
-            ast::Statement::StructStatement(
-                token,
-                name,
-                constructor_vars,
-                mixins,
-                vars,
-                methods,
-            ) => Some(self.transpile_struct_stmt(
-                name.as_ref().to_owned(),
-                constructor_vars,
-                mixins,
-                vars.as_ref().to_owned(),
-                methods.as_ref().to_owned(),
-            )),
-            // Statement::ExportStatement(token, stmt) => {
-            //     self.transpile_stmt(stmt.as_ref().to_owned())
-            // }
             Statement::AsyncBlockStatement(tk, block) => {
                 Some(self.transpile_async_block_stmt(tk, block.as_ref().to_owned()))
             }
@@ -479,19 +461,8 @@ impl Transpiler {
                 expr.as_ref().to_owned(),
                 conditions.as_ref().to_owned(),
             )),
-            Statement::EnumStatement(tk, name, options) => {
-                Some(self.transpile_enum_stmt(&name, options.as_ref()))
-            }
             Statement::BreakStatement(tk) => Some("break".to_string()),
             Statement::ContinueStatement(tk) => Some("continue".to_string()),
-            Statement::MacroStatement(_, name, paramaters, body, is_hygenic) => {
-                let macro_name = self.mutate_name(name.as_ref());
-                let macro_params = paramaters.as_ref().to_owned();
-                let macro_body = body.as_ref().to_owned();
-
-                self.add_macro_function(macro_name, macro_params, macro_body);
-                Some(String::from(""))
-            }
             _ => None,
         }
     }
@@ -698,7 +669,7 @@ impl Transpiler {
 
         if !found {
             // check for type
-            let mut val_type: StrongValType = StrongValType::None;
+            let mut val_type: EJType = EJType::None;
             // transpile
             let type_name = self.transpile_expression(ej_type);
             val_type = get_param_type_by_string_ej(&type_name);
@@ -919,7 +890,7 @@ impl Transpiler {
                 //     res.push_str(format!("{}.{} = {};\n", struct_name, name, value).as_str());
                 // }
                 ast::Statement::VariableStatement(_, name, _, value) => {
-                    let mut val_type = StrongValType::None;
+                    let mut val_type = EJType::None;
 
                     match name.as_ref() {
                         Expression::IdentifierWithType(_, _, var_type) => {
@@ -1814,9 +1785,9 @@ impl Transpiler {
     fn transpile_function_paramater(
         &mut self,
         paramater: &Expression,
-    ) -> (String, StrongValType, String) {
+    ) -> (String, EJType, String) {
         let mut ident = String::new();
-        let mut val_type: StrongValType = StrongValType::None;
+        let mut val_type: EJType = EJType::None;
         let mut default_value = String::new();
 
         match paramater {

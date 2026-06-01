@@ -89,13 +89,11 @@ js := import("std.js")
 
 @macro
 enum := fn(...idents: []types.Ident) :: js.Object {
-    fn {
-        object : js.Object = js.object()
-        for i in idents {
-            object[i.to_string()] = i.to_string()
-        }
-        object
+    object : js.Object = js.object()
+    for i in idents {
+        object[i.to_string()] = i.to_string()
     }
+    object
 }
 
 javascript{
@@ -146,7 +144,7 @@ println := fn(name) {
 println(person)
 
 // =============== WASM ===============
-@wasm
+@wasm 
 wasm_sum := fn(nums: []int) :: int {
     sum = 0
     for n in nums {
@@ -178,7 +176,7 @@ wperson := wasm_Person.new("Evelyn", 21)
 print(wperson.name)
 print(wperson.age)
 
-// wasm supports (int, float, string, list, class)
+// wasm supports (int, float, string, array, class)
 @wasm
 w_float := 1.0
 @wasm

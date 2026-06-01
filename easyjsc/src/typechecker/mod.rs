@@ -13,7 +13,7 @@ pub const ARRAY_TYPE_IDX: i32 = 3;
 
 /// A Type Value.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum StrongValType {
+pub enum EJType {
     /// void
     None, 
     /// js: Number, wasm: i32
@@ -30,69 +30,69 @@ pub enum StrongValType {
     /// js: Array, wasm: i32 (pointer to array in memory)
     Array,
     /// js: dynamic, wasm: i32. This is also the default type.
-    Dynamic
+    Dynamic,
 }
 
 /// String representation of type
 /// 
 /// This is most useful for Native. I don't see a reason to use this in non native?
-pub fn get_string_rep_of_type(strong: &StrongValType) -> String {
+pub fn get_string_rep_of_type(strong: &EJType) -> String {
     match strong {
-        StrongValType::Bool => "bool",
-        StrongValType::Float => "float",
-        StrongValType::String => "string",
-        StrongValType::Int => "int",
-        StrongValType::Array => "array",
+        EJType::Bool => "bool",
+        EJType::Float => "float",
+        EJType::String => "string",
+        EJType::Int => "int",
+        EJType::Array => "array",
         _ => "" // ?
     }.to_string()
 }
 
 /// Get the param type for native context.
-pub fn get_param_type_by_string(string: &str) -> StrongValType {
+pub fn get_param_type_by_string(string: &str) -> EJType {
     match string {
-        "int" => StrongValType::Int,
-        "bool" => StrongValType::Bool,
-        "float" => StrongValType::Float,
-        "string" => StrongValType::String,
-        "array" => StrongValType::Array,
-        "" => StrongValType::None,
-        "none" => StrongValType::None,
-        _ => StrongValType::NotSupported,
+        "int" => EJType::Int,
+        "bool" => EJType::Bool,
+        "float" => EJType::Float,
+        "string" => EJType::String,
+        "array" => EJType::Array,
+        "" => EJType::None,
+        "none" => EJType::None,
+        _ => EJType::NotSupported,
     }
 }
 
 /// Get the param type for easyjs context.
-pub fn get_param_type_by_string_ej(string: &str) -> StrongValType {
+pub fn get_param_type_by_string_ej(string: &str) -> EJType {
     let result = get_param_type_by_string(string);
-    if result == StrongValType::NotSupported {
-        StrongValType::None
+    if result == EJType::NotSupported {
+        EJType::None
     } else {
         result
     }
 }
 
 /// Get a param type by named expression
-pub fn get_param_type_by_named_expression(param: Expression) -> StrongValType {
+pub fn get_param_type_by_named_expression(param: Expression) -> EJType {
     match param {
         Expression::Type(tk, name) => get_param_type_by_string(&name),
         Expression::IdentifierWithType(tk, _, var_type) => {
             get_param_type_by_named_expression(var_type.as_ref().to_owned())
         }
-        _ => StrongValType::NotSupported,
+        _ => EJType::NotSupported,
     }
 }
 
 /// Get the ValType from a strong.
 /// 
 /// Only works in Native contextx.
-pub fn get_val_type_from_strong(strong: &StrongValType) -> Option<ValType> {
+pub fn get_val_type_from_strong(strong: &EJType) -> Option<ValType> {
     match strong {
-        StrongValType::Int => Some(ValType::I32),
-        StrongValType::Float => Some(ValType::F32),
-        StrongValType::Bool => Some(ValType::I32),
-        StrongValType::String => Some(ValType::I32),
-        StrongValType::Array => Some(ValType::I32),
-        StrongValType::None => Some(ValType::I32),
+        EJType::Int => Some(ValType::I32),
+        EJType::Float => Some(ValType::F32),
+        EJType::Bool => Some(ValType::I32),
+        EJType::String => Some(ValType::I32),
+        EJType::Array => Some(ValType::I32),
+        EJType::None => Some(ValType::I32),
         // TODO: Implement StrongValType::None
         _ => None,
     }

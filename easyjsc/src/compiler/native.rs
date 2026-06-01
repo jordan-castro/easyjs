@@ -28,7 +28,7 @@ use crate::{
     lexer::token::{self, Token},
     parser::ast::{Expression, Statement},
     typechecker::{
-        I32_TYPE_IDX, StrongValType, get_param_type_by_named_expression, get_param_type_by_string,
+        I32_TYPE_IDX, EJType, get_param_type_by_named_expression, get_param_type_by_string,
         get_val_type_from_strong,
     },
 };
@@ -592,19 +592,19 @@ impl NativeContext {
                 // if left is int and right is float: use f32Add
                 // hierarchy: f64 > f32 > i64 > i32
                 let instruction_type = match (&left_type, &right_type) {
-                    (StrongValType::Int, StrongValType::Int) => "int",
-                    (StrongValType::Int, StrongValType::Float) => "int",
-                    (StrongValType::Float, StrongValType::Float) => "float",
-                    (StrongValType::Float, StrongValType::Int) => "float",
-                    (StrongValType::String, StrongValType::String) => "string",
-                    (StrongValType::Bool, StrongValType::Bool) => "int",
-                    (StrongValType::Int, StrongValType::Bool) => "int",
-                    (StrongValType::Bool, StrongValType::Int) => "int",
-                    (StrongValType::Array, StrongValType::Int) => "array-int",
-                    (StrongValType::Array, StrongValType::Float) => "array-float",
-                    (StrongValType::Array, StrongValType::String) => "array-string",
-                    (StrongValType::Array, StrongValType::Array) => "array",
-                    (StrongValType::Array, StrongValType::Bool) => "array-bool",
+                    (EJType::Int, EJType::Int) => "int",
+                    (EJType::Int, EJType::Float) => "int",
+                    (EJType::Float, EJType::Float) => "float",
+                    (EJType::Float, EJType::Int) => "float",
+                    (EJType::String, EJType::String) => "string",
+                    (EJType::Bool, EJType::Bool) => "int",
+                    (EJType::Int, EJType::Bool) => "int",
+                    (EJType::Bool, EJType::Int) => "int",
+                    (EJType::Array, EJType::Int) => "array-int",
+                    (EJType::Array, EJType::Float) => "array-float",
+                    (EJType::Array, EJType::String) => "array-string",
+                    (EJType::Array, EJType::Array) => "array",
+                    (EJType::Array, EJType::Bool) => "array-bool",
                     (_, _) => {
                         self.errors.push(native_unsupported_operation(
                             expr.get_token(),
@@ -794,7 +794,7 @@ impl NativeContext {
                     idx: string_var_idx,
                     is_global: false,
                     value: ConstExpr::empty(),
-                    val_type: StrongValType::String,
+                    val_type: EJType::String,
                     is_mut: true,
                 });
                 self.set_local_string(string_var_idx, literal.to_owned())
@@ -811,10 +811,10 @@ impl NativeContext {
                 instructions.append(&mut self.compile_expression(left));
 
                 match left_type {
-                    StrongValType::String => {
+                    EJType::String => {
                         instructions.append(&mut self.compile_expression(index));
                         match index_type {
-                            StrongValType::Int => {
+                            EJType::Int => {
                                 // Call __str_index
                                 instructions.push(self.call_builtin(STR_INDEX_NAME))
                             }
@@ -823,10 +823,10 @@ impl NativeContext {
                                 .push(native_unsupported_index_expression(index.get_token())),
                         }
                     }
-                    StrongValType::Array => {
+                    EJType::Array => {
                         instructions.append(&mut self.compile_expression(index));
                         match index_type {
-                            StrongValType::Int => {
+                            EJType::Int => {
                                 // Call __arr_get_item
                                 instructions.push(self.call_builtin(ARR_GET_ITEM_NAME))
                                 // instructions.push(Instruction::Call(ARR_GET_ITEM_IDX));
@@ -975,7 +975,7 @@ impl NativeContext {
                     idx: array_var_idx,
                     is_global: false,
                     value: ConstExpr::empty(),
-                    val_type: StrongValType::Array,
+                    val_type: EJType::Array,
                     is_mut: true,
                 });
                 let items = items.as_ref();
@@ -1064,7 +1064,7 @@ impl NativeContext {
         let param_types = params
             .iter()
             .map(|p| self.get_val_type_from_expression(p))
-            .collect::<Vec<StrongValType>>();
+            .collect::<Vec<EJType>>();
         let param_val_types = param_types
             .iter()
             .filter_map(|v| get_val_type_from_strong(v))
@@ -1129,7 +1129,7 @@ impl NativeContext {
 
         let mut instructions = self.instructions.get_mut(&self.next_fn_idx).unwrap();
         // Check if return_type is None (i.e. void) so we can add a return 0
-        if return_type == StrongValType::None {
+        if return_type == EJType::None {
             instructions.append(&mut vec![Instruction::I32Const(0), Instruction::Return])
         }
 
@@ -1145,7 +1145,7 @@ impl NativeContext {
         let variable_types = variables
             .iter()
             .map(|v| v.val_type.clone())
-            .collect::<Vec<StrongValType>>();
+            .collect::<Vec<EJType>>();
         let variable_val_types = variable_types
             .iter()
             .filter_map(|v| get_val_type_from_strong(v))
@@ -1240,11 +1240,11 @@ impl NativeContext {
     /// - function calls (the arguments with types)
     /// - prefix expressions
     ///
-    fn get_val_type_from_expression(&mut self, expr: &Expression) -> StrongValType {
+    fn get_val_type_from_expression(&mut self, expr: &Expression) -> EJType {
         match expr {
             Expression::Identifier(tk, name) => {
                 let res = get_param_type_by_string(name);
-                if res == StrongValType::NotSupported {
+                if res == EJType::NotSupported {
                     // Try to infer from variables
                     for scope in self.variable_scope.iter().rev() {
                         for variable in scope {
@@ -1263,7 +1263,7 @@ impl NativeContext {
                     // If we get this far we could not infer
                     self.errors
                         .push(native_can_not_get_value_from_expression(tk));
-                    StrongValType::NotSupported
+                    EJType::NotSupported
                 } else {
                     res
                 }
@@ -1284,20 +1284,20 @@ impl NativeContext {
                 //     self.get_val_type_from_expression(val_type.clone().unwrap().as_ref())
                 // }
             }
-            Expression::StringLiteral(tk, literal) => StrongValType::String,
-            Expression::IntegerLiteral(tk, literal) => StrongValType::Int,
+            Expression::StringLiteral(tk, literal) => EJType::String,
+            Expression::IntegerLiteral(tk, literal) => EJType::Int,
             Expression::PrefixExpression(tk, prefix, expression) => {
                 self.get_val_type_from_expression(expression)
             }
             Expression::IndexExpression(tk, source, index) => {
                 self.get_val_type_from_expression(source)
             }
-            Expression::Boolean(_, _) => StrongValType::Bool,
+            Expression::Boolean(_, _) => EJType::Bool,
             Expression::InfixExpression(tk, left, infix, right) => {
                 self.get_val_type_from_expression(left)
             }
-            Expression::FloatLiteral(tk, literal) => StrongValType::Float,
-            Expression::ArrayLiteral(_, _) => StrongValType::Array,
+            Expression::FloatLiteral(tk, literal) => EJType::Float,
+            Expression::ArrayLiteral(_, _) => EJType::Array,
             Expression::CallExpression(_, method, _) => {
                 self.get_val_type_from_expression(method)
             }
@@ -1305,15 +1305,15 @@ impl NativeContext {
                 // add error
                 self.errors
                     .push(native_can_not_get_value_from_expression(expr.get_token()));
-                StrongValType::NotSupported
+                EJType::NotSupported
             }
         }
     }
 
     /// Get the type of a variable / literal from a instruction
-    fn get_val_type_from_instruction(&self, instruction: &Instruction) -> StrongValType {
+    fn get_val_type_from_instruction(&self, instruction: &Instruction) -> EJType {
         match instruction {
-            Instruction::I32Const(_) => StrongValType::Int,
+            Instruction::I32Const(_) => EJType::Int,
             Instruction::LocalGet(idx) => {
                 // find the variable type in scopes
                 for variable in self.variable_scope.get(1).unwrap() {
@@ -1321,7 +1321,7 @@ impl NativeContext {
                         return variable.val_type.clone();
                     }
                 }
-                StrongValType::NotSupported
+                EJType::NotSupported
             }
             Instruction::GlobalGet(idx) => {
                 for variable in self.variable_scope.get(0).unwrap() {
@@ -1330,7 +1330,7 @@ impl NativeContext {
                     }
                 }
 
-                StrongValType::NotSupported
+                EJType::NotSupported
             }
             Instruction::Call(idx) => {
                 // find the function type
@@ -1339,12 +1339,12 @@ impl NativeContext {
                         return function.signature.results_strong[0].clone();
                     }
                 }
-                StrongValType::NotSupported
+                EJType::NotSupported
             }
             // Instruction::I64Const(_) => StrongValType::Long,
-            Instruction::F32Const(_) => StrongValType::Float,
+            Instruction::F32Const(_) => EJType::Float,
             // Instruction::F64Const(_) => StrongValType::Double,
-            _ => StrongValType::NotSupported,
+            _ => EJType::NotSupported,
         }
     }
 
@@ -1390,16 +1390,16 @@ impl NativeContext {
             Statement::ReturnStatement(_, expr) => {
                 let strong_val_type = self.get_val_type_from_expression(expr);
                 match strong_val_type {
-                    StrongValType::Bool => {
+                    EJType::Bool => {
                         new_block_type = Some(ValType::I32);
                     }
-                    StrongValType::Float => {
+                    EJType::Float => {
                         new_block_type = Some(ValType::F32);
                     }
-                    StrongValType::Int => {
+                    EJType::Int => {
                         new_block_type = Some(ValType::I32);
                     }
-                    StrongValType::String => {
+                    EJType::String => {
                         new_block_type = Some(ValType::I32);
                     }
                     _ => {}
