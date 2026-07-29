@@ -1,36 +1,8 @@
-struct Person[
-    name, 
-    age
-] {
-    fn set_name(self, new_name) {
-        self.name = new_name
-    }
-
-    /// gets the name. // <-- doc comments with '///'
-    fn get_name(self) {
-        return self.name
-    }
-
-    // this is a static method because it does not have self as a paramater.
-    fn static_method() {
-        console.log("This is a static method")
-    }
+// This is a module
+pub M := class {
+    
 }
-// A mixin is just another struct
-struct GreetMixin {
-    fn say_hi(self) {
-        console.log("Hello, my name is ${self.name}")
-    }
+
+pub add := fn(c1, c2) {
+    return 
 }
-// Structs can be with dedicated methods or just simple data containers
-struct PersonData[
-    name,
-    age,
-    diary
-] {} // <--a struct that accepts name, age, and diary.
-
-// To instantiate a Person
-person = Person("Jordan", 24, ["Dear Diary", "I love Julia!", "I also love EasyJS!"])
-
-// To instantiate a PersonData
-person_data = PersonData("Evelyn", 20, ["Dear Diary", "I saw that Jordan loves a girl named Julia!", "Who is she???"])
